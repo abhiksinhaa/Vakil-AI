@@ -57,8 +57,8 @@ export default function DraftPreview({
 
         {error && !isGenerating && (
           <div className="flex flex-col items-center justify-center h-full min-h-[280px] gap-4 text-center px-4">
-            <p className="text-red-400/90 text-sm">
-              Draft generate nahi hua. Dobara try karo.
+            <p className="text-red-400/90 text-sm max-w-md">
+              {typeof error === 'string' ? error : 'Draft generate nahi hua. Dobara try karo.'}
             </p>
             {onRetry && (
               <button type="button" onClick={onRetry} className="btn-primary text-sm">

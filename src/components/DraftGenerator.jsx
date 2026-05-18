@@ -41,7 +41,7 @@ export default function DraftGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(null);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -61,7 +61,7 @@ export default function DraftGenerator() {
     }
 
     setIsGenerating(true);
-    setError(false);
+    setError(null);
     setSaveSuccess(false);
 
     try {
@@ -70,8 +70,8 @@ export default function DraftGenerator() {
         responseTime: getResponseTime(),
       });
       setDraft(text);
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError(err.message || 'Draft generate nahi hua. Dobara try karo.');
     } finally {
       setIsGenerating(false);
     }

@@ -14,11 +14,6 @@ export async function generateLegalDraft(formData) {
     language,
   } = formData;
 
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('Gemini API key missing. Set VITE_GEMINI_API_KEY in .env');
-  }
-
   const systemPrompt = `You are an expert Indian lawyer with 20+ years of experience drafting legal documents. You specialize in Indian law — IPC, CrPC, CPC, Transfer of Property Act, Consumer Protection Act, Negotiable Instruments Act, and all major Indian statutes.
 
 Your task is to generate professional, legally sound ${draftType} documents for Indian courts and legal proceedings.
@@ -60,9 +55,7 @@ DATE: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', 
 
 Generate the complete ${draftType} now:`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-  const response = await fetch(url, {
+  const response = await fetch('/api/gemini', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -84,17 +77,47 @@ Generate the complete ${draftType} now:`;
     }),
   });
 
-  const data = await response.json().catch(() => ({}));
+  const contentType = response.headers.get('content-type') || '';
+  const raw = await response.text();
 
-  if (!response.ok) {
-    console.error('Gemini API error:', response.status, data);
-    throw new Error('Draft generation failed. Please try again.');
+  if (!contentType.includes('application/json')) {
+    console.error(
+      'Gemini API returned non-JSON (API route may be misconfigured):',
+      response.status,
+      raw.slice(0, 300)
+    );
+    throw new Error(
+      'Draft API route not reachable. Redeploy with api/gemini serverless function.'
+    );
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    console.error('Gemini API invalid JSON:', raw.slice(0, 300));
+    throw new Error('Draft generate nahi hua. Dobara try karo.');
+  }
+
+  if (!response.ok) {
+    const message =
+      data?.error?.message ||
+      'Draft generate nahi hua. Dobara try karo.';
+    console.error('Gemini API error:', response.status, data);
+    throw new Error(message);
+  }
+
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  const text = parts.map((part) => part.text).filter(Boolean).join('\n');
+
   if (!text) {
-    console.error('Gemini API unexpected response:', data);
-    throw new Error('Draft generation failed. Please try again.');
+    const blockReason = data.candidates?.[0]?.finishReason;
+    console.error('Gemini API empty response:', data);
+    throw new Error(
+      blockReason === 'SAFETY'
+        ? 'Draft blocked by safety filters. Facts thoda modify karke try karo.'
+        : 'Draft generate nahi hua. Dobara try karo.'
+    );
   }
 
   return text;
