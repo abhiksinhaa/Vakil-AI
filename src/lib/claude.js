@@ -14,6 +14,11 @@ export async function generateLegalDraft(formData) {
     language,
   } = formData;
 
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Gemini API key missing. Set VITE_GEMINI_API_KEY in .env');
+  }
+
   const systemPrompt = `You are an expert Indian lawyer with 20+ years of experience drafting legal documents. You specialize in Indian law — IPC, CrPC, CPC, Transfer of Property Act, Consumer Protection Act, Negotiable Instruments Act, and all major Indian statutes.
 
 Your task is to generate professional, legally sound ${draftType} documents for Indian courts and legal proceedings.
@@ -55,28 +60,42 @@ DATE: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', 
 
 Generate the complete ${draftType} now:`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      systemInstruction: {
+        parts: [{ text: systemPrompt }],
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: userPrompt }],
+        },
+      ],
+      generationConfig: {
+        maxOutputTokens: 2000,
+        temperature: 0.4,
+      },
     }),
   });
 
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    const errBody = await response.text().catch(() => '');
-    console.error('Claude API error:', response.status, errBody);
+    console.error('Gemini API error:', response.status, data);
     throw new Error('Draft generation failed. Please try again.');
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    console.error('Gemini API unexpected response:', data);
+    throw new Error('Draft generation failed. Please try again.');
+  }
+
+  return text;
 }

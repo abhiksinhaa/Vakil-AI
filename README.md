@@ -6,7 +6,7 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 
 - React + Vite
 - Tailwind CSS
-- Anthropic Claude (`claude-sonnet-4-20250514`)
+- Google Gemini (`gemini-1.5-flash`)
 - Supabase Auth + PostgreSQL
 - Deploy on [Vercel](https://vercel.com)
 
@@ -22,7 +22,7 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 
    Copy `.env.example` to `.env` and fill in:
 
-   - `VITE_ANTHROPIC_API_KEY` — [Anthropic Console](https://console.anthropic.com/)
+   - `VITE_GEMINI_API_KEY` — [Google AI Studio](https://aistudio.google.com/apikey)
    - `VITE_SUPABASE_URL` — Supabase project URL
    - `VITE_SUPABASE_ANON_KEY` — Supabase anon key
 
@@ -44,9 +44,9 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 
 ## Security note (important)
 
-This MVP calls the Anthropic API **directly from the browser** using `anthropic-dangerous-direct-browser-access`. That exposes your API key to anyone who inspects the client.
+This MVP calls the Gemini API **directly from the browser**. That exposes your API key to anyone who inspects the client.
 
-**Before a public launch**, move draft generation to a serverless backend (e.g. Vercel API route) and keep `ANTHROPIC_API_KEY` server-side only.
+**Before a public launch**, move draft generation to a serverless backend (e.g. Vercel API route) and keep `GEMINI_API_KEY` server-side only.
 
 ## Deploy to Vercel
 
