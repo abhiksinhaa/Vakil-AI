@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { downloadDraftPdf } from '../lib/exportDraftPdf';
 
 export default function DraftPreview({
   draft,
@@ -12,6 +13,8 @@ export default function DraftPreview({
   onRetry,
 }) {
   const [copied, setCopied] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
 
   const handleCopy = async () => {
     if (!draft) return;
@@ -24,7 +27,7 @@ export default function DraftPreview({
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadTxt = () => {
     if (!draft) return;
     const type = formData?.draftType?.replace(/\s+/g, '_') || 'legal_draft';
     const blob = new Blob([draft], { type: 'text/plain;charset=utf-8' });
@@ -34,6 +37,20 @@ export default function DraftPreview({
     a.download = `${type}_${Date.now()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!draft || isPdfLoading) return;
+    setPdfError(null);
+    setIsPdfLoading(true);
+    try {
+      await downloadDraftPdf(draft, formData);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      setPdfError('PDF download nahi hua. Dobara try karo.');
+    } finally {
+      setIsPdfLoading(false);
+    }
   };
 
   return (
@@ -98,13 +115,25 @@ export default function DraftPreview({
         )}
       </div>
 
+      {pdfError && draft && !isGenerating && !error && (
+        <p className="text-red-400/90 text-xs px-1 mb-2">{pdfError}</p>
+      )}
+
       {draft && !isGenerating && !error && (
         <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
           <button type="button" onClick={handleCopy} className="btn-secondary text-sm">
             {copied ? 'Copied! ✓' : 'Copy to Clipboard'}
           </button>
-          <button type="button" onClick={handleDownload} className="btn-secondary text-sm">
+          <button type="button" onClick={handleDownloadTxt} className="btn-secondary text-sm">
             Download .txt
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={isPdfLoading}
+            className="btn-secondary text-sm"
+          >
+            {isPdfLoading ? 'PDF ban raha hai…' : 'Download PDF'}
           </button>
           <button
             type="button"
