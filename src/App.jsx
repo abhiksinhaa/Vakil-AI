@@ -5,6 +5,7 @@ import AuthPage from './components/AuthPage';
 import Dashboard from './components/Dashboard';
 import DraftGenerator from './components/DraftGenerator';
 import DraftHistory from './components/DraftHistory';
+import LegalChatbot from './components/LegalChatbot';
 
 function ProtectedRoute({ children, session }) {
   const location = useLocation();
@@ -60,6 +61,7 @@ export default function App() {
   }
 
   return (
+    <>
     <Routes>
       <Route
         path="/"
@@ -95,5 +97,7 @@ export default function App() {
       />
       <Route path="*" element={<Navigate to={session ? '/dashboard' : '/'} replace />} />
     </Routes>
+    {session && <LegalChatbot />}
+    </>
   );
 }
