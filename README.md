@@ -1,4 +1,4 @@
-# VakilAI
+# Draftee
 
 AI-powered legal draft generator for Indian lawyers. Describe a situation, get a professional court-ready draft in seconds.
 
@@ -65,4 +65,4 @@ This MVP calls the Gemini API **directly from the browser**. That exposes your A
 
 ---
 
-*VakilAI MVP — Built for Indian Lawyers*
+*Draftee MVP — Built for Indian Lawyers*

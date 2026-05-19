@@ -51,7 +51,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
           <h1 className="font-display text-4xl font-semibold text-gold mb-2">
-            Vakil<span className="text-cream">AI</span>
+            Draft<span className="text-cream">ee</span>
           </h1>
           <p className="text-cream/60 text-sm">
             AI-powered legal drafts for Indian advocates
