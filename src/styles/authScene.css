@@ -1,0 +1,243 @@
+/* Auth page animated scene — matrix, particles, pillars, lawyer */
+
+.auth-page {
+  background: #020408;
+}
+
+.auth-scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-matrix-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.22;
+}
+
+.auth-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, transparent 0%, rgba(2, 4, 8, 0.5) 55%, rgba(2, 4, 8, 0.92) 100%),
+    linear-gradient(180deg, rgba(2, 4, 8, 0.3) 0%, transparent 25%, transparent 70%, rgba(2, 4, 8, 0.85) 100%);
+}
+
+.auth-pillars {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 900px);
+  height: 55%;
+  opacity: 0.06;
+  color: #c9a84c;
+}
+
+.auth-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e8d5a0 0%, #c9a84c 40%, transparent 70%);
+  box-shadow: 0 0 6px rgba(201, 168, 76, 0.5);
+  animation: authParticleFloat linear infinite;
+}
+
+@keyframes authParticleFloat {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(-110vh) translateX(var(--drift, 0px));
+    opacity: 0;
+  }
+}
+
+/* Lawyer walk track */
+.auth-lawyer-layer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 200px;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.auth-lawyer-track {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  width: 110px;
+  height: 160px;
+  animation: authLawyerWalk 18s linear infinite;
+  will-change: transform;
+}
+
+@keyframes authLawyerWalk {
+  0% {
+    transform: translateX(-140px);
+  }
+  100% {
+    transform: translateX(calc(100vw + 140px));
+  }
+}
+
+.auth-lawyer-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 20px rgba(201, 168, 76, 0.25));
+}
+
+.auth-lawyer-body {
+  fill: url(#lawyerGradient);
+}
+
+.auth-lawyer-accent {
+  fill: #c9a84c;
+}
+
+.auth-lawyer-legs--left {
+  transform-origin: 45px 118px;
+  animation: authLegWalk 0.55s ease-in-out infinite;
+}
+
+.auth-lawyer-legs--right {
+  transform-origin: 65px 118px;
+  animation: authLegWalk 0.55s ease-in-out infinite reverse;
+}
+
+@keyframes authLegWalk {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+.auth-lawyer-bob {
+  animation: authLawyerBob 0.55s ease-in-out infinite;
+  transform-origin: 55px 90px;
+}
+
+@keyframes authLawyerBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.auth-lawyer-arm {
+  transform-origin: 68px 72px;
+  animation: authLawyerArm 18s linear infinite;
+}
+
+@keyframes authLawyerArm {
+  0%,
+  18%,
+  88%,
+  100% {
+    transform: rotate(8deg);
+  }
+  24% {
+    transform: rotate(42deg);
+  }
+  32% {
+    transform: rotate(58deg);
+  }
+  40%,
+  52% {
+    transform: rotate(-95deg);
+  }
+  60% {
+    transform: rotate(-88deg);
+  }
+  68% {
+    transform: rotate(20deg);
+  }
+  76% {
+    transform: rotate(8deg);
+  }
+}
+
+.auth-lawyer-scale {
+  transform-origin: 22px 28px;
+  opacity: 0;
+  animation: authLawyerScale 18s linear infinite;
+}
+
+@keyframes authLawyerScale {
+  0%,
+  28%,
+  78%,
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg);
+  }
+  36% {
+    opacity: 0.4;
+    transform: scale(0.6) rotate(0deg);
+  }
+  42%,
+  58% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  66% {
+    opacity: 0.6;
+    transform: scale(0.7) rotate(10deg);
+  }
+}
+
+.auth-form-glow {
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 76, 0.12),
+    0 24px 80px rgba(0, 0, 0, 0.55),
+    0 0 120px rgba(201, 168, 76, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-matrix-canvas,
+  .auth-particle,
+  .auth-lawyer-track,
+  .auth-lawyer-legs--left,
+  .auth-lawyer-legs--right,
+  .auth-lawyer-bob,
+  .auth-lawyer-arm,
+  .auth-lawyer-scale {
+    animation: none !important;
+  }
+
+  .auth-lawyer-track {
+    transform: translateX(50vw);
+    left: -55px;
+  }
+
+  .auth-lawyer-arm {
+    transform: rotate(-70deg);
+  }
+
+  .auth-lawyer-scale {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import AuthAnimatedBackground from './auth/AuthAnimatedBackground';
+import AuthLawyerWalk from './auth/AuthLawyerWalk';
+import '../styles/authScene.css';
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -42,15 +45,13 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-navy">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-gold/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-gold/5 rounded-full blur-3xl" />
-      </div>
+    <div className="auth-page relative min-h-screen flex flex-col items-center justify-center px-4 py-12 pb-28">
+      <AuthAnimatedBackground />
+      <AuthLawyerWalk />
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <h1 className="font-display text-4xl font-semibold text-gold mb-2">
+          <h1 className="font-display text-4xl font-semibold text-gold mb-2 drop-shadow-[0_0_24px_rgba(201,168,76,0.35)]">
             Draft<span className="text-cream">ee</span>
           </h1>
           <p className="text-cream/60 text-sm">
@@ -58,7 +59,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <div className="card">
+        <div className="card auth-form-glow bg-card/95 backdrop-blur-md border-gold/20">
           <h2 className="font-display text-xl text-cream mb-6">
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
