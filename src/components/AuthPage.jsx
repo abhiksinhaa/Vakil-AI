@@ -45,7 +45,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="auth-page relative min-h-screen flex flex-col items-center justify-center px-4 py-12 pb-28">
+    <div className="auth-page relative min-h-screen flex flex-col items-center justify-center px-4 py-12 pb-36 sm:pb-40">
       <AuthAnimatedBackground />
       <AuthLawyerWalk />
 

@@ -72,7 +72,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 200px;
+  height: min(42vh, 320px);
   z-index: 1;
   pointer-events: none;
   overflow: hidden;
@@ -80,131 +80,203 @@
 
 .auth-lawyer-track {
   position: absolute;
-  bottom: 12px;
+  bottom: 4px;
   left: 0;
-  width: 110px;
-  height: 160px;
-  animation: authLawyerWalk 18s linear infinite;
+  width: clamp(120px, 14vw, 168px);
+  height: clamp(220px, 38vh, 280px);
+  animation: authLawyerWalk 20s linear infinite;
   will-change: transform;
 }
 
 @keyframes authLawyerWalk {
   0% {
-    transform: translateX(-140px);
+    transform: translateX(-180px);
   }
   100% {
-    transform: translateX(calc(100vw + 140px));
+    transform: translateX(calc(100vw + 180px));
   }
 }
 
 .auth-lawyer-svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 4px 20px rgba(201, 168, 76, 0.25));
+  filter: drop-shadow(0 6px 28px rgba(201, 168, 76, 0.35));
 }
 
-.auth-lawyer-body {
-  fill: url(#lawyerGradient);
-}
-
-.auth-lawyer-accent {
+.auth-lawyer-tie {
   fill: #c9a84c;
 }
 
-.auth-lawyer-legs--left {
-  transform-origin: 45px 118px;
-  animation: authLegWalk 0.55s ease-in-out infinite;
-}
-
-.auth-lawyer-legs--right {
-  transform-origin: 65px 118px;
-  animation: authLegWalk 0.55s ease-in-out infinite reverse;
-}
-
-@keyframes authLegWalk {
-  0%,
-  100% {
-    transform: rotate(-6deg);
-  }
-  50% {
-    transform: rotate(8deg);
-  }
-}
-
-.auth-lawyer-bob {
-  animation: authLawyerBob 0.55s ease-in-out infinite;
-  transform-origin: 55px 90px;
+/* Natural walk — legs pivot at hip, counter-swing arms */
+.auth-lawyer-figure {
+  transform-origin: 48px 168px;
+  animation: authLawyerBob 0.72s ease-in-out infinite;
 }
 
 @keyframes authLawyerBob {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2px) rotate(0.6deg);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-4px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-2px) rotate(-0.6deg);
   }
 }
 
-.auth-lawyer-arm {
-  transform-origin: 68px 72px;
-  animation: authLawyerArm 18s linear infinite;
+.auth-lawyer-leg--back {
+  transform-origin: 40px 168px;
+  animation: authLegBack 0.72s ease-in-out infinite;
 }
 
-@keyframes authLawyerArm {
+.auth-lawyer-leg--front {
+  transform-origin: 52px 168px;
+  animation: authLegFront 0.72s ease-in-out infinite;
+}
+
+@keyframes authLegBack {
   0%,
-  18%,
-  88%,
   100% {
-    transform: rotate(8deg);
+    transform: rotate(18deg) translateY(0);
   }
-  24% {
-    transform: rotate(42deg);
+  50% {
+    transform: rotate(-14deg) translateY(2px);
   }
-  32% {
-    transform: rotate(58deg);
+}
+
+@keyframes authLegFront {
+  0%,
+  100% {
+    transform: rotate(-16deg) translateY(2px);
+  }
+  50% {
+    transform: rotate(20deg) translateY(0);
+  }
+}
+
+.auth-lawyer-arm--far {
+  transform-origin: 32px 78px;
+  animation: authArmSwingFar 0.72s ease-in-out infinite;
+}
+
+@keyframes authArmSwingFar {
+  0%,
+  100% {
+    transform: rotate(12deg);
+  }
+  50% {
+    transform: rotate(-18deg);
+  }
+}
+
+/* Near arm: walk swing + pocket → forward scale presentation */
+.auth-lawyer-arm--near {
+  transform-origin: 54px 78px;
+  animation: authLawyerArmNear 20s linear infinite;
+}
+
+@keyframes authLawyerArmNear {
+  0%,
+  16%,
+  82%,
+  100% {
+    transform: rotate(6deg);
+  }
+  22% {
+    transform: rotate(28deg);
+  }
+  28% {
+    transform: rotate(48deg);
+  }
+  34% {
+    transform: rotate(22deg);
   }
   40%,
-  52% {
-    transform: rotate(-95deg);
+  54% {
+    transform: rotate(-42deg);
+  }
+  48% {
+    transform: rotate(-52deg);
   }
   60% {
-    transform: rotate(-88deg);
+    transform: rotate(-8deg);
   }
   68% {
-    transform: rotate(20deg);
+    transform: rotate(10deg);
   }
-  76% {
-    transform: rotate(8deg);
+}
+
+.auth-lawyer-forearm {
+  transform-origin: 62px 100px;
+  animation: authLawyerForearm 20s linear infinite;
+}
+
+@keyframes authLawyerForearm {
+  0%,
+  16%,
+  82%,
+  100% {
+    transform: rotate(4deg);
+  }
+  22% {
+    transform: rotate(35deg);
+  }
+  28% {
+    transform: rotate(55deg);
+  }
+  34% {
+    transform: rotate(15deg);
+  }
+  40%,
+  54% {
+    transform: rotate(-55deg);
+  }
+  48% {
+    transform: rotate(-68deg);
+  }
+  60% {
+    transform: rotate(5deg);
+  }
+  68% {
+    transform: rotate(12deg);
   }
 }
 
 .auth-lawyer-scale {
-  transform-origin: 22px 28px;
+  transform-origin: 0 28px;
   opacity: 0;
-  animation: authLawyerScale 18s linear infinite;
+  animation: authLawyerScale 20s linear infinite;
 }
 
 @keyframes authLawyerScale {
   0%,
-  28%,
-  78%,
+  26%,
+  76%,
   100% {
     opacity: 0;
-    transform: scale(0.3) rotate(-20deg);
+    transform: translate(-4px, 8px) scale(0.2) rotate(50deg);
   }
-  36% {
-    opacity: 0.4;
-    transform: scale(0.6) rotate(0deg);
+  32% {
+    opacity: 0.55;
+    transform: translate(0, 2px) scale(0.5) rotate(30deg);
   }
-  42%,
-  58% {
+  38%,
+  56% {
     opacity: 1;
-    transform: scale(1) rotate(0deg);
+    transform: translate(14px, -32px) scale(1.15) rotate(-18deg);
   }
-  66% {
-    opacity: 0.6;
-    transform: scale(0.7) rotate(10deg);
+  48% {
+    opacity: 1;
+    transform: translate(18px, -38px) scale(1.2) rotate(-22deg);
+  }
+  64% {
+    opacity: 0.45;
+    transform: translate(2px, 0) scale(0.55) rotate(35deg);
   }
 }
 
@@ -219,25 +291,31 @@
   .auth-matrix-canvas,
   .auth-particle,
   .auth-lawyer-track,
-  .auth-lawyer-legs--left,
-  .auth-lawyer-legs--right,
-  .auth-lawyer-bob,
-  .auth-lawyer-arm,
+  .auth-lawyer-figure,
+  .auth-lawyer-leg--back,
+  .auth-lawyer-leg--front,
+  .auth-lawyer-arm--far,
+  .auth-lawyer-arm--near,
+  .auth-lawyer-forearm,
   .auth-lawyer-scale {
     animation: none !important;
   }
 
   .auth-lawyer-track {
     transform: translateX(50vw);
-    left: -55px;
+    left: -84px;
   }
 
-  .auth-lawyer-arm {
-    transform: rotate(-70deg);
+  .auth-lawyer-arm--near {
+    transform: rotate(-48deg);
+  }
+
+  .auth-lawyer-forearm {
+    transform: rotate(-62deg);
   }
 
   .auth-lawyer-scale {
     opacity: 1;
-    transform: scale(1);
+    transform: translate(14px, -32px) scale(1.15) rotate(-18deg);
   }
 }
