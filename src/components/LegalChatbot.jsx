@@ -5,7 +5,7 @@ const WELCOME_MESSAGE = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Namaste! Main aapka Draftee Legal Assistant hoon. IPC, CrPC, court procedure, consumer rights, ya koi bhi legal sawaal — poochho.',
+    'Namaste! Main aapka Draftee Legal Assistant hoon. BNS, BNSS, BSA, court procedure, consumer rights, ya koi bhi legal sawaal — poochho.',
 };
 
 function LogoMark({ className = '', inverted = false }) {

@@ -141,7 +141,7 @@ export default function AuthPage() {
         </div>
 
         <p className="text-center text-xs text-cream/30 mt-8">
-          Professional legal drafting · IPC · CrPC · Indian statutes
+          Professional legal drafting · BNS · BNSS · BSA · Indian statutes
         </p>
       </div>
     </div>
