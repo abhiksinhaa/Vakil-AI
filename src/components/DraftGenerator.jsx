@@ -33,6 +33,7 @@ const INITIAL_FORM = {
   responseTime: '15 days',
   customResponseTime: '',
   language: 'English',
+  incidentTiming: '',
 };
 
 export default function DraftGenerator() {
@@ -56,7 +57,7 @@ export default function DraftGenerator() {
   };
 
   const runGenerate = async () => {
-    if (!form.situation.trim() || !form.party1Name.trim()) {
+    if (!form.situation.trim() || !form.party1Name.trim() || !form.incidentTiming) {
       return;
     }
 
@@ -211,6 +212,37 @@ export default function DraftGenerator() {
 
             <section className="card space-y-4">
               <h2 className="font-display text-lg text-gold">Facts & Details</h2>
+              <fieldset>
+                <legend className="text-sm text-cream/80 mb-2">
+                  When did the incident occur? Before or after 1 July 2024?
+                </legend>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {[
+                    { value: 'before', label: 'Before 1 July 2024' },
+                    { value: 'after', label: 'On or after 1 July 2024' },
+                  ].map(({ value, label }) => (
+                    <label
+                      key={value}
+                      className={`flex-1 flex items-center gap-2 py-2.5 px-3 rounded-lg text-sm border cursor-pointer transition-colors ${
+                        form.incidentTiming === value
+                          ? 'bg-gold/20 border-gold text-gold'
+                          : 'border-border text-cream/60 hover:border-gold/30'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="incidentTiming"
+                        value={value}
+                        checked={form.incidentTiming === value}
+                        onChange={(e) => update('incidentTiming', e.target.value)}
+                        className="accent-gold"
+                        required
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <div>
                 <label htmlFor="situation">Situation / Facts</label>
                 <textarea
@@ -286,7 +318,12 @@ export default function DraftGenerator() {
 
             <button
               type="submit"
-              disabled={isGenerating || !form.situation.trim() || !form.party1Name.trim()}
+              disabled={
+                isGenerating ||
+                !form.situation.trim() ||
+                !form.party1Name.trim() ||
+                !form.incidentTiming
+              }
               className="btn-primary w-full py-3 text-base"
             >
               {isGenerating ? (

@@ -12,17 +12,25 @@ export async function generateLegalDraft(formData) {
     amount,
     responseTime,
     language,
+    incidentTiming,
   } = formData;
+
+  const incidentLawGuide =
+    incidentTiming === 'before'
+      ? 'Incident before 1 July 2024 — cite IPC, CrPC, and Indian Evidence Act'
+      : incidentTiming === 'after'
+        ? 'Incident on or after 1 July 2024 — cite BNS, BNSS, and BSA 2023'
+        : 'Incident timing not specified — ask advocate to confirm applicable code';
 
   const systemPrompt = `You are an expert Indian lawyer with 20+ years of experience drafting legal documents. You specialize in Indian law — BNS (Bharatiya Nyaya Sanhita) 2023, BNSS (Bharatiya Nagarik Suraksha Sanhita) 2023, BSA (Bharatiya Sakshya Adhiniyam) 2023, CPC, Transfer of Property Act, Consumer Protection Act, Negotiable Instruments Act, and all major Indian statutes.
 
-Use the new criminal law codes where applicable: BNS (Bharatiya Nyaya Sanhita) 2023 instead of IPC/Indian Penal Code, BNSS (Bharatiya Nagarik Suraksha Sanhita) 2023 instead of CrPC/Code of Criminal Procedure, and BSA (Bharatiya Sakshya Adhiniyam) 2023 instead of the Indian Evidence Act.
+For cases registered before 1 July 2024, use old IPC/CrPC/Evidence Act. For cases after 1 July 2024, use BNS/BNSS/BSA 2023. Follow the incident timing provided by the user for all criminal law citations.
 
 Your task is to generate professional, legally sound ${draftType} documents for Indian courts and legal proceedings.
 
 Rules:
 1. Always use proper legal language and format
-2. Include correct legal citations where relevant (BNS, BNSS, BSA sections, Acts, etc.) — never cite repealed IPC, CrPC, or Evidence Act provisions when BNS/BNSS/BSA apply
+2. Include correct legal citations per incident timing: IPC/CrPC/Evidence Act if before 1 July 2024; BNS/BNSS/BSA 2023 if on or after 1 July 2024 — do not mix old and new criminal codes in the same draft
 3. Format the document professionally with proper spacing and structure
 4. If language is Hindi, write in Devanagari script
 5. If language is Hinglish, write formal parts in English and explanatory parts in Hindi
@@ -49,6 +57,9 @@ Address: ${party1Address}
 PARTY 2 (OPPOSITE PARTY/RECIPIENT):
 Name: ${party2Name}
 Address: ${party2Address}
+
+INCIDENT TIMING (applicable criminal law):
+${incidentLawGuide}
 
 FACTS & SITUATION:
 ${situation}
