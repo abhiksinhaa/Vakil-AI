@@ -6,6 +6,11 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
+/** Remove markdown bold markers (**) from AI-generated draft text for PDF output. */
+function stripMarkdownAsterisks(text) {
+  return String(text).replace(/\*\*/g, '');
+}
+
 function buildPdfFilename(formData) {
   const type = formData?.draftType?.replace(/\s+/g, '_') || 'legal_draft';
   return `${type}_${Date.now()}.pdf`;
@@ -114,7 +119,7 @@ function buildPdfDocument(draft, formData) {
 
   const bodyEl = root.querySelector('.draftee-pdf-body');
   if (bodyEl) {
-    bodyEl.textContent = draft;
+    bodyEl.textContent = stripMarkdownAsterisks(draft);
   }
 
   return root;
