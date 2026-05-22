@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
+import FactsTextareaWithMic from './FactsTextareaWithMic';
 import { generateLegalDraft } from '../lib/claude';
 import { saveDraft } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
@@ -337,14 +338,13 @@ export default function DraftGenerator() {
               </fieldset>
               <div>
                 <label htmlFor="situation">Situation / Facts</label>
-                <textarea
+                <FactsTextareaWithMic
                   id="situation"
-                  rows={5}
                   value={form.situation}
-                  onChange={(e) => update('situation', e.target.value)}
-                  placeholder="Kya hua hai? Saari facts yahan likho — date, amount, kya demand hai, kya steps pehle liye..."
+                  onChange={(text) => update('situation', text)}
+                  language={form.language}
+                  placeholder="Kya hua hai? Saari facts yahan likho — date, amount, kya demand hai, kya steps pehle liye... (mic se bolo)"
                   required
-                  className="min-h-[5rem]"
                 />
               </div>
               <div>
