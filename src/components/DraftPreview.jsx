@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
+import { stripMarkdown } from '../lib/stripMarkdown';
 
 export default function DraftPreview({
   draft,
@@ -16,10 +17,15 @@ export default function DraftPreview({
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
 
+  const displayDraft = useMemo(
+    () => (draft ? stripMarkdown(draft) : ''),
+    [draft]
+  );
+
   const handleCopy = async () => {
-    if (!draft) return;
+    if (!displayDraft) return;
     try {
-      await navigator.clipboard.writeText(draft);
+      await navigator.clipboard.writeText(displayDraft);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -28,9 +34,9 @@ export default function DraftPreview({
   };
 
   const handleDownloadTxt = () => {
-    if (!draft) return;
+    if (!displayDraft) return;
     const type = formData?.draftType?.replace(/\s+/g, '_') || 'legal_draft';
-    const blob = new Blob([draft], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([displayDraft], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -87,7 +93,7 @@ export default function DraftPreview({
 
         {!isGenerating && !error && draft && (
           <pre className="animate-fade-in whitespace-pre-wrap font-body text-sm text-cream/90 leading-relaxed bg-navy/50 rounded-lg p-5 border border-border/50 print:text-black print:bg-white">
-            {draft}
+            {displayDraft}
           </pre>
         )}
 

@@ -1,3 +1,5 @@
+import { stripMarkdown } from './stripMarkdown';
+
 export async function generateLegalDraft(formData) {
   const {
     draftType,
@@ -137,5 +139,5 @@ Generate the complete ${draftType} now:`;
     );
   }
 
-  return text;
+  return stripMarkdown(text);
 }

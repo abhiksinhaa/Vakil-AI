@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Navbar from './Navbar';
 import { fetchAllDrafts } from '../lib/supabase';
+import { stripMarkdown } from '../lib/stripMarkdown';
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -39,7 +40,7 @@ function ViewModal({ draft, onClose }) {
           </button>
         </div>
         <pre className="flex-1 overflow-auto whitespace-pre-wrap text-sm text-cream/90 leading-relaxed">
-          {draft.generated_draft}
+          {stripMarkdown(draft.generated_draft)}
         </pre>
       </div>
     </div>
