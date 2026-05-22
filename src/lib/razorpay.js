@@ -41,7 +41,7 @@ export async function startProCheckout({ userEmail, userName, onSuccess }) {
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'Draftee',
-      description: 'Pro Plan — Unlimited drafts (1 month)',
+      description: 'Pro Plan — Unlimited drafts & chat (1 month)',
       order_id: orderData.id,
       prefill: {
         email: userEmail || '',

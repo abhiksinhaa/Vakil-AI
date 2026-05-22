@@ -141,7 +141,7 @@ export default function ProfilePage() {
           <h2 className="font-display text-lg text-gold">Referral Program</h2>
           <p className="text-cream/70 text-sm">
             Refer <strong className="text-gold">2 friends</strong> who sign up — get{' '}
-            <strong className="text-gold">1 month Pro free</strong>.
+            <strong className="text-gold">1 month Pro free</strong> (₹1,399 value).
           </p>
 
           {referralStats && (

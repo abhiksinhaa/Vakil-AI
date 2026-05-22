@@ -1,11 +1,16 @@
 import { supabase } from './supabase';
 
 export const FREE_DRAFT_LIMIT = 3;
-export const PRO_PRICE_PAISE = 29900;
-export const PRO_PRICE_INR = 299;
+export const FREE_CHAT_DAILY_LIMIT = 5;
+export const PRO_PRICE_PAISE = 139900;
+export const PRO_PRICE_INR = 1399;
 
 export function getMonthKey() {
   return new Date().toISOString().slice(0, 7);
+}
+
+export function getDayKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function generateReferralCode() {
@@ -59,6 +64,8 @@ export async function ensureUserRecords() {
         plan: 'free',
         drafts_this_month: 0,
         month_key: getMonthKey(),
+        chat_messages_today: 0,
+        chat_day_key: getDayKey(),
       })
       .select()
       .single();
@@ -109,14 +116,23 @@ export async function updateTheme(theme) {
 
 async function normalizeSubscription(sub) {
   const monthKey = getMonthKey();
-  if (sub.month_key !== monthKey) {
+  const dayKey = getDayKey();
+  const needsMonthReset = sub.month_key !== monthKey;
+  const needsDayReset = sub.chat_day_key !== dayKey;
+
+  if (needsMonthReset || needsDayReset) {
+    const updates = { updated_at: new Date().toISOString() };
+    if (needsMonthReset) {
+      updates.month_key = monthKey;
+      updates.drafts_this_month = 0;
+    }
+    if (needsDayReset) {
+      updates.chat_day_key = dayKey;
+      updates.chat_messages_today = 0;
+    }
     const { data, error } = await supabase
       .from('subscriptions')
-      .update({
-        month_key: monthKey,
-        drafts_this_month: 0,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updates)
       .eq('user_id', sub.user_id)
       .select()
       .single();
@@ -191,6 +207,52 @@ export async function incrementDraftUsage() {
     .from('subscriptions')
     .update({
       drafts_this_month: (sub.drafts_this_month ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+}
+
+export async function checkChatAllowance() {
+  const sub = await fetchSubscription();
+  const pro = isProActive(sub);
+
+  if (pro) {
+    return {
+      allowed: true,
+      isPro: true,
+      used: sub.chat_messages_today ?? 0,
+      limit: null,
+      remaining: null,
+    };
+  }
+
+  const used = sub.chat_messages_today ?? 0;
+  const remaining = Math.max(0, FREE_CHAT_DAILY_LIMIT - used);
+
+  return {
+    allowed: remaining > 0,
+    isPro: false,
+    used,
+    limit: FREE_CHAT_DAILY_LIMIT,
+    remaining,
+  };
+}
+
+export async function incrementChatUsage() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const sub = await fetchSubscription();
+  if (isProActive(sub)) return;
+
+  const { error } = await supabase
+    .from('subscriptions')
+    .update({
+      chat_messages_today: (sub.chat_messages_today ?? 0) + 1,
       updated_at: new Date().toISOString(),
     })
     .eq('user_id', user.id);

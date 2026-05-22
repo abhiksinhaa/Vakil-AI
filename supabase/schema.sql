@@ -55,8 +55,14 @@ create table if not exists subscriptions (
   drafts_this_month int default 0,
   month_key text default to_char(now(), 'YYYY-MM'),
   referral_rewards_granted int default 0,
+  chat_messages_today int default 0,
+  chat_day_key text default to_char(now(), 'YYYY-MM-DD'),
   updated_at timestamptz default now()
 );
+
+-- If subscriptions table already exists, run:
+-- alter table subscriptions add column if not exists chat_messages_today int default 0;
+-- alter table subscriptions add column if not exists chat_day_key text default to_char(now(), 'YYYY-MM-DD');
 
 alter table subscriptions enable row level security;
 

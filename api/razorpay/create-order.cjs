@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = await readJsonBody(req);
-    const amount = Number(body.amount) || 29900;
+    const amount = Number(body.amount) || 139900;
     const currency = body.currency || 'INR';
     const receipt = `draftee_pro_${Date.now()}`;
 

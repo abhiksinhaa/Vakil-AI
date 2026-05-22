@@ -9,6 +9,7 @@ import {
   checkDraftAllowance,
   incrementDraftUsage,
   isAdvocateProfileComplete,
+  PRO_PRICE_INR,
 } from '../lib/userAccount';
 
 const DRAFT_TYPES = [
@@ -185,10 +186,10 @@ export default function DraftGenerator() {
         {limitReached && (
           <div className="mb-6 p-4 rounded-xl border border-gold/40 bg-gold/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-cream/90 text-sm">
-              Free monthly limit reached. Upgrade to Pro for unlimited drafts.
+              Free monthly limit reached. Upgrade to Pro (₹{PRO_PRICE_INR}/mo) for unlimited drafts.
             </p>
             <Link to="/pricing" className="btn-primary text-sm shrink-0 text-center">
-              Upgrade — ₹299/mo
+              Upgrade — ₹{PRO_PRICE_INR}/mo
             </Link>
           </div>
         )}

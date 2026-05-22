@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { sendLegalChatMessage } from '../lib/legalChat';
+import { Link } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
+import { downloadDraftPdf } from '../lib/exportDraftPdf';
+import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
+import { readFileForChat } from '../lib/readChatFile';
+import { stripMarkdown } from '../lib/stripMarkdown';
+import {
+  FREE_CHAT_DAILY_LIMIT,
+  PRO_PRICE_INR,
+  checkChatAllowance,
+  incrementChatUsage,
+} from '../lib/userAccount';
 
-const WELCOME_MESSAGE = {
-  id: 'welcome',
-  role: 'assistant',
-  content:
-    'Namaste! Main aapka Draftee Legal Assistant hoon. BNS, BNSS, BSA, court procedure, consumer rights, ya koi bhi legal sawaal — poochho.',
-};
+const WELCOME_FREE =
+  'Namaste! Main aapka Draftee Legal Assistant hoon. Free plan: 5 messages per day. BNS, BNSS, BSA, court procedure — poochho.';
+
+const WELCOME_PRO =
+  'Namaste! Pro Legal Assistant — unlimited messages, document upload, draft generation, aur PDF export. Kaise madad karoon?';
 
 function LogoMark({ className = '', inverted = false }) {
   return (
@@ -17,44 +27,114 @@ function LogoMark({ className = '', inverted = false }) {
   );
 }
 
+function ProOnlyButton({ isPro, onClick, children, className = '', disabled }) {
+  if (isPro) {
+    return (
+      <button type="button" onClick={onClick} disabled={disabled} className={className}>
+        {children}
+      </button>
+    );
+  }
+  return (
+    <Link
+      to="/pricing"
+      state={{ chatLimitReached: false }}
+      className={`${className} opacity-50 cursor-not-allowed`}
+      title={`Pro only — ₹${PRO_PRICE_INR}/month`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export default function LegalChatbot() {
+  const { isPro, refreshAccount } = useApp();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [chatAllowance, setChatAllowance] = useState(null);
+  const [pendingAttachment, setPendingAttachment] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content: isPro ? WELCOME_PRO : WELCOME_FREE,
+      },
+    ]);
+  }, [isPro]);
 
   useEffect(() => {
     if (isOpen) {
+      checkChatAllowance().then(setChatAllowance).catch(console.error);
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
     }
-  }, [isOpen, messages, isLoading]);
+  }, [isOpen, messages, isLoading, isPro]);
 
-  const handleSend = async (e) => {
-    e?.preventDefault();
-    const text = input.trim();
-    if (!text || isLoading) return;
+  const refreshAllowance = () => {
+    checkChatAllowance().then(setChatAllowance).catch(console.error);
+  };
+
+  const sendMessage = async ({ text, attachment, draftMode = false }) => {
+    const trimmed = text?.trim() || '';
+    if (!trimmed && !attachment) return;
+
+    const allowance = await checkChatAllowance();
+    setChatAllowance(allowance);
+
+    if (!allowance.allowed) {
+      setError(
+        `Daily limit reached (${FREE_CHAT_DAILY_LIMIT} messages). Upgrade to Pro for unlimited chat — ₹${PRO_PRICE_INR}/month.`
+      );
+      return;
+    }
+
+    if (attachment && !isPro) {
+      setError('Document upload is a Pro feature. Upgrade to analyze PDFs and files.');
+      return;
+    }
+
+    if (draftMode && !isPro) {
+      setError('Generate draft from chat is a Pro feature.');
+      return;
+    }
 
     const userMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: text,
+      content: trimmed || attachment?.textContent || 'Please analyze the attached document.',
+      attachment: attachment?.inlineData
+        ? { inlineData: attachment.inlineData, fileName: attachment.fileName }
+        : null,
     };
 
     const historyForApi = [...messages.filter((m) => m.id !== 'welcome'), userMessage];
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setPendingAttachment(null);
     setError(null);
     setIsLoading(true);
 
     try {
-      const reply = await sendLegalChatMessage(historyForApi);
+      const reply = await sendLegalChatMessage(historyForApi, { isPro, draftMode });
+      await incrementChatUsage();
+      refreshAllowance();
+      await refreshAccount();
+
       setMessages((prev) => [
         ...prev,
-        { id: `assistant-${Date.now()}`, role: 'assistant', content: reply },
+        {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: stripMarkdown(reply),
+        },
       ]);
     } catch (err) {
       setError(err.message || 'Kuch galat ho gaya. Dobara try karo.');
@@ -62,6 +142,60 @@ export default function LegalChatbot() {
       setIsLoading(false);
     }
   };
+
+  const handleSend = (e) => {
+    e?.preventDefault();
+    if (isLoading) return;
+    sendMessage({
+      text: input,
+      attachment: pendingAttachment,
+    });
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!isPro) {
+      setError('Document upload is Pro only. Upgrade to upload PDFs for analysis.');
+      return;
+    }
+
+    try {
+      const parsed = await readFileForChat(file);
+      setPendingAttachment(parsed);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleGenerateDraft = () => {
+    sendMessage({
+      text: 'Based on our entire conversation, generate a complete court-ready legal draft appropriate for this matter. Include all necessary parties, facts, legal grounds, and relief sought.',
+      draftMode: true,
+    });
+  };
+
+  const handleExportChatPdf = async () => {
+    if (!isPro) {
+      setError('Chat PDF export is a Pro feature.');
+      return;
+    }
+    const transcript = buildChatTranscript(messages);
+    if (!transcript.trim()) return;
+    try {
+      await downloadDraftPdf(transcript, {
+        draftType: 'Chat Conversation',
+        party1Name: 'Chat Export',
+      });
+    } catch (err) {
+      setError(err.message || 'PDF export failed');
+    }
+  };
+
+  const limitReached = chatAllowance && !chatAllowance.allowed && !chatAllowance.isPro;
 
   return (
     <>
@@ -78,8 +212,8 @@ export default function LegalChatbot() {
           ${isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-4 pointer-events-none'}
-          inset-x-3 bottom-20 max-h-[min(85vh,560px)]
-          sm:inset-x-auto sm:left-6 sm:right-auto sm:bottom-24 sm:w-[min(calc(100vw-3rem),400px)] sm:max-h-[min(70vh,560px)]
+          inset-x-3 bottom-20 max-h-[min(85vh,600px)]
+          sm:inset-x-auto sm:left-6 sm:right-auto sm:bottom-24 sm:w-[min(calc(100vw-3rem),420px)] sm:max-h-[min(75vh,600px)]
           rounded-2xl`}
         role="dialog"
         aria-label="Draftee Legal Assistant"
@@ -92,10 +226,19 @@ export default function LegalChatbot() {
                 <LogoMark className="text-sm text-gold" inverted />
               </div>
               <h2 className="font-display text-base text-cream leading-tight truncate">
-                Draftee Legal Assistant
+                Legal Assistant
+                {isPro && (
+                  <span className="ml-1.5 text-[10px] uppercase text-gold font-body">Pro</span>
+                )}
               </h2>
             </div>
-            <p className="text-cream/50 text-xs mt-1 ml-10">Ask any legal question</p>
+            <p className="text-cream/50 text-xs mt-1 ml-10">
+              {isPro
+                ? 'Unlimited · Upload · Drafts · PDF'
+                : chatAllowance
+                  ? `${chatAllowance.remaining}/${FREE_CHAT_DAILY_LIMIT} messages today`
+                  : 'Ask any legal question'}
+            </p>
           </div>
           <button
             type="button"
@@ -106,6 +249,15 @@ export default function LegalChatbot() {
             ×
           </button>
         </header>
+
+        {limitReached && (
+          <div className="shrink-0 px-3 py-2 bg-gold/10 border-b border-gold/30 text-xs text-cream/90 text-center">
+            Daily limit reached.{' '}
+            <Link to="/pricing" state={{ chatLimitReached: true }} className="text-gold underline">
+              Upgrade Pro — ₹{PRO_PRICE_INR}/mo
+            </Link>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-navy/40 min-h-0">
           {messages.map((msg) => (
@@ -120,6 +272,9 @@ export default function LegalChatbot() {
                     : 'bg-card border border-border text-cream/90 rounded-bl-md'
                 }`}
               >
+                {msg.attachment?.fileName && (
+                  <p className="text-xs opacity-80 mb-1 font-medium">📎 {msg.attachment.fileName}</p>
+                )}
                 {msg.content}
               </div>
             </div>
@@ -138,10 +293,63 @@ export default function LegalChatbot() {
           {error && (
             <p className="text-red-400/90 text-xs text-center bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
               {error}
+              {error.includes('Pro') && (
+                <>
+                  {' '}
+                  <Link to="/pricing" className="text-gold underline">
+                    View plans
+                  </Link>
+                </>
+              )}
             </p>
           )}
 
           <div ref={messagesEndRef} />
+        </div>
+
+        {pendingAttachment && (
+          <div className="shrink-0 px-3 py-2 border-t border-border bg-navy/30 flex items-center justify-between gap-2 text-xs">
+            <span className="text-cream/70 truncate">📎 {pendingAttachment.fileName}</span>
+            <button
+              type="button"
+              onClick={() => setPendingAttachment(null)}
+              className="text-cream/50 hover:text-cream shrink-0"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        <div className="shrink-0 border-t border-border bg-card px-2 pt-2 flex flex-wrap gap-1">
+          <ProOnlyButton
+            isPro={isPro}
+            onClick={() => fileInputRef.current?.click()}
+            className="text-xs px-2 py-1 rounded border border-border text-cream/70 hover:border-gold/40 hover:text-gold"
+          >
+            📎 Upload
+          </ProOnlyButton>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt,application/pdf,text/plain"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <ProOnlyButton
+            isPro={isPro}
+            onClick={handleGenerateDraft}
+            disabled={isLoading}
+            className="text-xs px-2 py-1 rounded border border-border text-cream/70 hover:border-gold/40 hover:text-gold disabled:opacity-50"
+          >
+            Generate draft
+          </ProOnlyButton>
+          <ProOnlyButton
+            isPro={isPro}
+            onClick={handleExportChatPdf}
+            className="text-xs px-2 py-1 rounded border border-border text-cream/70 hover:border-gold/40 hover:text-gold"
+          >
+            Chat PDF
+          </ProOnlyButton>
         </div>
 
         <form
@@ -153,14 +361,18 @@ export default function LegalChatbot() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a legal question..."
-            disabled={isLoading}
+            placeholder={
+              limitReached
+                ? 'Daily limit reached — upgrade to Pro'
+                : 'Ask a legal question...'
+            }
+            disabled={isLoading || limitReached}
             className="flex-1 text-sm py-2.5"
             autoComplete="off"
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || limitReached || (!input.trim() && !pendingAttachment)}
             className="btn-primary px-4 py-2.5 shrink-0"
             aria-label="Send message"
           >
