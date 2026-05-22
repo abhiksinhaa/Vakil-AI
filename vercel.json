@@ -10,10 +10,20 @@
     {
       "src": "api/gemini.cjs",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/razorpay/create-order.cjs",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/razorpay/verify.cjs",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     { "src": "/api/gemini", "dest": "/api/gemini.cjs" },
+    { "src": "/api/razorpay/create-order", "dest": "/api/razorpay/create-order.cjs" },
+    { "src": "/api/razorpay/verify", "dest": "/api/razorpay/verify.cjs" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]

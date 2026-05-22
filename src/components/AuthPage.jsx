@@ -1,18 +1,29 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { applyReferralOnSignup } from '../lib/userAccount';
+
+const REFERRAL_STORAGE_KEY = 'draftee_ref';
 import AuthAnimatedBackground from './auth/AuthAnimatedBackground';
 import AuthLawyerWalk from './auth/AuthLawyerWalk';
 import '../styles/authScene.css';
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      localStorage.setItem(REFERRAL_STORAGE_KEY, ref.trim().toUpperCase());
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +38,7 @@ export default function AuthPage() {
         });
         if (authError) throw authError;
       } else {
-        const { error: authError } = await supabase.auth.signUp({
+        const { data: signUpData, error: authError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -35,6 +46,14 @@ export default function AuthPage() {
           },
         });
         if (authError) throw authError;
+
+        if (signUpData?.session) {
+          const refCode = localStorage.getItem(REFERRAL_STORAGE_KEY);
+          if (refCode) {
+            await applyReferralOnSignup(refCode);
+            localStorage.removeItem(REFERRAL_STORAGE_KEY);
+          }
+        }
       }
       navigate('/dashboard');
     } catch (err) {

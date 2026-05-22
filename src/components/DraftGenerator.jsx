@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
 import { generateLegalDraft } from '../lib/claude';
 import { saveDraft } from '../lib/supabase';
+import { useApp } from '../context/AppContext';
+import {
+  checkDraftAllowance,
+  incrementDraftUsage,
+  isAdvocateProfileComplete,
+} from '../lib/userAccount';
 
 const DRAFT_TYPES = [
   'Legal Notice',
@@ -37,12 +44,34 @@ const INITIAL_FORM = {
 };
 
 export default function DraftGenerator() {
+  const navigate = useNavigate();
+  const { profile, isPro, refreshAccount, accountLoading } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [allowance, setAllowance] = useState(null);
+  const [profileFilled, setProfileFilled] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setForm((prev) => ({
+        ...prev,
+        advocateName: profile.advocate_name || prev.advocateName,
+        barCouncilNumber: profile.bar_council_number || prev.barCouncilNumber,
+        advocateCity: profile.court_jurisdiction || prev.advocateCity,
+      }));
+      setProfileFilled(isAdvocateProfileComplete(profile));
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    checkDraftAllowance()
+      .then(setAllowance)
+      .catch(console.error);
+  }, [isPro]);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -61,6 +90,19 @@ export default function DraftGenerator() {
       return;
     }
 
+    if (!profileFilled) {
+      setError('Please complete your advocate profile before generating drafts.');
+      return;
+    }
+
+    const currentAllowance = await checkDraftAllowance();
+    setAllowance(currentAllowance);
+    if (!currentAllowance.allowed) {
+      setError(null);
+      navigate('/pricing', { state: { limitReached: true } });
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     setSaveSuccess(false);
@@ -71,6 +113,10 @@ export default function DraftGenerator() {
         responseTime: getResponseTime(),
       });
       setDraft(text);
+      await incrementDraftUsage();
+      const next = await checkDraftAllowance();
+      setAllowance(next);
+      await refreshAccount();
     } catch (err) {
       setError(err.message || 'Draft generate nahi hua. Dobara try karo.');
     } finally {
@@ -101,14 +147,51 @@ export default function DraftGenerator() {
     }
   };
 
+  const limitReached = allowance && !allowance.allowed && !allowance.isPro;
+
   return (
     <div className="min-h-screen bg-navy flex flex-col">
       <Navbar />
 
       <div className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-6 lg:py-8">
-        <h1 className="font-display text-2xl sm:text-3xl text-cream mb-6">
-          Naya Draft Banao
-        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <h1 className="font-display text-2xl sm:text-3xl text-cream">
+            Naya Draft Banao
+          </h1>
+          {allowance && !allowance.isPro && (
+            <p className="text-sm text-cream/60">
+              <span className="text-gold font-medium">{allowance.remaining}</span> of{' '}
+              {allowance.limit} free drafts left this month
+            </p>
+          )}
+          {allowance?.isPro && (
+            <span className="text-xs text-gold bg-gold/10 px-3 py-1 rounded-full">
+              Pro — Unlimited
+            </span>
+          )}
+        </div>
+
+        {!accountLoading && !profileFilled && (
+          <div className="mb-6 p-4 rounded-xl border border-gold/40 bg-gold/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-cream/90 text-sm">
+              Complete your advocate profile to auto-fill details and generate drafts.
+            </p>
+            <Link to="/profile" className="btn-primary text-sm shrink-0 text-center">
+              Complete Profile
+            </Link>
+          </div>
+        )}
+
+        {limitReached && (
+          <div className="mb-6 p-4 rounded-xl border border-gold/40 bg-gold/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-cream/90 text-sm">
+              Free monthly limit reached. Upgrade to Pro for unlimited drafts.
+            </p>
+            <Link to="/pricing" className="btn-primary text-sm shrink-0 text-center">
+              Upgrade — ₹299/mo
+            </Link>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:min-h-[calc(100vh-12rem)]">
           <form
@@ -137,7 +220,15 @@ export default function DraftGenerator() {
             </section>
 
             <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Advocate Details</h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-display text-lg text-gold">Advocate Details</h2>
+                <Link to="/profile" className="text-xs text-gold hover:underline shrink-0">
+                  Edit profile
+                </Link>
+              </div>
+              <p className="text-xs text-cream/50 -mt-2">
+                Auto-filled from your saved profile
+              </p>
               <div>
                 <label htmlFor="advocateName">Advocate Name</label>
                 <input
@@ -322,7 +413,9 @@ export default function DraftGenerator() {
                 isGenerating ||
                 !form.situation.trim() ||
                 !form.party1Name.trim() ||
-                !form.incidentTiming
+                !form.incidentTiming ||
+                !profileFilled ||
+                limitReached
               }
               className="btn-primary w-full py-3 text-base"
             >
@@ -340,6 +433,7 @@ export default function DraftGenerator() {
           <div className="lg:w-[60%] flex-1 min-h-[400px] lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)]">
             <DraftPreview
               draft={draft}
+              onDraftChange={setDraft}
               formData={form}
               onRegenerate={runGenerate}
               onSave={handleSave}

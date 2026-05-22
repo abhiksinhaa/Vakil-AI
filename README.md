@@ -29,15 +29,22 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 
 3. **Supabase database**
 
-   Run the SQL from the project spec in the Supabase SQL editor (drafts table + RLS).
+   Run all SQL in `supabase/schema.sql` in the Supabase SQL editor (drafts, profiles, subscriptions, referrals, payments, triggers).
 
-4. **Run locally**
+4. **Razorpay (optional — Pro plan)**
+
+   - `VITE_RAZORPAY_KEY_ID` — public key for checkout
+   - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — server keys for `/api/razorpay/*` on Vercel
+
+5. **Run locally**
 
    ```bash
    npm run dev
    ```
 
-5. **Build for production**
+   For Razorpay API routes locally, use `npx vercel dev` instead of Vite-only dev.
+
+6. **Build for production**
 
    ```bash
    npm run build

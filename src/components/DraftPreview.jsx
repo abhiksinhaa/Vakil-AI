@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
+import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
 
 export default function DraftPreview({
   draft,
+  onDraftChange,
   formData,
   onRegenerate,
   onSave,
@@ -16,11 +18,28 @@ export default function DraftPreview({
   const [copied, setCopied] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editBuffer, setEditBuffer] = useState('');
 
   const displayDraft = useMemo(
     () => (draft ? stripMarkdown(draft) : ''),
     [draft]
   );
+
+  const startEdit = () => {
+    setEditBuffer(displayDraft);
+    setIsEditing(true);
+  };
+
+  const saveEdits = () => {
+    onDraftChange?.(editBuffer);
+    setIsEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditBuffer('');
+  };
 
   const handleCopy = async () => {
     if (!displayDraft) return;
@@ -46,11 +65,11 @@ export default function DraftPreview({
   };
 
   const handleDownloadPdf = async () => {
-    if (!draft || isPdfLoading) return;
+    if (!displayDraft || isPdfLoading) return;
     setPdfError(null);
     setIsPdfLoading(true);
     try {
-      await downloadDraftPdf(draft, formData);
+      await downloadDraftPdf(displayDraft, formData);
     } catch (err) {
       console.error('PDF export failed:', err);
       setPdfError('PDF download nahi hua. Dobara try karo.');
@@ -59,18 +78,34 @@ export default function DraftPreview({
     }
   };
 
+  const handleWhatsApp = () => {
+    if (!displayDraft) return;
+    openWhatsAppShare(displayDraft);
+  };
+
+  const handleEmail = () => {
+    if (!displayDraft) return;
+    openEmailDraft({
+      body: displayDraft,
+      draftType: formData?.draftType,
+    });
+  };
+
   return (
     <div className="card h-full flex flex-col min-h-[400px] lg:min-h-0">
       <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-border">
         <h2 className="font-display text-lg text-cream">Draft Preview</h2>
-        {draft && !isGenerating && (
+        {draft && !isGenerating && !isEditing && (
           <span className="text-xs text-gold/80 bg-gold/10 px-2 py-1 rounded">
             Ready
           </span>
         )}
+        {isEditing && (
+          <span className="text-xs text-gold bg-gold/20 px-2 py-1 rounded">Editing</span>
+        )}
       </div>
 
-      <div className="flex-1 overflow-auto mb-4">
+      <div className="flex-1 overflow-auto mb-4 min-h-0">
         {isGenerating && (
           <div className="flex flex-col items-center justify-center h-full min-h-[280px] gap-4">
             <div className="w-12 h-12 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
@@ -91,7 +126,16 @@ export default function DraftPreview({
           </div>
         )}
 
-        {!isGenerating && !error && draft && (
+        {!isGenerating && !error && draft && isEditing && (
+          <textarea
+            value={editBuffer}
+            onChange={(e) => setEditBuffer(e.target.value)}
+            className="w-full h-full min-h-[320px] text-sm leading-relaxed font-body resize-y"
+            aria-label="Edit draft"
+          />
+        )}
+
+        {!isGenerating && !error && draft && !isEditing && (
           <pre className="animate-fade-in whitespace-pre-wrap font-body text-sm text-cream/90 leading-relaxed bg-navy/50 rounded-lg p-5 border border-border/50 print:text-black print:bg-white">
             {displayDraft}
           </pre>
@@ -127,31 +171,53 @@ export default function DraftPreview({
 
       {draft && !isGenerating && !error && (
         <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-          <button type="button" onClick={handleCopy} className="btn-secondary text-sm">
-            {copied ? 'Copied! ✓' : 'Copy to Clipboard'}
-          </button>
-          <button type="button" onClick={handleDownloadTxt} className="btn-secondary text-sm">
-            Download .txt
-          </button>
-          <button
-            type="button"
-            onClick={handleDownloadPdf}
-            disabled={isPdfLoading}
-            className="btn-secondary text-sm"
-          >
-            {isPdfLoading ? 'PDF ban raha hai…' : 'Download PDF'}
-          </button>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={isSaving || saveSuccess}
-            className="btn-secondary text-sm"
-          >
-            {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : 'Save to History'}
-          </button>
-          <button type="button" onClick={onRegenerate} className="btn-primary text-sm ml-auto">
-            Regenerate
-          </button>
+          {isEditing ? (
+            <>
+              <button type="button" onClick={saveEdits} className="btn-primary text-sm">
+                Save edits
+              </button>
+              <button type="button" onClick={cancelEdit} className="btn-secondary text-sm">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={startEdit} className="btn-secondary text-sm">
+                Edit draft
+              </button>
+              <button type="button" onClick={handleCopy} className="btn-secondary text-sm">
+                {copied ? 'Copied! ✓' : 'Copy'}
+              </button>
+              <button type="button" onClick={handleDownloadTxt} className="btn-secondary text-sm">
+                .txt
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isPdfLoading}
+                className="btn-secondary text-sm"
+              >
+                {isPdfLoading ? 'PDF…' : 'PDF'}
+              </button>
+              <button type="button" onClick={handleWhatsApp} className="btn-secondary text-sm">
+                WhatsApp
+              </button>
+              <button type="button" onClick={handleEmail} className="btn-secondary text-sm">
+                Email
+              </button>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={isSaving || saveSuccess}
+                className="btn-secondary text-sm"
+              >
+                {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : 'Save'}
+              </button>
+              <button type="button" onClick={onRegenerate} className="btn-primary text-sm ml-auto">
+                Regenerate
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
