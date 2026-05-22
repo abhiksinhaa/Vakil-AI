@@ -1,62 +1,132 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
+import { PRO_PRICE_INR } from '../lib/userAccount';
+
+function getUserInitials(session, profile) {
+  const name =
+    profile?.advocate_name?.trim() ||
+    profile?.full_name?.trim() ||
+    session?.user?.user_metadata?.full_name?.trim() ||
+    session?.user?.email?.split('@')[0] ||
+    'A';
+  const parts = name.replace(/\./g, ' ').split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+function NavDropdown({ open, onClose, align = 'right', children }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      ref={ref}
+      className={`absolute top-full mt-2 min-w-[200px] py-1.5 rounded-xl border border-border bg-card shadow-xl z-[60] ${
+        align === 'right' ? 'right-0' : 'left-0'
+      }`}
+      role="menu"
+    >
+      {children}
+    </div>
+  );
+}
+
+function DropdownItem({ to, onClick, children, destructive }) {
+  const className = `block w-full text-left px-4 py-2.5 text-sm transition-colors ${
+    destructive
+      ? 'text-red-400/90 hover:bg-red-400/10'
+      : 'text-cream/80 hover:bg-gold/10 hover:text-gold'
+  }`;
+
+  if (to) {
+    return (
+      <Link to={to} role="menuitem" className={className} onClick={onClick}>
+        {children}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" role="menuitem" className={className} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
 
 export default function Navbar() {
   const location = useLocation();
-  const { theme, toggleTheme, isPro } = useApp();
+  const navigate = useNavigate();
+  const { theme, toggleTheme, isPro, session, profile } = useApp();
+  const [profileOpen, setProfileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const initials = getUserInitials(session, profile);
+
+  const closeAll = () => {
+    setProfileOpen(false);
+    setMenuOpen(false);
   };
 
-  const linkClass = (path) =>
-    `text-sm font-medium transition-colors ${
-      location.pathname === path
-        ? 'text-gold'
-        : 'text-cream/70 hover:text-gold'
-    }`;
+  const openProfile = () => {
+    setMenuOpen(false);
+    setProfileOpen((o) => !o);
+  };
 
-  const navLinks = (
-    <>
-      <Link to="/generate" className={linkClass('/generate')} onClick={() => setMenuOpen(false)}>
-        Naya Draft
-      </Link>
-      <Link to="/history" className={linkClass('/history')} onClick={() => setMenuOpen(false)}>
-        History
-      </Link>
-      <Link to="/profile" className={linkClass('/profile')} onClick={() => setMenuOpen(false)}>
-        Profile
-      </Link>
-      <Link to="/pricing" className={linkClass('/pricing')} onClick={() => setMenuOpen(false)}>
-        {isPro ? 'Pro ✓' : 'Pricing'}
-      </Link>
-    </>
-  );
+  const openMenu = () => {
+    setProfileOpen(false);
+    setMenuOpen((o) => !o);
+  };
+
+  const handleLogout = async () => {
+    closeAll();
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
+  useEffect(() => {
+    closeAll();
+  }, [location.pathname]);
 
   return (
     <nav className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+        {/* Left: logo */}
         <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
           <span className="font-display text-xl font-semibold text-gold tracking-tight">
             Draft<span className="text-cream">ee</span>
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-5">
-          <Link to="/generate" className="btn-primary text-sm py-2 px-4">
-            + Draft
-          </Link>
-          {navLinks}
-        </div>
-
+        {/* Right: theme → profile → hamburger */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* 1. Theme toggle */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-2 rounded-lg border border-border text-cream/70 hover:border-gold/40 hover:text-gold transition-colors"
+            className="p-2 rounded-lg border border-border text-cream/70 hover:border-gold/40 hover:text-gold transition-colors shrink-0"
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
           >
@@ -81,43 +151,90 @@ export default function Navbar() {
             )}
           </button>
 
-          <button
-            type="button"
-            className="md:hidden p-2 text-cream/70"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Menu"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-              />
-            </svg>
-          </button>
+          {/* 2. Profile avatar dropdown */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={openProfile}
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all ${
+                profileOpen
+                  ? 'border-gold bg-gold/20 text-gold'
+                  : 'border-gold/60 bg-gold/10 text-gold hover:border-gold hover:bg-gold/20'
+              }`}
+              aria-label="Profile menu"
+              aria-expanded={profileOpen}
+              aria-haspopup="menu"
+            >
+              {initials}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="hidden sm:inline text-sm text-cream/60 hover:text-cream transition-colors"
-          >
-            Logout
-          </button>
+            <NavDropdown open={profileOpen} onClose={() => setProfileOpen(false)}>
+              <DropdownItem
+                to="/profile"
+                onClick={closeAll}
+              >
+                My Profile
+              </DropdownItem>
+              <DropdownItem
+                to="/settings"
+                onClick={closeAll}
+              >
+                Settings
+              </DropdownItem>
+            </NavDropdown>
+          </div>
+
+          {/* 3. Hamburger menu dropdown */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={openMenu}
+              className={`p-2 rounded-lg border transition-colors shrink-0 ${
+                menuOpen
+                  ? 'border-gold text-gold bg-gold/10'
+                  : 'border-border text-cream/70 hover:border-gold/40 hover:text-gold'
+              }`}
+              aria-label="Main menu"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+
+            <NavDropdown open={menuOpen} onClose={() => setMenuOpen(false)}>
+              <DropdownItem
+                to="/generate"
+                onClick={closeAll}
+              >
+                Naya Draft
+              </DropdownItem>
+              <DropdownItem
+                to="/history"
+                onClick={closeAll}
+              >
+                History
+              </DropdownItem>
+              <DropdownItem
+                to="/pricing"
+                onClick={closeAll}
+              >
+                {isPro ? 'Pricing & Pro ✓' : `Pricing & Upgrade — ₹${PRO_PRICE_INR}/mo`}
+              </DropdownItem>
+              <div className="my-1 border-t border-border" />
+              <DropdownItem onClick={handleLogout} destructive>
+                Logout
+              </DropdownItem>
+            </NavDropdown>
+          </div>
         </div>
       </div>
-
-      {menuOpen && (
-        <div className="md:hidden border-t border-border bg-card px-4 py-4 flex flex-col gap-3">
-          <Link to="/generate" className="btn-primary text-sm text-center" onClick={() => setMenuOpen(false)}>
-            + Naya Draft
-          </Link>
-          {navLinks}
-          <button type="button" onClick={handleLogout} className="text-sm text-cream/60 text-left">
-            Logout
-          </button>
-        </div>
-      )}
     </nav>
   );
 }

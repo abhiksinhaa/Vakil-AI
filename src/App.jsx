@@ -8,6 +8,7 @@ import DraftGenerator from './components/DraftGenerator';
 import DraftHistory from './components/DraftHistory';
 import ProfilePage from './components/ProfilePage';
 import PricingPage from './components/PricingPage';
+import SettingsPage from './components/SettingsPage';
 import LegalChatbot from './components/LegalChatbot';
 
 function ProtectedRoute({ children, session }) {
@@ -111,6 +112,14 @@ export default function App() {
           element={
             <ProtectedRoute session={session}>
               <PricingPage session={session} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute session={session}>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

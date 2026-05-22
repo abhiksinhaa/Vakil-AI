@@ -69,6 +69,7 @@ export function AppProvider({ children, session }) {
 
   const value = useMemo(
     () => ({
+      session,
       theme,
       toggleTheme,
       profile,
@@ -79,7 +80,7 @@ export function AppProvider({ children, session }) {
       setProfile,
       setSubscription,
     }),
-    [theme, toggleTheme, profile, subscription, accountLoading, refreshAccount]
+    [session, theme, toggleTheme, profile, subscription, accountLoading, refreshAccount]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
