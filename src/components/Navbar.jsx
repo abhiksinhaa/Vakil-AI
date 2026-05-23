@@ -212,7 +212,7 @@ export default function Navbar() {
                 to="/generate"
                 onClick={closeAll}
               >
-                Naya Draft
+                New Draft
               </DropdownItem>
               <DropdownItem
                 to="/history"

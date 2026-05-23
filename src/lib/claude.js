@@ -115,7 +115,7 @@ Generate the complete ${draftType} now:`;
     data = JSON.parse(raw);
   } catch {
     console.error('Gemini API invalid JSON:', raw.slice(0, 300));
-    throw new Error('Draft generate nahi hua. Dobara try karo.');
+    throw new Error('Draft could not be generated. Please try again.');
   }
 
   if (!response.ok) {
@@ -134,8 +134,8 @@ Generate the complete ${draftType} now:`;
     console.error('Gemini API empty response:', data);
     throw new Error(
       blockReason === 'SAFETY'
-        ? 'Draft blocked by safety filters. Facts thoda modify karke try karo.'
-        : 'Draft generate nahi hua. Dobara try karo.'
+        ? 'Draft blocked by safety filters. Please modify the facts and try again.'
+        : 'Draft could not be generated. Please try again.'
     );
   }
 

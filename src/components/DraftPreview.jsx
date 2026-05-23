@@ -72,7 +72,7 @@ export default function DraftPreview({
       await downloadDraftPdf(displayDraft, formData);
     } catch (err) {
       console.error('PDF export failed:', err);
-      setPdfError('PDF download nahi hua. Dobara try karo.');
+      setPdfError('PDF could not be downloaded. Please try again.');
     } finally {
       setIsPdfLoading(false);
     }
@@ -109,14 +109,14 @@ export default function DraftPreview({
         {isGenerating && (
           <div className="flex flex-col items-center justify-center h-full min-h-[280px] gap-4">
             <div className="w-12 h-12 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
-            <p className="text-cream/70 text-sm">Draft ban raha hai…</p>
+            <p className="text-cream/70 text-sm">Generating draft...</p>
           </div>
         )}
 
         {error && !isGenerating && (
           <div className="flex flex-col items-center justify-center h-full min-h-[280px] gap-4 text-center px-4">
             <p className="text-red-400/90 text-sm max-w-md">
-              {typeof error === 'string' ? error : 'Draft generate nahi hua. Dobara try karo.'}
+              {typeof error === 'string' ? error : 'Draft could not be generated. Please try again.'}
             </p>
             {onRetry && (
               <button type="button" onClick={onRetry} className="btn-primary text-sm">
@@ -159,7 +159,7 @@ export default function DraftPreview({
               </svg>
             </div>
             <p className="text-cream/50 text-sm">
-              Form bhariye aur Generate dabaiye — yahan draft dikhega
+              Fill the form and click Generate — your draft will appear here
             </p>
           </div>
         )}

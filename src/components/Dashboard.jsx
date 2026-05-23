@@ -71,12 +71,12 @@ export default function Dashboard({ session }) {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <header className="mb-10">
-          <p className="text-gold/80 text-sm font-medium mb-1">Namaste,</p>
+          <p className="text-gold/80 text-sm font-medium mb-1">Welcome,</p>
           <h1 className="font-display text-3xl sm:text-4xl text-cream mb-2">
             {displayName}
           </h1>
           <p className="text-cream/50 text-sm">
-            Aaj kya draft banana hai? Form bhariye, AI turant tayyar karega.
+            What draft would you like to create today? Fill the form, and AI will prepare it instantly.
           </p>
         </header>
 
@@ -85,9 +85,9 @@ export default function Dashboard({ session }) {
           className="card flex items-center justify-between gap-4 mb-10 group hover:border-gold/40 transition-colors"
         >
           <div>
-            <h2 className="font-display text-xl text-gold mb-1">Naya Draft Banao</h2>
+            <h2 className="font-display text-xl text-gold mb-1">Create New Draft</h2>
             <p className="text-cream/50 text-sm">
-              Legal Notice, Rent Agreement, Affidavit aur aur bhi
+              Legal Notice, Rent Agreement, Affidavit and more
             </p>
           </div>
           <span className="btn-primary shrink-0 group-hover:bg-gold/90">Start →</span>
@@ -109,9 +109,9 @@ export default function Dashboard({ session }) {
 
           {!loading && drafts.length === 0 && (
             <div className="card text-center py-10">
-              <p className="text-cream/50 text-sm mb-4">Abhi koi draft save nahi hua</p>
+              <p className="text-cream/50 text-sm mb-4">No drafts saved yet</p>
               <Link to="/generate" className="btn-primary text-sm">
-                Pehla Draft Banao
+                Create Your First Draft
               </Link>
             </div>
           )}

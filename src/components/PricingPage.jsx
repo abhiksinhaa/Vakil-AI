@@ -33,7 +33,7 @@ export default function PricingPage() {
           </h1>
           
           <p className="text-cream/90 text-lg mb-6 font-medium italic">
-            "Hum kuch khaas bana rahe hain aapke liye" ✨
+            "We are building something special for you" ✨
           </p>
 
           <p className="text-cream/50 text-sm mb-8 max-w-sm">

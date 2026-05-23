@@ -120,7 +120,7 @@ export default function DraftGenerator() {
       setAllowance(next);
       await refreshAccount();
     } catch (err) {
-      setError(err.message || 'Draft generate nahi hua. Dobara try karo.');
+      setError(err.message || 'Draft could not be generated. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -158,7 +158,7 @@ export default function DraftGenerator() {
       <div className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-6 lg:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-cream">
-            Naya Draft Banao
+            Create New Draft
           </h1>
           {allowance && !allowance.isPro && (
             <p className="text-sm text-cream/60">
@@ -343,7 +343,7 @@ export default function DraftGenerator() {
                   value={form.situation}
                   onChange={(text) => update('situation', text)}
                   language={form.language}
-                  placeholder="Kya hua hai? Saari facts yahan likho — date, amount, kya demand hai, kya steps pehle liye... (mic se bolo)"
+                  placeholder="What happened? Write all the facts here — date, amount, demands, previous steps taken... (use mic)"
                   required
                 />
               </div>
@@ -423,7 +423,7 @@ export default function DraftGenerator() {
               {isGenerating ? (
                 <>
                   <span className="w-5 h-5 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
-                  Draft ban raha hai…
+                  Generating draft...
                 </>
               ) : (
                 'Generate Draft'

@@ -104,7 +104,7 @@ export default function DraftHistory() {
         ) : filtered.length === 0 ? (
           <div className="card text-center py-12">
             <p className="text-cream/50 text-sm">
-              {search ? 'Koi draft match nahi hua' : 'Abhi koi saved draft nahi hai'}
+              {search ? 'No matching drafts found' : 'No saved drafts yet'}
             </p>
           </div>
         ) : (

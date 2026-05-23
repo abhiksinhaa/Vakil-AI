@@ -13,10 +13,10 @@ import {
 } from '../lib/userAccount';
 
 const WELCOME_FREE =
-  'Namaste! Main aapka Draftee Legal Assistant hoon. Free plan: 5 messages per day. BNS, BNSS, BSA, court procedure — poochho.';
+  'Welcome! I am your Draftee Legal Assistant. Free plan: 5 messages per day. Ask about BNS, BNSS, BSA, or court procedure.';
 
 const WELCOME_PRO =
-  'Namaste! Pro Legal Assistant — unlimited messages, document upload, draft generation, aur PDF export. Kaise madad karoon?';
+  'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
 
 function LogoMark({ className = '', inverted = false }) {
   return (
@@ -137,7 +137,7 @@ export default function LegalChatbot() {
         },
       ]);
     } catch (err) {
-      setError(err.message || 'Kuch galat ho gaya. Dobara try karo.');
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
