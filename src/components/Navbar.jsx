@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
-import { PRO_PRICE_INR } from '../lib/userAccount';
 
 function getUserInitials(session, profile) {
   const name =
@@ -225,7 +224,7 @@ export default function Navbar() {
                 to="/pricing"
                 onClick={closeAll}
               >
-                {isPro ? 'Pricing & Pro ✓' : `Pricing & Upgrade — ₹${PRO_PRICE_INR}/mo`}
+                Unlock Premium Version
               </DropdownItem>
               <div className="my-1 border-t border-border" />
               <DropdownItem onClick={handleLogout} destructive>
