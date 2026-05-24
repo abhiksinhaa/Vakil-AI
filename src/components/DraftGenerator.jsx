@@ -392,7 +392,8 @@ export default function DraftGenerator() {
               saveSuccess={saveSuccess}
               error={error}
               onRetry={runGenerate}
-              isLoggedIn={!!profile}
+              profile={profile}
+              refreshAccount={refreshAccount}
             />
           </div>
         </div>

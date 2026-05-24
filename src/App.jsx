@@ -85,7 +85,11 @@ export default function App() {
         />
         <Route
           path="/generate"
-          element={<DraftGenerator />}
+          element={
+            <ProtectedRoute session={session}>
+              <DraftGenerator />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/history"
