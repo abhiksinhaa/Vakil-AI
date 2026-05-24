@@ -86,16 +86,6 @@ export default function LegalChatbot() {
     const trimmed = text?.trim() || '';
     if (!trimmed && !attachment) return;
 
-    const allowance = await checkChatAllowance();
-    setChatAllowance(allowance);
-
-    if (!allowance.allowed) {
-      setError(
-        `Daily limit reached (${FREE_CHAT_DAILY_LIMIT} messages). Upgrade to Pro for unlimited chat — ₹${PRO_PRICE_INR}/month.`
-      );
-      return;
-    }
-
     if (attachment && !isPro) {
       setError('Document upload is a Pro feature. Upgrade to analyze PDFs and files.');
       return;
@@ -116,6 +106,8 @@ export default function LegalChatbot() {
     };
 
     const historyForApi = [...messages.filter((m) => m.id !== 'welcome'), userMessage];
+    
+    // Optimistic update: clear input and show message immediately
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setPendingAttachment(null);
@@ -123,6 +115,21 @@ export default function LegalChatbot() {
     setIsLoading(true);
 
     try {
+      const allowance = await checkChatAllowance();
+      setChatAllowance(allowance);
+
+      if (!allowance.allowed) {
+        // Revert optimistic update
+        setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
+        setInput(trimmed);
+        setPendingAttachment(attachment);
+        setError(
+          `Daily limit reached (${FREE_CHAT_DAILY_LIMIT} messages). Upgrade to Pro for unlimited chat — ₹${PRO_PRICE_INR}/month.`
+        );
+        setIsLoading(false);
+        return;
+      }
+
       const reply = await sendLegalChatMessage(historyForApi, { isPro, draftMode });
       await incrementChatUsage();
       refreshAllowance();
@@ -137,6 +144,10 @@ export default function LegalChatbot() {
         },
       ]);
     } catch (err) {
+      // Revert optimistic update on error
+      setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
+      setInput(trimmed);
+      setPendingAttachment(attachment);
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
