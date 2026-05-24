@@ -15,8 +15,6 @@ export default function DraftPreview({
   saveSuccess,
   error,
   onRetry,
-  error,
-  onRetry,
   profile,
   refreshAccount,
 }) {
