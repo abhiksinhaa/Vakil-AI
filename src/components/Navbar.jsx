@@ -168,18 +168,20 @@ export default function Navbar() {
             </button>
 
             <NavDropdown open={profileOpen} onClose={() => setProfileOpen(false)}>
-              <DropdownItem
-                to="/profile"
-                onClick={closeAll}
-              >
-                My Profile
-              </DropdownItem>
-              <DropdownItem
-                to="/settings"
-                onClick={closeAll}
-              >
-                Settings
-              </DropdownItem>
+              {session ? (
+                <>
+                  <DropdownItem to="/profile" onClick={closeAll}>
+                    My Profile
+                  </DropdownItem>
+                  <DropdownItem to="/settings" onClick={closeAll}>
+                    Settings
+                  </DropdownItem>
+                </>
+              ) : (
+                <DropdownItem to="/" onClick={closeAll}>
+                  Sign In / Sign Up
+                </DropdownItem>
+              )}
             </NavDropdown>
           </div>
 
@@ -208,28 +210,23 @@ export default function Navbar() {
             </button>
 
             <NavDropdown open={menuOpen} onClose={() => setMenuOpen(false)}>
-              <DropdownItem
-                to="/generate"
-                onClick={closeAll}
-              >
+              <DropdownItem to="/generate" onClick={closeAll}>
                 New Draft
               </DropdownItem>
-              <DropdownItem
-                to="/history"
-                onClick={closeAll}
-              >
-                History
-              </DropdownItem>
-              <DropdownItem
-                to="/pricing"
-                onClick={closeAll}
-              >
-                Unlock Premium Version
-              </DropdownItem>
-              <div className="my-1 border-t border-border" />
-              <DropdownItem onClick={handleLogout} destructive>
-                Logout
-              </DropdownItem>
+              {session && (
+                <>
+                  <DropdownItem to="/history" onClick={closeAll}>
+                    History
+                  </DropdownItem>
+                  <DropdownItem to="/pricing" onClick={closeAll}>
+                    Unlock Premium Version
+                  </DropdownItem>
+                  <div className="my-1 border-t border-border" />
+                  <DropdownItem onClick={handleLogout} destructive>
+                    Logout
+                  </DropdownItem>
+                </>
+              )}
             </NavDropdown>
           </div>
         </div>

@@ -7,8 +7,6 @@ import { generateLegalDraft } from '../lib/claude';
 import { saveDraft } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
 import {
-  checkDraftAllowance,
-  incrementDraftUsage,
   isAdvocateProfileComplete,
   PRO_PRICE_INR,
 } from '../lib/userAccount';
@@ -54,7 +52,6 @@ export default function DraftGenerator() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
-  const [allowance, setAllowance] = useState(null);
   const [profileFilled, setProfileFilled] = useState(false);
 
   useEffect(() => {
@@ -68,12 +65,6 @@ export default function DraftGenerator() {
       setProfileFilled(isAdvocateProfileComplete(profile));
     }
   }, [profile]);
-
-  useEffect(() => {
-    checkDraftAllowance()
-      .then(setAllowance)
-      .catch(console.error);
-  }, [isPro]);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -92,19 +83,6 @@ export default function DraftGenerator() {
       return;
     }
 
-    if (!profileFilled) {
-      setError('Please complete your advocate profile before generating drafts.');
-      return;
-    }
-
-    const currentAllowance = await checkDraftAllowance();
-    setAllowance(currentAllowance);
-    if (!currentAllowance.allowed) {
-      setError(null);
-      navigate('/pricing', { state: { limitReached: true } });
-      return;
-    }
-
     setIsGenerating(true);
     setError(null);
     setSaveSuccess(false);
@@ -115,9 +93,6 @@ export default function DraftGenerator() {
         responseTime: getResponseTime(),
       });
       setDraft(text);
-      await incrementDraftUsage();
-      const next = await checkDraftAllowance();
-      setAllowance(next);
       await refreshAccount();
     } catch (err) {
       setError(err.message || 'Draft could not be generated. Please try again.');
@@ -149,8 +124,6 @@ export default function DraftGenerator() {
     }
   };
 
-  const limitReached = allowance && !allowance.allowed && !allowance.isPro;
-
   return (
     <div className="min-h-screen bg-navy flex flex-col">
       <Navbar />
@@ -160,37 +133,15 @@ export default function DraftGenerator() {
           <h1 className="font-display text-2xl sm:text-3xl text-cream">
             Create New Draft
           </h1>
-          {allowance && !allowance.isPro && (
-            <p className="text-sm text-cream/60">
-              <span className="text-gold font-medium">{allowance.remaining}</span> of{' '}
-              {allowance.limit} free drafts left this month
-            </p>
-          )}
-          {allowance?.isPro && (
-            <span className="text-xs text-gold bg-gold/10 px-3 py-1 rounded-full">
-              Pro — Unlimited
-            </span>
-          )}
         </div>
 
-        {!accountLoading && !profileFilled && (
+        {profile && !profileFilled && (
           <div className="mb-6 p-4 rounded-xl border border-gold/40 bg-gold/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-cream/90 text-sm">
-              Complete your advocate profile to auto-fill details and generate drafts.
+              Complete your advocate profile to auto-fill details.
             </p>
             <Link to="/profile" className="btn-primary text-sm shrink-0 text-center">
               Complete Profile
-            </Link>
-          </div>
-        )}
-
-        {limitReached && (
-          <div className="mb-6 p-4 rounded-xl border border-gold/40 bg-gold/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p className="text-cream/90 text-sm">
-              Free monthly limit reached. Upgrade to Pro (₹{PRO_PRICE_INR}/mo) for unlimited drafts.
-            </p>
-            <Link to="/pricing" className="btn-primary text-sm shrink-0 text-center">
-              Upgrade — ₹{PRO_PRICE_INR}/mo
             </Link>
           </div>
         )}
@@ -414,9 +365,7 @@ export default function DraftGenerator() {
                 isGenerating ||
                 !form.situation.trim() ||
                 !form.party1Name.trim() ||
-                !form.incidentTiming ||
-                !profileFilled ||
-                limitReached
+                !form.incidentTiming
               }
               className="btn-primary w-full py-3 text-base"
             >
@@ -443,6 +392,7 @@ export default function DraftGenerator() {
               saveSuccess={saveSuccess}
               error={error}
               onRetry={runGenerate}
+              isLoggedIn={!!profile}
             />
           </div>
         </div>

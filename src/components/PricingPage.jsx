@@ -31,7 +31,7 @@ export default function PricingPage() {
           <h1 className="font-display text-3xl sm:text-4xl text-gold mb-3">
             Premium Version Coming Soon
           </h1>
-          
+
           <p className="text-cream/90 text-lg mb-6 font-medium italic">
             "We are building something special for you" ✨
           </p>

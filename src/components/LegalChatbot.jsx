@@ -199,22 +199,11 @@ export default function LegalChatbot() {
 
   return (
     <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-navy/60 backdrop-blur-sm sm:hidden"
-          onClick={() => setIsOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
       <div
-        className={`fixed z-50 flex flex-col bg-card border border-border shadow-2xl overflow-hidden transition-all duration-300 ease-out
+        className={`fixed inset-0 w-full h-full z-50 flex flex-col bg-card overflow-hidden transition-all duration-300 ease-out
           ${isOpen
-            ? 'opacity-100 translate-y-0 pointer-events-auto'
-            : 'opacity-0 translate-y-4 pointer-events-none'}
-          inset-x-3 bottom-20 max-h-[min(85vh,600px)]
-          sm:inset-x-auto sm:left-6 sm:right-auto sm:bottom-24 sm:w-[min(calc(100vw-3rem),420px)] sm:max-h-[min(75vh,600px)]
-          rounded-2xl`}
+            ? 'opacity-100 pointer-events-auto scale-100'
+            : 'opacity-0 pointer-events-none scale-95'}`}
         role="dialog"
         aria-label="Draftee Legal Assistant"
         aria-hidden={!isOpen}
@@ -243,7 +232,7 @@ export default function LegalChatbot() {
           <button
             type="button"
             onClick={() => setIsOpen(false)}
-            className="text-cream/50 hover:text-cream text-xl leading-none p-1 shrink-0"
+            className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
             aria-label="Close chat"
           >
             ×
@@ -392,21 +381,14 @@ export default function LegalChatbot() {
         </form>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setIsOpen((o) => !o)}
-        className={`fixed z-50 bottom-6 left-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 border-2
-          ${isOpen
-            ? 'bg-card border-gold text-gold scale-95'
-            : 'bg-gold border-gold text-navy hover:scale-105 hover:shadow-gold/20'}`}
-        aria-label={isOpen ? 'Close legal assistant' : 'Open legal assistant'}
-        aria-expanded={isOpen}
-      >
-        {isOpen ? (
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        ) : (
+      {!isOpen && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="fixed z-50 bottom-6 left-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 border-2 bg-gold border-gold text-navy hover:scale-105 hover:shadow-gold/20"
+          aria-label="Open legal assistant"
+          aria-expanded={isOpen}
+        >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
@@ -415,8 +397,8 @@ export default function LegalChatbot() {
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
             />
           </svg>
-        )}
-      </button>
+        </button>
+      )}
     </>
   );
 }

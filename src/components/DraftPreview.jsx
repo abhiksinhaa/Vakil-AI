@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
@@ -14,12 +15,14 @@ export default function DraftPreview({
   saveSuccess,
   error,
   onRetry,
+  isLoggedIn,
 }) {
   const [copied, setCopied] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editBuffer, setEditBuffer] = useState('');
+  const [showGateModal, setShowGateModal] = useState(false);
 
   const displayDraft = useMemo(
     () => (draft ? stripMarkdown(draft) : ''),
@@ -43,6 +46,10 @@ export default function DraftPreview({
 
   const handleCopy = async () => {
     if (!displayDraft) return;
+    if (!isLoggedIn) {
+      setShowGateModal(true);
+      return;
+    }
     try {
       await navigator.clipboard.writeText(displayDraft);
       setCopied(true);
@@ -54,6 +61,10 @@ export default function DraftPreview({
 
   const handleDownloadTxt = () => {
     if (!displayDraft) return;
+    if (!isLoggedIn) {
+      setShowGateModal(true);
+      return;
+    }
     const type = formData?.draftType?.replace(/\s+/g, '_') || 'legal_draft';
     const blob = new Blob([displayDraft], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -66,6 +77,10 @@ export default function DraftPreview({
 
   const handleDownloadPdf = async () => {
     if (!displayDraft || isPdfLoading) return;
+    if (!isLoggedIn) {
+      setShowGateModal(true);
+      return;
+    }
     setPdfError(null);
     setIsPdfLoading(true);
     try {
@@ -80,15 +95,31 @@ export default function DraftPreview({
 
   const handleWhatsApp = () => {
     if (!displayDraft) return;
+    if (!isLoggedIn) {
+      setShowGateModal(true);
+      return;
+    }
     openWhatsAppShare(displayDraft);
   };
 
   const handleEmail = () => {
     if (!displayDraft) return;
+    if (!isLoggedIn) {
+      setShowGateModal(true);
+      return;
+    }
     openEmailDraft({
       body: displayDraft,
       draftType: formData?.draftType,
     });
+  };
+
+  const handleSaveWrapper = () => {
+    if (!isLoggedIn) {
+      setShowGateModal(true);
+      return;
+    }
+    onSave?.();
   };
 
   return (
@@ -207,7 +238,7 @@ export default function DraftPreview({
               </button>
               <button
                 type="button"
-                onClick={onSave}
+                onClick={handleSaveWrapper}
                 disabled={isSaving || saveSuccess}
                 className="btn-secondary text-sm"
               >
@@ -218,6 +249,52 @@ export default function DraftPreview({
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {showGateModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 pb-0">
+              <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center mb-4">
+                <svg
+                  className="w-6 h-6 text-gold"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-display text-xl text-cream mb-2">
+                Account Required
+              </h3>
+              <p className="text-cream/70 text-sm leading-relaxed mb-6">
+                Create a free account to copy, download or share your draft.
+              </p>
+            </div>
+            <div className="p-4 bg-navy/30 flex flex-col sm:flex-row-reverse gap-3 border-t border-border">
+              <Link
+                to="/"
+                className="btn-primary flex-1 text-center py-2.5"
+                onClick={() => setShowGateModal(false)}
+              >
+                Sign Up
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowGateModal(false)}
+                className="btn-secondary flex-1 py-2.5"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
