@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import TermsContent from './TermsContent';
@@ -36,6 +37,21 @@ export default function SettingsPage() {
             Signed in as{' '}
             <span className="text-cream">{session?.user?.email || '—'}</span>
           </p>
+        </section>
+
+        <section className="card space-y-3 mt-6">
+          <h2 className="font-display text-lg text-gold">Support</h2>
+          <div className="flex flex-col gap-2">
+            <Link 
+              to="/help"
+              className="w-full text-left px-4 py-3 bg-navy/50 border border-border rounded-lg hover:border-gold/40 hover:text-gold transition-colors text-cream text-sm flex justify-between items-center"
+            >
+              <span>Help Center</span>
+              <svg className="w-4 h-4 text-cream/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
         </section>
 
         <section className="card space-y-3 mt-6">

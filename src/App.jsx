@@ -10,6 +10,7 @@ import ProfilePage from './components/ProfilePage';
 import PricingPage from './components/PricingPage';
 import SettingsPage from './components/SettingsPage';
 import LegalChatbot from './components/LegalChatbot';
+import HelpCenter from './components/HelpCenter';
 
 function ProtectedRoute({ children, session }) {
   const location = useLocation();
@@ -120,6 +121,14 @@ export default function App() {
           element={
             <ProtectedRoute session={session}>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/help"
+          element={
+            <ProtectedRoute session={session}>
+              <HelpCenter />
             </ProtectedRoute>
           }
         />
