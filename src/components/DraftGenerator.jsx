@@ -200,35 +200,35 @@ export default function DraftGenerator() {
               <fieldset className="mt-4 space-y-3">
                 <legend className="text-sm text-cream/80">Party Mention Style</legend>
                 <div className="grid gap-3">
-                  <label className="group block w-full border border-border rounded-2xl p-3 cursor-pointer transition-colors hover:border-gold/40 bg-card">
-                    <div className="flex items-start gap-3">
+                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40">
+                    <div className="flex flex-col gap-3">
                       <input
                         type="radio"
                         name="partyMentionStyle"
                         value="include"
                         checked={form.partyMentionStyle === 'include'}
                         onChange={(e) => update('partyMentionStyle', e.target.value)}
-                        className="mt-1 accent-gold shrink-0"
+                        className="accent-gold"
                       />
                       <div className="min-w-0">
-                        <p className="font-medium text-cream">Include Party 1 & Party 2 Details</p>
-                        <p className="text-cream/60 text-xs mt-1">Recommended for Legal Notice, Demand Letter, Cheque Bounce, Consumer Complaint, Rent Agreement.</p>
+                        <p className="font-medium text-cream break-words">Include Party 1 & Party 2 Details</p>
+                        <p className="text-cream/60 text-xs mt-1 break-words">Recommended for Legal Notice, Demand Letter, Cheque Bounce, Consumer Complaint, Rent Agreement.</p>
                       </div>
                     </div>
                   </label>
-                  <label className="group block w-full border border-border rounded-2xl p-3 cursor-pointer transition-colors hover:border-gold/40 bg-card">
-                    <div className="flex items-start gap-3">
+                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40">
+                    <div className="flex flex-col gap-3">
                       <input
                         type="radio"
                         name="partyMentionStyle"
                         value="simple"
                         checked={form.partyMentionStyle === 'simple'}
                         onChange={(e) => update('partyMentionStyle', e.target.value)}
-                        className="mt-1 accent-gold shrink-0"
+                        className="accent-gold"
                       />
                       <div className="min-w-0">
-                        <p className="font-medium text-cream">Simple Format - No Party Details</p>
-                        <p className="text-cream/60 text-xs mt-1">Recommended for Affidavit and Vakalatnama.</p>
+                        <p className="font-medium text-cream break-words">Simple Format - No Party Details</p>
+                        <p className="text-cream/60 text-xs mt-1 break-words">Recommended for Affidavit and Vakalatnama.</p>
                       </div>
                     </div>
                   </label>
@@ -343,23 +343,23 @@ export default function DraftGenerator() {
                   ].map(({ value, label }) => (
                     <label
                       key={value}
-                      className={`block w-full rounded-2xl border p-3 text-sm cursor-pointer transition-colors ${
+                      className={`block w-full max-w-full overflow-hidden rounded-2xl border p-3 text-sm cursor-pointer transition-colors ${
                         form.incidentTiming === value
                           ? 'bg-gold/20 border-gold text-gold'
                           : 'border-border text-cream/60 hover:border-gold/30'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col gap-3">
                         <input
                           type="radio"
                           name="incidentTiming"
                           value={value}
                           checked={form.incidentTiming === value}
                           onChange={(e) => update('incidentTiming', e.target.value)}
-                          className="accent-gold shrink-0"
+                          className="accent-gold"
                           required
                         />
-                        <span>{label}</span>
+                        <span className="break-words">{label}</span>
                       </div>
                     </label>
                   ))}
