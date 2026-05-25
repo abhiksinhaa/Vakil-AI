@@ -178,7 +178,6 @@ export default function LegalChatbot() {
     } catch (err) {
       setError(err.message || 'PDF export failed');
     }
-      };
   };
 
   return (
