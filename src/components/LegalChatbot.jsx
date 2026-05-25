@@ -175,10 +175,10 @@ export default function LegalChatbot() {
   return (
     <>
       <div
-        className={`fixed inset-0 w-screen h-screen z-[200] flex flex-col bg-navy overflow-hidden transition-all duration-300 ease-out
+        className={`fixed inset-0 w-screen h-screen z-[200] flex flex-col bg-navy overflow-hidden transition-opacity duration-300 ease-out
           ${isOpen
-            ? 'opacity-100 pointer-events-auto scale-100'
-            : 'opacity-0 pointer-events-none scale-95'}`}
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none'}`}
         role="dialog"
         aria-label="Draftee Legal Assistant"
         aria-hidden={!isOpen}
