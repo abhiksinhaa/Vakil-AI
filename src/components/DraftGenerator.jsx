@@ -199,33 +199,37 @@ export default function DraftGenerator() {
               </div>
               <fieldset className="mt-4 space-y-3">
                 <legend className="text-sm text-cream/80">Party Mention Style</legend>
-                <div className="grid gap-2">
-                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors text-sm">
-                    <input
-                      type="radio"
-                      name="partyMentionStyle"
-                      value="include"
-                      checked={form.partyMentionStyle === 'include'}
-                      onChange={(e) => update('partyMentionStyle', e.target.value)}
-                      className="accent-gold"
-                    />
-                    <div>
-                      <p className="font-medium">Include Party 1 & Party 2 Details</p>
-                      <p className="text-cream/60 text-xs">Recommended for Legal Notice, Demand Letter, Cheque Bounce, Consumer Complaint, Rent Agreement.</p>
+                <div className="grid gap-3">
+                  <label className="group block w-full border border-border rounded-2xl p-3 cursor-pointer transition-colors hover:border-gold/40 bg-card">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="partyMentionStyle"
+                        value="include"
+                        checked={form.partyMentionStyle === 'include'}
+                        onChange={(e) => update('partyMentionStyle', e.target.value)}
+                        className="mt-1 accent-gold shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-cream">Include Party 1 & Party 2 Details</p>
+                        <p className="text-cream/60 text-xs mt-1">Recommended for Legal Notice, Demand Letter, Cheque Bounce, Consumer Complaint, Rent Agreement.</p>
+                      </div>
                     </div>
                   </label>
-                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors text-sm">
-                    <input
-                      type="radio"
-                      name="partyMentionStyle"
-                      value="simple"
-                      checked={form.partyMentionStyle === 'simple'}
-                      onChange={(e) => update('partyMentionStyle', e.target.value)}
-                      className="accent-gold"
-                    />
-                    <div>
-                      <p className="font-medium">Simple Format - No Party Details</p>
-                      <p className="text-cream/60 text-xs">Recommended for Affidavit and Vakalatnama.</p>
+                  <label className="group block w-full border border-border rounded-2xl p-3 cursor-pointer transition-colors hover:border-gold/40 bg-card">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="partyMentionStyle"
+                        value="simple"
+                        checked={form.partyMentionStyle === 'simple'}
+                        onChange={(e) => update('partyMentionStyle', e.target.value)}
+                        className="mt-1 accent-gold shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-cream">Simple Format - No Party Details</p>
+                        <p className="text-cream/60 text-xs mt-1">Recommended for Affidavit and Vakalatnama.</p>
+                      </div>
                     </div>
                   </label>
                 </div>
@@ -332,29 +336,31 @@ export default function DraftGenerator() {
                 <legend className="text-sm text-cream/80 mb-2">
                   When did the incident occur? Before or after 1 July 2024?
                 </legend>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="grid gap-2">
                   {[
                     { value: 'before', label: 'Before 1 July 2024' },
                     { value: 'after', label: 'On or after 1 July 2024' },
                   ].map(({ value, label }) => (
                     <label
                       key={value}
-                      className={`flex-1 flex items-center gap-2 py-2.5 px-3 rounded-lg text-sm border cursor-pointer transition-colors ${
+                      className={`block w-full rounded-2xl border p-3 text-sm cursor-pointer transition-colors ${
                         form.incidentTiming === value
                           ? 'bg-gold/20 border-gold text-gold'
                           : 'border-border text-cream/60 hover:border-gold/30'
                       }`}
                     >
-                      <input
-                        type="radio"
-                        name="incidentTiming"
-                        value={value}
-                        checked={form.incidentTiming === value}
-                        onChange={(e) => update('incidentTiming', e.target.value)}
-                        className="accent-gold"
-                        required
-                      />
-                      {label}
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="incidentTiming"
+                          value={value}
+                          checked={form.incidentTiming === value}
+                          onChange={(e) => update('incidentTiming', e.target.value)}
+                          className="accent-gold shrink-0"
+                          required
+                        />
+                        <span>{label}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
