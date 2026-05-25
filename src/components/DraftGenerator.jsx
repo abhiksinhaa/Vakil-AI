@@ -24,10 +24,21 @@ const DRAFT_TYPES = [
   'Vakalatnama',
 ];
 
+const PARTY_DETAILS_DEFAULT_TYPES = [
+  'Legal Notice',
+  'Demand Letter',
+  'Cheque Bounce Notice (NI Act Section 138)',
+  'Consumer Complaint',
+  'Rent Agreement',
+];
+
+const SIMPLE_FORMAT_DEFAULT_TYPES = ['Affidavit', 'Vakalatnama'];
+
 const RESPONSE_TIMES = ['7 days', '15 days', '30 days', 'Custom'];
 
 const INITIAL_FORM = {
   draftType: 'Legal Notice',
+  partyMentionStyle: 'include',
   advocateName: '',
   barCouncilNumber: '',
   advocateCity: '',
@@ -78,8 +89,24 @@ export default function DraftGenerator() {
     return form.responseTime;
   };
 
+  const getRecommendedPartyMentionStyle = (draftType) => {
+    if (SIMPLE_FORMAT_DEFAULT_TYPES.includes(draftType)) return 'simple';
+    if (PARTY_DETAILS_DEFAULT_TYPES.includes(draftType)) return 'include';
+    return 'include';
+  };
+
+  const handleDraftTypeChange = (value) => {
+    const newStyle = getRecommendedPartyMentionStyle(value);
+    setForm((prev) => ({ ...prev, draftType: value, partyMentionStyle: newStyle }));
+    setSaveSuccess(false);
+  };
+
   const runGenerate = async () => {
-    if (!form.situation.trim() || !form.party1Name.trim() || !form.incidentTiming) {
+    if (!form.situation.trim() || !form.incidentTiming) {
+      return;
+    }
+
+    if (form.partyMentionStyle === 'include' && !form.party1Name.trim()) {
       return;
     }
 
@@ -161,7 +188,7 @@ export default function DraftGenerator() {
                 <select
                   id="draftType"
                   value={form.draftType}
-                  onChange={(e) => update('draftType', e.target.value)}
+                  onChange={(e) => handleDraftTypeChange(e.target.value)}
                 >
                   {DRAFT_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -170,11 +197,99 @@ export default function DraftGenerator() {
                   ))}
                 </select>
               </div>
+              <fieldset className="mt-4 space-y-3">
+                <legend className="text-sm text-cream/80">Party Mention Style</legend>
+                <div className="grid gap-2">
+                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors text-sm">
+                    <input
+                      type="radio"
+                      name="partyMentionStyle"
+                      value="include"
+                      checked={form.partyMentionStyle === 'include'}
+                      onChange={(e) => update('partyMentionStyle', e.target.value)}
+                      className="accent-gold"
+                    />
+                    <div>
+                      <p className="font-medium">Include Party 1 & Party 2 Details</p>
+                      <p className="text-cream/60 text-xs">Recommended for Legal Notice, Demand Letter, Cheque Bounce, Consumer Complaint, Rent Agreement.</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors text-sm">
+                    <input
+                      type="radio"
+                      name="partyMentionStyle"
+                      value="simple"
+                      checked={form.partyMentionStyle === 'simple'}
+                      onChange={(e) => update('partyMentionStyle', e.target.value)}
+                      className="accent-gold"
+                    />
+                    <div>
+                      <p className="font-medium">Simple Format - No Party Details</p>
+                      <p className="text-cream/60 text-xs">Recommended for Affidavit and Vakalatnama.</p>
+                    </div>
+                  </label>
+                </div>
+              </fieldset>
             </section>
 
+            {form.partyMentionStyle === 'include' && (
+              <>
+                <section className="card space-y-4">
+                  <h2 className="font-display text-lg text-gold">Party 1 — Client</h2>
+                  <div>
+                    <label htmlFor="party1Name">Full Name</label>
+                    <input
+                      id="party1Name"
+                      value={form.party1Name}
+                      onChange={(e) => update('party1Name', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="party1Address">Address</label>
+                    <textarea
+                      id="party1Address"
+                      rows={3}
+                      value={form.party1Address}
+                      onChange={(e) => update('party1Address', e.target.value)}
+                    />
+                  </div>
+                </section>
+
+                <section className="card space-y-4">
+                  <h2 className="font-display text-lg text-gold">Party 2 — Opposite Party</h2>
+                  <div>
+                    <label htmlFor="party2Name">Full Name</label>
+                    <input
+                      id="party2Name"
+                      value={form.party2Name}
+                      onChange={(e) => update('party2Name', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="party2Address">Address</label>
+                    <textarea
+                      id="party2Address"
+                      rows={3}
+                      value={form.party2Address}
+                      onChange={(e) => update('party2Address', e.target.value)}
+                    />
+                  </div>
+                </section>
+              </>
+            )}
+
+            {form.partyMentionStyle === 'simple' && (
+              <section className="card space-y-3">
+                <p className="text-cream/80 text-sm">
+                  Simple format selected. Party 1 and Party 2 fields are hidden and will not be included in the draft.
+                </p>
+              </section>
+            )}
+
             <section className="card space-y-4">
+              <h2 className="font-display text-lg text-gold">Advocate Details</h2>
               <div className="flex items-center justify-between gap-2">
-                <h2 className="font-display text-lg text-gold">Advocate Details</h2>
                 <Link to="/profile" className="text-xs text-gold hover:underline shrink-0">
                   Edit profile
                 </Link>
@@ -207,49 +322,6 @@ export default function DraftGenerator() {
                   value={form.advocateCity}
                   onChange={(e) => update('advocateCity', e.target.value)}
                   placeholder="Delhi District Court"
-                />
-              </div>
-            </section>
-
-            <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Party 1 — Client</h2>
-              <div>
-                <label htmlFor="party1Name">Full Name</label>
-                <input
-                  id="party1Name"
-                  value={form.party1Name}
-                  onChange={(e) => update('party1Name', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="party1Address">Address</label>
-                <textarea
-                  id="party1Address"
-                  rows={3}
-                  value={form.party1Address}
-                  onChange={(e) => update('party1Address', e.target.value)}
-                />
-              </div>
-            </section>
-
-            <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Party 2 — Opposite Party</h2>
-              <div>
-                <label htmlFor="party2Name">Full Name</label>
-                <input
-                  id="party2Name"
-                  value={form.party2Name}
-                  onChange={(e) => update('party2Name', e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="party2Address">Address</label>
-                <textarea
-                  id="party2Address"
-                  rows={3}
-                  value={form.party2Address}
-                  onChange={(e) => update('party2Address', e.target.value)}
                 />
               </div>
             </section>
@@ -364,7 +436,7 @@ export default function DraftGenerator() {
               disabled={
                 isGenerating ||
                 !form.situation.trim() ||
-                !form.party1Name.trim() ||
+                (form.partyMentionStyle === 'include' && !form.party1Name.trim()) ||
                 !form.incidentTiming
               }
               className="btn-primary w-full py-3 text-base"

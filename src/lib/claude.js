@@ -10,12 +10,18 @@ export async function generateLegalDraft(formData) {
     party1Address,
     party2Name,
     party2Address,
+    partyMentionStyle,
     situation,
     amount,
     responseTime,
     language,
     incidentTiming,
   } = formData;
+
+  const isSimpleFormat = partyMentionStyle === 'simple';
+  const styleInstruction = isSimpleFormat
+    ? 'Generate this document in first person simple format without mentioning opposing parties.'
+    : 'Generate this document with clear Party 1 and Party 2 details as provided.';
 
   const incidentLawGuide =
     incidentTiming === 'before'
@@ -43,7 +49,8 @@ Rules:
 10. STRICTLY PROHIBITED: inventing or fabricating case laws, judgments, or court citations; creating fictional court citations; hallucinating landmark cases
 11. CRITICAL: Never fabricate case laws, judgments, or citations. If a specific case law is needed, write [Case Law Required - Please verify with advocate] as placeholder. Only use well-known, verified landmark judgments you are certain about. When in doubt, omit the citation entirely.
 12. End every generated draft with this disclaimer on its own line at the bottom:
-Note: Please verify all legal citations and sections with a qualified advocate before use.`;
+Note: Please verify all legal citations and sections with a qualified advocate before use.
+13. ${styleInstruction}`;
 
   const userPrompt = `Generate a ${draftType} with the following details:
 
@@ -55,11 +62,11 @@ City/Court: ${advocateCity || 'India'}
 PARTY 1 (CLIENT/SENDER):
 Name: ${party1Name}
 Address: ${party1Address}
-
+${!isSimpleFormat ? `
 PARTY 2 (OPPOSITE PARTY/RECIPIENT):
 Name: ${party2Name}
 Address: ${party2Address}
-
+` : ''}
 INCIDENT TIMING (applicable criminal law):
 ${incidentLawGuide}
 
@@ -71,6 +78,8 @@ ${responseTime ? `RESPONSE TIME DEMANDED: ${responseTime}` : '15 days'}
 
 LANGUAGE: ${language || 'English'}
 DATE: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+
+${isSimpleFormat ? 'Style: first person simple format without mentioning opposing parties.' : 'Style: include Party 1 and Party 2 details clearly as provided.'}
 
 Generate the complete ${draftType} now:`;
 

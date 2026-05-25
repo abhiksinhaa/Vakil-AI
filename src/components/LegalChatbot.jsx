@@ -6,14 +6,11 @@ import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
 import { readFileForChat } from '../lib/readChatFile';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import {
-  FREE_CHAT_DAILY_LIMIT,
   PRO_PRICE_INR,
-  checkChatAllowance,
-  incrementChatUsage,
 } from '../lib/userAccount';
 
 const WELCOME_FREE =
-  'Welcome! I am your Draftee Legal Assistant. Free plan: 5 messages per day. Ask about BNS, BNSS, BSA, or court procedure.';
+  'Welcome! I am your Draftee Legal Assistant. Ask about BNS, BNSS, BSA, or court procedure.';
 
 const WELCOME_PRO =
   'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
@@ -54,7 +51,6 @@ export default function LegalChatbot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [chatAllowance, setChatAllowance] = useState(null);
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -72,15 +68,10 @@ export default function LegalChatbot() {
 
   useEffect(() => {
     if (isOpen) {
-      checkChatAllowance().then(setChatAllowance).catch(console.error);
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
     }
   }, [isOpen, messages, isLoading, isPro]);
-
-  const refreshAllowance = () => {
-    checkChatAllowance().then(setChatAllowance).catch(console.error);
-  };
 
   const sendMessage = async ({ text, attachment, draftMode = false }) => {
     const trimmed = text?.trim() || '';
@@ -115,24 +106,7 @@ export default function LegalChatbot() {
     setIsLoading(true);
 
     try {
-      const allowance = await checkChatAllowance();
-      setChatAllowance(allowance);
-
-      if (!allowance.allowed) {
-        // Revert optimistic update
-        setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
-        setInput(trimmed);
-        setPendingAttachment(attachment);
-        setError(
-          `Daily limit reached (${FREE_CHAT_DAILY_LIMIT} messages). Upgrade to Pro for unlimited chat — ₹${PRO_PRICE_INR}/month.`
-        );
-        setIsLoading(false);
-        return;
-      }
-
       const reply = await sendLegalChatMessage(historyForApi, { isPro, draftMode });
-      await incrementChatUsage();
-      refreshAllowance();
       await refreshAccount();
 
       setMessages((prev) => [
@@ -204,9 +178,8 @@ export default function LegalChatbot() {
     } catch (err) {
       setError(err.message || 'PDF export failed');
     }
+      };
   };
-
-  const limitReached = chatAllowance && !chatAllowance.allowed && !chatAllowance.isPro;
 
   return (
     <>
@@ -235,9 +208,7 @@ export default function LegalChatbot() {
             <p className="text-cream/50 text-xs mt-1 ml-10">
               {isPro
                 ? 'Unlimited · Upload · Drafts · PDF'
-                : chatAllowance
-                  ? `${chatAllowance.remaining}/${FREE_CHAT_DAILY_LIMIT} messages today`
-                  : 'Ask any legal question'}
+                : 'Ask any legal question'}
             </p>
           </div>
           <button
@@ -249,15 +220,6 @@ export default function LegalChatbot() {
             ×
           </button>
         </header>
-
-        {limitReached && (
-          <div className="shrink-0 px-3 py-2 bg-gold/10 border-b border-gold/30 text-xs text-cream/90 text-center">
-            Daily limit reached.{' '}
-            <Link to="/pricing" state={{ chatLimitReached: true }} className="text-gold underline">
-              Upgrade Pro — ₹{PRO_PRICE_INR}/mo
-            </Link>
-          </div>
-        )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-navy/40 min-h-0">
           {messages.map((msg) => (
@@ -361,18 +323,14 @@ export default function LegalChatbot() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              limitReached
-                ? 'Daily limit reached — upgrade to Pro'
-                : 'Ask a legal question...'
-            }
-            disabled={isLoading || limitReached}
+            placeholder="Ask a legal question..."
+            disabled={isLoading}
             className="flex-1 text-sm py-2.5"
             autoComplete="off"
           />
           <button
             type="submit"
-            disabled={isLoading || limitReached || (!input.trim() && !pendingAttachment)}
+            disabled={isLoading || (!input.trim() && !pendingAttachment)}
             className="btn-primary px-4 py-2.5 shrink-0"
             aria-label="Send message"
           >
