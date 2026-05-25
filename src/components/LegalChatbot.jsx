@@ -45,7 +45,8 @@ function ProOnlyButton({ isPro, onClick, children, className = '', disabled }) {
 }
 
 export default function LegalChatbot() {
-  const { isPro, refreshAccount } = useApp();
+  const { refreshAccount } = useApp();
+  const isPro = true;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -61,30 +62,28 @@ export default function LegalChatbot() {
       {
         id: 'welcome',
         role: 'assistant',
-        content: isPro ? WELCOME_PRO : WELCOME_FREE,
+        content: WELCOME_PRO,
       },
     ]);
-  }, [isPro]);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
     }
-  }, [isOpen, messages, isLoading, isPro]);
+  }, [isOpen, messages, isLoading]);
 
   const sendMessage = async ({ text, attachment, draftMode = false }) => {
     const trimmed = text?.trim() || '';
     if (!trimmed && !attachment) return;
 
-    if (attachment && !isPro) {
-      setError('Document upload is a Pro feature. Upgrade to analyze PDFs and files.');
-      return;
+    if (attachment) {
+      // all users can upload attachments in chat
     }
 
-    if (draftMode && !isPro) {
-      setError('Generate draft from chat is a Pro feature.');
-      return;
+    if (draftMode) {
+      // all users can generate drafts in chat
     }
 
     const userMessage = {
@@ -106,7 +105,7 @@ export default function LegalChatbot() {
     setIsLoading(true);
 
     try {
-      const reply = await sendLegalChatMessage(historyForApi, { isPro, draftMode });
+      const reply = await sendLegalChatMessage(historyForApi, { isPro: true, draftMode });
       await refreshAccount();
 
       setMessages((prev) => [
@@ -142,10 +141,7 @@ export default function LegalChatbot() {
     e.target.value = '';
     if (!file) return;
 
-    if (!isPro) {
-      setError('Document upload is Pro only. Upgrade to upload PDFs for analysis.');
-      return;
-    }
+    // all users can upload files for chat analysis
 
     try {
       const parsed = await readFileForChat(file);
@@ -164,10 +160,6 @@ export default function LegalChatbot() {
   };
 
   const handleExportChatPdf = async () => {
-    if (!isPro) {
-      setError('Chat PDF export is a Pro feature.');
-      return;
-    }
     const transcript = buildChatTranscript(messages);
     if (!transcript.trim()) return;
     try {
