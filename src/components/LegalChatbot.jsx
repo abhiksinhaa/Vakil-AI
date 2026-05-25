@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { RefreshCw, Star } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
@@ -53,18 +54,41 @@ export default function LegalChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pendingAttachment, setPendingAttachment] = useState(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  const getWelcomeMessage = () => ({
+    id: 'welcome',
+    role: 'assistant',
+    content: WELCOME_PRO,
+  });
+
+  const resetChat = () => {
+    setMessages([getWelcomeMessage()]);
+    setInput('');
+    setError(null);
+    setPendingAttachment(null);
+    setFeedbackOpen(false);
+    setFeedbackRating(0);
+    setFeedbackSubmitted(false);
+  };
+
+  const handleFeedbackSelect = (value) => {
+    setFeedbackRating(value);
+    setFeedbackSubmitted(true);
+    setTimeout(() => {
+      setFeedbackOpen(false);
+      setFeedbackSubmitted(false);
+      setFeedbackRating(0);
+    }, 2000);
+  };
+
   useEffect(() => {
-    setMessages([
-      {
-        id: 'welcome',
-        role: 'assistant',
-        content: WELCOME_PRO,
-      },
-    ]);
+    setMessages([getWelcomeMessage()]);
   }, []);
 
   useEffect(() => {
@@ -202,14 +226,57 @@ export default function LegalChatbot() {
                 : 'Ask any legal question'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
-            aria-label="Close chat"
-          >
-            ×
-          </button>
+          <div className="relative flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen((open) => !open)}
+              className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
+              aria-label="Feedback"
+            >
+              <Star className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={resetChat}
+              className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
+              aria-label="Reload chat"
+            >
+              <RefreshCw className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
+              aria-label="Close chat"
+            >
+              ×
+            </button>
+
+            {feedbackOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-border bg-card p-3 shadow-xl z-20">
+                {feedbackSubmitted ? (
+                  <p className="text-cream text-sm">Thank you for feedback!</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-cream text-sm font-medium">Rate your experience</p>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => handleFeedbackSelect(value)}
+                          className={`text-2xl ${value <= feedbackRating ? 'text-gold' : 'text-cream/50'} hover:text-gold transition-colors`}
+                          aria-label={`${value} star`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-navy/40 min-h-0">
