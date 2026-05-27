@@ -85,3 +85,11 @@ export async function fetchAllDrafts() {
   if (error) throw error;
   return data || [];
 }
+
+export async function saveWaitlist(waitlistEntry) {
+  const { data, error } = await supabase
+    .from('waitlist')
+    .insert([waitlistEntry]);
+
+  return { data, error };
+}

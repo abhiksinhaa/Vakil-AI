@@ -1,7 +1,58 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
+import { saveWaitlist } from '../lib/supabase';
 
 export default function PricingPage() {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    advocateName: '',
+    city: '',
+    whatsappNumber: '',
+    email: '',
+  });
+  const [statusMessage, setStatusMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrorMessage('');
+    setStatusMessage('');
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    setStatusMessage('');
+
+    const { fullName, advocateName, city, whatsappNumber, email } = formData;
+    if (!fullName || !advocateName || !city || !whatsappNumber || !email) {
+      setErrorMessage('Please fill in all fields.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error } = await saveWaitlist({
+      full_name: fullName,
+      advocate_name: advocateName,
+      city,
+      whatsapp_number: whatsappNumber,
+      email,
+    });
+    setIsSubmitting(false);
+
+    if (error) {
+      console.error(error);
+      setErrorMessage('Unable to join the waitlist right now. Please try again.');
+      return;
+    }
+
+    setFormData({ fullName: '', advocateName: '', city: '', whatsappNumber: '', email: '' });
+    setStatusMessage("You're on the list! We'll notify you on WhatsApp when Pro launches. 🎉");
+  };
+
   return (
     <div className="min-h-screen bg-navy flex flex-col">
       <Navbar />
@@ -40,9 +91,93 @@ export default function PricingPage() {
             We are working hard to bring you advanced AI legal tools, unlimited drafts, and much more. Stay tuned for our upcoming launch!
           </p>
 
-          <Link to="/" className="btn-primary w-full sm:w-auto px-10">
+          <Link to="/" className="btn-primary w-full sm:w-auto px-10 mb-8">
             Return to Dashboard
           </Link>
+
+          <div className="w-full border-t border-gold/30 pt-8 mt-4">
+            <h2 className="text-2xl sm:text-3xl text-gold font-semibold mb-2">
+              Join the Waitlist
+            </h2>
+            <p className="text-cream/80 text-sm sm:text-base mb-6">
+              Be the first to know when Pro launches
+            </p>
+
+            <form onSubmit={handleSubmit} className="w-full space-y-4 text-left">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="text-cream/80 text-sm mb-2 block">Full Name</span>
+                  <input
+                    name="fullName"
+                    type="text"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="Your full name"
+                    className="w-full rounded-2xl border border-gold/30 bg-navy/80 px-4 py-3 text-cream placeholder-gold/40 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-cream/80 text-sm mb-2 block">Advocate Name</span>
+                  <input
+                    name="advocateName"
+                    type="text"
+                    value={formData.advocateName}
+                    onChange={handleChange}
+                    placeholder="Advocate name"
+                    className="w-full rounded-2xl border border-gold/30 bg-navy/80 px-4 py-3 text-cream placeholder-gold/40 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-cream/80 text-sm mb-2 block">City</span>
+                  <input
+                    name="city"
+                    type="text"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="City"
+                    className="w-full rounded-2xl border border-gold/30 bg-navy/80 px-4 py-3 text-cream placeholder-gold/40 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-cream/80 text-sm mb-2 block">WhatsApp Number</span>
+                  <input
+                    name="whatsappNumber"
+                    type="tel"
+                    value={formData.whatsappNumber}
+                    onChange={handleChange}
+                    placeholder="+91 98765 43210"
+                    className="w-full rounded-2xl border border-gold/30 bg-navy/80 px-4 py-3 text-cream placeholder-gold/40 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="text-cream/80 text-sm mb-2 block">Email</span>
+                <input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  className="w-full rounded-2xl border border-gold/30 bg-navy/80 px-4 py-3 text-cream placeholder-gold/40 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+                />
+              </label>
+
+              {errorMessage && <p className="text-sm text-red-300">{errorMessage}</p>}
+              {statusMessage && <p className="text-sm text-emerald-300">{statusMessage}</p>}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-full bg-gold text-navy font-semibold px-6 py-3 shadow-lg shadow-gold/25 transition hover:bg-gold/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? 'Joining...' : 'Join Waitlist'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
