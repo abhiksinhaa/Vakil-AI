@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Star } from 'lucide-react';
+import { RefreshCw, Star, Volume2, VolumeX } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
@@ -46,7 +46,7 @@ function ProOnlyButton({ isPro, onClick, children, className = '', disabled }) {
 }
 
 export default function LegalChatbot() {
-  const { refreshAccount } = useApp();
+  const { refreshAccount, profile } = useApp();
   const isPro = true;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -57,9 +57,11 @@ export default function LegalChatbot() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [activeSpeechId, setActiveSpeechId] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const speechUtteranceRef = useRef(null);
 
   const getWelcomeMessage = () => ({
     id: 'welcome',
@@ -97,6 +99,46 @@ export default function LegalChatbot() {
       inputRef.current?.focus();
     }
   }, [isOpen, messages, isLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const getSpeechLanguage = () => {
+    const appLanguage = profile?.language || 'English';
+    return appLanguage === 'Hindi' || appLanguage === 'Hinglish' ? 'hi-IN' : 'en-IN';
+  };
+
+  const stopSpeech = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    speechUtteranceRef.current = null;
+    setActiveSpeechId(null);
+  };
+
+  const speakMessage = (msg) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (activeSpeechId === msg.id) {
+      stopSpeech();
+      return;
+    }
+
+    stopSpeech();
+
+    const utterance = new SpeechSynthesisUtterance(msg.content || '');
+    utterance.lang = getSpeechLanguage();
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.onend = () => setActiveSpeechId(null);
+    utterance.onerror = () => setActiveSpeechId(null);
+    speechUtteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    setActiveSpeechId(msg.id);
+  };
 
   const sendMessage = async ({ text, attachment, draftMode = false }) => {
     const trimmed = text?.trim() || '';
@@ -286,16 +328,30 @@ export default function LegalChatbot() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 pr-10 text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.role === 'user'
                     ? 'bg-gold text-navy rounded-br-md'
                     : 'bg-card border border-border text-cream/90 rounded-bl-md'
-                }`}
+                } relative`}
               >
                 {msg.attachment?.fileName && (
                   <p className="text-xs opacity-80 mb-1 font-medium">📎 {msg.attachment.fileName}</p>
                 )}
                 {msg.content}
+                {msg.role === 'assistant' && (
+                  <button
+                    type="button"
+                    onClick={() => speakMessage(msg)}
+                    className="absolute top-2 right-2 p-1 rounded-full text-gold/70 hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/30"
+                    aria-label={activeSpeechId === msg.id ? 'Stop voice' : 'Read aloud'}
+                  >
+                    {activeSpeechId === msg.id ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           ))}
