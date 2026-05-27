@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
+import CourtNewsCarousel from './CourtNewsCarousel';
 import { fetchRecentDrafts } from '../lib/supabase';
 import { stripMarkdown } from '../lib/stripMarkdown';
 
@@ -69,6 +70,8 @@ export default function Dashboard({ session }) {
     <div className="min-h-screen bg-navy">
       <Navbar />
 
+      <CourtNewsCarousel />
+
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <header className="mb-10">
           <p className="text-gold/80 text-sm font-medium mb-1">Welcome,</p>
@@ -85,7 +88,7 @@ export default function Dashboard({ session }) {
           className="card flex items-center justify-between gap-4 mb-10 group hover:border-gold/40 transition-colors"
         >
           <div>
-            <h2 className="font-display text-xl text-gold mb-1">Create New Draft</h2>
+            <h2 className="font-display text-xl text-gold mb-1 mt-6">Create New Draft</h2>
             <p className="text-cream/50 text-sm">
               Legal Notice, Rent Agreement, Affidavit and more
             </p>
