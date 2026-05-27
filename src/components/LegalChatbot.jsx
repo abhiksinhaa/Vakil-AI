@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Star, Volume2, VolumeX } from 'lucide-react';
+import { RefreshCw, Star, Volume2, VolumeX, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
@@ -58,10 +58,13 @@ export default function LegalChatbot() {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [activeSpeechId, setActiveSpeechId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [messageFeedback, setMessageFeedback] = useState({});
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const speechUtteranceRef = useRef(null);
+  const copiedTimeoutRef = useRef(null);
 
   const getWelcomeMessage = () => ({
     id: 'welcome',
@@ -77,6 +80,8 @@ export default function LegalChatbot() {
     setFeedbackOpen(false);
     setFeedbackRating(0);
     setFeedbackSubmitted(false);
+    setCopiedId(null);
+    setMessageFeedback({});
   };
 
   const handleFeedbackSelect = (value) => {
@@ -91,7 +96,19 @@ export default function LegalChatbot() {
 
   useEffect(() => {
     setMessages([getWelcomeMessage()]);
+    const stored = localStorage.getItem('chatFeedback');
+    if (stored) {
+      try {
+        setMessageFeedback(JSON.parse(stored));
+      } catch {
+        setMessageFeedback({});
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('chatFeedback', JSON.stringify(messageFeedback));
+  }, [messageFeedback]);
 
   useEffect(() => {
     if (isOpen) {
@@ -104,6 +121,9 @@ export default function LegalChatbot() {
     return () => {
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
+      }
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
       }
     };
   }, []);
@@ -138,6 +158,47 @@ export default function LegalChatbot() {
     speechUtteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
     setActiveSpeechId(msg.id);
+  };
+
+  const copyToClipboard = async (text, msgId) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(msgId);
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => {
+        setCopiedId(null);
+      }, 2000);
+    } catch {
+      console.error('Failed to copy');
+    }
+  };
+
+  const toggleLike = (msgId) => {
+    setMessageFeedback((prev) => {
+      const current = prev[msgId] || null;
+      const newFeedback = { ...prev };
+      if (current === 'like') {
+        delete newFeedback[msgId];
+      } else {
+        newFeedback[msgId] = 'like';
+      }
+      return newFeedback;
+    });
+  };
+
+  const toggleDislike = (msgId) => {
+    setMessageFeedback((prev) => {
+      const current = prev[msgId] || null;
+      const newFeedback = { ...prev };
+      if (current === 'dislike') {
+        delete newFeedback[msgId];
+      } else {
+        newFeedback[msgId] = 'dislike';
+      }
+      return newFeedback;
+    });
   };
 
   const sendMessage = async ({ text, attachment, draftMode = false }) => {
@@ -325,7 +386,7 @@ export default function LegalChatbot() {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start flex-col'}`}
             >
               <div
                 className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 pr-10 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -342,7 +403,7 @@ export default function LegalChatbot() {
                   <button
                     type="button"
                     onClick={() => speakMessage(msg)}
-                    className="absolute top-2 right-2 p-1 rounded-full text-gold/70 hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/30"
+                    className="absolute top-2 right-2 p-1 rounded-full text-gold/70 hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/30 transition-colors"
                     aria-label={activeSpeechId === msg.id ? 'Stop voice' : 'Read aloud'}
                   >
                     {activeSpeechId === msg.id ? (
@@ -353,6 +414,46 @@ export default function LegalChatbot() {
                   </button>
                 )}
               </div>
+              {msg.role === 'assistant' && (
+                <div className="flex items-center gap-2 mt-2 ml-1 text-cream/60">
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(msg.content, msg.id)}
+                    className="p-1 rounded transition-all hover:text-cream/90 hover:bg-navy/40"
+                    aria-label="Copy message"
+                  >
+                    {copiedId === msg.id ? (
+                      <Check className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleLike(msg.id)}
+                    className={`p-1 rounded transition-all ${
+                      messageFeedback[msg.id] === 'like'
+                        ? 'text-gold'
+                        : 'hover:text-cream/90 hover:bg-navy/40'
+                    }`}
+                    aria-label="Like message"
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleDislike(msg.id)}
+                    className={`p-1 rounded transition-all ${
+                      messageFeedback[msg.id] === 'dislike'
+                        ? 'text-red-400'
+                        : 'hover:text-cream/90 hover:bg-navy/40'
+                    }`}
+                    aria-label="Dislike message"
+                  >
+                    <ThumbsDown className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
