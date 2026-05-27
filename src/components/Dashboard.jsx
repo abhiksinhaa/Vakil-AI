@@ -81,8 +81,6 @@ export default function Dashboard({ session }) {
           </p>
         </header>
 
-        <CourtNewsCarousel />
-
         <Link
           to="/generate"
           className="card flex items-center justify-between gap-4 mb-10 group hover:border-gold/40 transition-colors"
@@ -95,6 +93,8 @@ export default function Dashboard({ session }) {
           </div>
           <span className="btn-primary shrink-0 group-hover:bg-gold/90">Start →</span>
         </Link>
+
+        <CourtNewsCarousel />
 
         <section>
           <div className="flex items-center justify-between mb-4">
