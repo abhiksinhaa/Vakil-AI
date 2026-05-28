@@ -302,7 +302,7 @@ export default function LegalChatbot() {
   return (
     <>
       <div
-        className={`fixed inset-0 w-screen h-screen z-[200] flex flex-col bg-navy overflow-hidden transition-opacity duration-300 ease-out
+        className={`fixed inset-0 w-screen h-dvh z-[200] flex flex-col bg-navy overflow-hidden transition-opacity duration-300 ease-out
           ${isOpen
             ? 'opacity-100 pointer-events-auto'
             : 'opacity-0 pointer-events-none'}`}
@@ -382,7 +382,7 @@ export default function LegalChatbot() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-navy/40 min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 pb-6 space-y-3 bg-navy/40 min-h-0">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -497,7 +497,7 @@ export default function LegalChatbot() {
           </div>
         )}
 
-        <div className="shrink-0 border-t border-border bg-card px-2 pt-2 flex flex-wrap gap-1">
+        <div className="shrink-0 border-t border-border bg-card px-2 pt-2 pb-2 flex flex-wrap gap-1">
           <ProOnlyButton
             isPro={isPro}
             onClick={() => fileInputRef.current?.click()}
@@ -531,7 +531,7 @@ export default function LegalChatbot() {
 
         <form
           onSubmit={handleSend}
-          className="shrink-0 border-t border-border bg-card p-3 flex gap-2"
+          className="shrink-0 border-t border-border bg-card p-3 flex gap-2 relative z-10"
         >
           <input
             ref={inputRef}
