@@ -389,30 +389,16 @@ export default function LegalChatbot() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start flex-col'}`}
             >
               <div
-                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 pr-10 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.role === 'user'
                     ? 'bg-gold text-navy rounded-br-md'
                     : 'bg-card border border-border text-cream/90 rounded-bl-md'
-                } relative`}
+                }`}
               >
                 {msg.attachment?.fileName && (
                   <p className="text-xs opacity-80 mb-1 font-medium">📎 {msg.attachment.fileName}</p>
                 )}
                 {msg.content}
-                {msg.role === 'assistant' && (
-                  <button
-                    type="button"
-                    onClick={() => speakMessage(msg)}
-                    className="absolute top-2 right-2 p-1 rounded-full text-gold/70 hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/30 transition-colors"
-                    aria-label={activeSpeechId === msg.id ? 'Stop voice' : 'Read aloud'}
-                  >
-                    {activeSpeechId === msg.id ? (
-                      <VolumeX className="w-4 h-4" />
-                    ) : (
-                      <Volume2 className="w-4 h-4" />
-                    )}
-                  </button>
-                )}
               </div>
               {msg.role === 'assistant' && (
                 <div className="flex items-center gap-2 mt-2 ml-1 text-cream/60">
@@ -426,6 +412,18 @@ export default function LegalChatbot() {
                       <Check className="w-4 h-4 text-emerald-400" />
                     ) : (
                       <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => speakMessage(msg)}
+                    className="p-1 rounded transition-all hover:text-cream/90 hover:bg-navy/40"
+                    aria-label={activeSpeechId === msg.id ? 'Stop voice' : 'Read aloud'}
+                  >
+                    {activeSpeechId === msg.id ? (
+                      <VolumeX className="w-4 h-4 text-gold" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
                     )}
                   </button>
                   <button
