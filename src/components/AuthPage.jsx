@@ -71,7 +71,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10 flex flex-col items-center">
           <img 
-            src="/logo.png" 
+            src="/logo.png?v=2" 
             alt="Draftee Logo" 
             className="h-[60px] w-auto mb-4 object-contain"
             onError={(e) => {
