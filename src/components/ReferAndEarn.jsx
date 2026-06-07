@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
-import { fetchReferralStats, getReferralLink, fetchProfile } from '../lib/userAccount';
+import { fetchReferralStats } from '../lib/userAccount';
 
 export default function ReferAndEarn() {
   const { session } = useApp();
@@ -15,10 +15,7 @@ export default function ReferAndEarn() {
     async function loadData() {
       if (!session?.user) return;
       try {
-        const profile = await fetchProfile();
-        if (profile?.referral_code) {
-          setReferralLink(getReferralLink(profile.referral_code));
-        }
+        setReferralLink(`draftee.in/signup?ref=${session.user.id.substring(0, 8)}`);
         const data = await fetchReferralStats();
         setStats(data);
       } catch (err) {
@@ -64,7 +61,7 @@ export default function ReferAndEarn() {
 
         <section className="card space-y-4 mb-6 border-gold/30 bg-gradient-to-br from-navy to-gold/5">
           <p className="text-lg text-cream font-medium">
-            Refer 5 friends who sign up — get 2 months Premium free when we launch
+            Refer 5 friends who sign up — get 2 months Premium free
           </p>
           <p className="text-sm text-cream/60">
             Premium launching soon at ₹399/month. Your referrals are being tracked now.
@@ -84,11 +81,11 @@ export default function ReferAndEarn() {
               </div>
               <div className="card text-center py-6 border-gold/10 hover:border-gold/30 transition-colors">
                 <p className="font-display text-3xl text-gold mb-1">{stats.rewardsEarned}</p>
-                <p className="text-sm text-cream/70">Months free</p>
+                <p className="text-sm text-cream/70">Premium months earned</p>
               </div>
               <div className="card text-center py-6 border-gold/10 hover:border-gold/30 transition-colors">
                 <p className="font-display text-3xl text-gold mb-1">{stats.referralsUntilReward}</p>
-                <p className="text-sm text-cream/70">More needed</p>
+                <p className="text-sm text-cream/70">Until next reward</p>
               </div>
             </div>
 
