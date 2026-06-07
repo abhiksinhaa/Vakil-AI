@@ -70,17 +70,8 @@ export default function AuthPage() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10 flex flex-col items-center">
-          <img 
-            src="/logo.png" 
-            alt="Draftee Logo" 
-            className="h-[80px] w-auto mb-4 object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling.classList.remove('hidden');
-            }}
-          />
-          <h1 className="hidden font-display text-4xl font-semibold text-gold mb-2 drop-shadow-[0_0_24px_rgba(201,168,76,0.35)]">
-            Draft<span className="text-cream">ee</span>
+          <h1 className="font-display text-5xl sm:text-6xl font-semibold text-gold mb-2 drop-shadow-[0_0_24px_rgba(201,168,76,0.35)]">
+            Draftee
           </h1>
           <p className="text-cream/60 text-sm">
             AI-powered legal drafts for Indian advocates
