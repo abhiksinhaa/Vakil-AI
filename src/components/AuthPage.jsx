@@ -71,9 +71,9 @@ export default function AuthPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10 flex flex-col items-center">
           <img 
-            src="/logo.jpg" 
+            src="/logo.png" 
             alt="Draftee Logo" 
-            className="h-[60px] w-auto mb-4 object-contain"
+            className="h-[80px] w-auto mb-4 object-contain"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               e.currentTarget.nextElementSibling.classList.remove('hidden');
