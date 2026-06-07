@@ -115,7 +115,7 @@ export default function Navbar() {
         {/* Left: logo */}
         <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
           <img 
-            src="/logo.png?v=2" 
+            src="/logo.jpg" 
             alt="Draftee Logo" 
             className="h-[36px] w-auto object-contain"
             onError={(e) => {
