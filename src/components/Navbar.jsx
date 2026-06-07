@@ -114,7 +114,16 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
         {/* Left: logo */}
         <Link to="/dashboard" className="flex items-center gap-2 shrink-0">
-          <span className="font-display text-xl font-semibold text-gold tracking-tight">
+          <img 
+            src="/logo.png" 
+            alt="Draftee Logo" 
+            className="h-[36px] w-auto object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling.classList.remove('hidden');
+            }}
+          />
+          <span className="hidden font-display text-xl font-semibold text-gold tracking-tight">
             Draft<span className="text-cream">ee</span>
           </span>
         </Link>
