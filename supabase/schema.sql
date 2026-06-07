@@ -175,7 +175,7 @@ begin
   from referrals
   where referrer_id = p_referrer_id and status = 'completed';
 
-  v_new := v_count / 2;
+  v_new := (v_count / 5) * 2;
 
   select coalesce(referral_rewards_granted, 0) into v_granted
   from subscriptions

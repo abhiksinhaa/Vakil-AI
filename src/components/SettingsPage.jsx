@@ -50,10 +50,25 @@ export default function SettingsPage() {
 
         <section className="card space-y-3 mt-6">
           <h2 className="font-display text-lg text-gold">Account</h2>
-          <p className="text-sm text-cream/70">
-            Signed in as{' '}
-            <span className="text-cream">{session?.user?.email || '—'}</span>
-          </p>
+          <div className="flex flex-col gap-2">
+            <div className="px-4 py-3 bg-navy/50 border border-border rounded-lg text-sm flex justify-between items-center">
+              <span className="text-cream/70">Signed in as</span>
+              <span className="text-cream truncate max-w-[200px]">{session?.user?.email || '—'}</span>
+            </div>
+            
+            <Link 
+              to="/refer"
+              className="w-full text-left px-4 py-3 bg-navy/50 border border-border rounded-lg hover:border-gold/40 hover:text-gold transition-colors text-cream text-sm flex justify-between items-center"
+            >
+              <div className="flex items-center gap-2">
+                <span>Refer & Earn</span>
+                <span role="img" aria-label="gift">🎁</span>
+              </div>
+              <svg className="w-4 h-4 text-cream/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
         </section>
 
         <section className="card space-y-3 mt-6">

@@ -11,6 +11,7 @@ import PricingPage from './components/PricingPage';
 import SettingsPage from './components/SettingsPage';
 import LegalChatbot from './components/LegalChatbot';
 import HelpCenter from './components/HelpCenter';
+import ReferAndEarn from './components/ReferAndEarn';
 
 function ProtectedRoute({ children, session }) {
   const location = useLocation();
@@ -129,6 +130,14 @@ export default function App() {
           element={
             <ProtectedRoute session={session}>
               <HelpCenter />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/refer"
+          element={
+            <ProtectedRoute session={session}>
+              <ReferAndEarn />
             </ProtectedRoute>
           }
         />

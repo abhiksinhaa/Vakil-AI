@@ -332,7 +332,7 @@ export async function fetchReferralStats() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { count: 0, rewardsEarned: 0, nextRewardAt: 2 };
+  if (!user) return { count: 0, rewardsEarned: 0, referralsUntilReward: 5 };
 
   const { count, error } = await supabase
     .from('referrals')
@@ -343,8 +343,8 @@ export async function fetchReferralStats() {
   if (error) throw error;
 
   const total = count ?? 0;
-  const rewardsEarned = Math.floor(total / 2);
-  const nextRewardAt = total % 2 === 0 ? 2 : 1;
+  const rewardsEarned = Math.floor(total / 5) * 2;
+  const nextRewardAt = 5 - (total % 5);
 
   return {
     count: total,
