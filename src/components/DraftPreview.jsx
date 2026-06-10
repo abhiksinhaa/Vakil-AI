@@ -1,9 +1,7 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
-import { isAdvocateProfileComplete, updateProfile } from '../lib/userAccount';
-
 export default function DraftPreview({
   draft,
   onDraftChange,
@@ -23,25 +21,7 @@ export default function DraftPreview({
   const [pdfError, setPdfError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editBuffer, setEditBuffer] = useState('');
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileError, setProfileError] = useState(null);
-  const [profileForm, setProfileForm] = useState({
-    advocate_name: '',
-    bar_council_number: '',
-    court_jurisdiction: '',
-  });
 
-  useEffect(() => {
-    if (profile) {
-      setProfileForm({
-        advocate_name: profile.advocate_name || '',
-        bar_council_number: profile.bar_council_number || '',
-        court_jurisdiction: profile.court_jurisdiction || '',
-      });
-    }
-  }, [profile]);
 
   const displayDraft = useMemo(
     () => (draft ? stripMarkdown(draft) : ''),
@@ -63,97 +43,60 @@ export default function DraftPreview({
     setEditBuffer('');
   };
 
-  const handleActionWithProfileCheck = (actionFn) => {
-    if (isAdvocateProfileComplete(profile)) {
-      actionFn();
-    } else {
-      setPendingAction(() => actionFn);
-      setShowProfileModal(true);
-    }
-  };
 
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    setProfileError(null);
-    try {
-      await updateProfile(profileForm);
-      await refreshAccount();
-      setShowProfileModal(false);
-      if (pendingAction) {
-        pendingAction();
-      }
-    } catch (err) {
-      setProfileError(err.message || 'Failed to save profile');
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!displayDraft) return;
-    handleActionWithProfileCheck(async () => {
-      try {
-        await navigator.clipboard.writeText(displayDraft);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        /* clipboard may be unavailable */
-      }
-    });
+    try {
+      await navigator.clipboard.writeText(displayDraft);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard may be unavailable */
+    }
   };
 
   const handleDownloadTxt = () => {
     if (!displayDraft) return;
-    handleActionWithProfileCheck(() => {
-      const type = formData?.draftType?.replace(/\s+/g, '_') || 'legal_draft';
-      const blob = new Blob([displayDraft], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${type}_${Date.now()}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
+    const type = formData?.draftType?.replace(/\s+/g, '_') || 'legal_draft';
+    const blob = new Blob([displayDraft], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${type}_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!displayDraft || isPdfLoading) return;
-    handleActionWithProfileCheck(async () => {
-      setPdfError(null);
-      setIsPdfLoading(true);
-      try {
-        await downloadDraftPdf(displayDraft, formData);
-      } catch (err) {
-        console.error('PDF export failed:', err);
-        setPdfError('PDF could not be downloaded. Please try again.');
-      } finally {
-        setIsPdfLoading(false);
-      }
-    });
+    setPdfError(null);
+    setIsPdfLoading(true);
+    try {
+      await downloadDraftPdf(displayDraft, formData);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      setPdfError('PDF could not be downloaded. Please try again.');
+    } finally {
+      setIsPdfLoading(false);
+    }
   };
 
   const handleWhatsApp = () => {
     if (!displayDraft) return;
-    handleActionWithProfileCheck(() => {
-      openWhatsAppShare(displayDraft);
-    });
+    openWhatsAppShare(displayDraft);
   };
 
   const handleEmail = () => {
     if (!displayDraft) return;
-    handleActionWithProfileCheck(() => {
-      openEmailDraft({
-        body: displayDraft,
-        draftType: formData?.draftType,
-      });
+    openEmailDraft({
+      body: displayDraft,
+      draftType: formData?.draftType,
     });
   };
 
   const handleSaveWrapper = () => {
-    handleActionWithProfileCheck(() => {
-      onSave?.();
-    });
+    onSave?.();
   };
 
   return (
@@ -286,85 +229,6 @@ export default function DraftPreview({
         </div>
       )}
 
-      {showProfileModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8">
-            <div className="p-6 pb-4 border-b border-border">
-              <h3 className="font-display text-xl text-cream">
-                Complete Your Profile
-              </h3>
-              <p className="text-cream/70 text-sm mt-1">
-                Before exporting, please add your advocate details. They will automatically be added to all your future drafts.
-              </p>
-            </div>
-            <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
-              <div>
-                <label htmlFor="advocate_name" className="block text-sm font-medium text-cream/90 mb-1">
-                  Advocate Name (on draft)
-                </label>
-                <input
-                  id="advocate_name"
-                  required
-                  value={profileForm.advocate_name}
-                  onChange={(e) => setProfileForm((f) => ({ ...f, advocate_name: e.target.value }))}
-                  placeholder="Adv. Rajesh Kumar"
-                  className="w-full bg-navy/50 border border-border rounded-lg px-3 py-2 text-cream"
-                />
-              </div>
-              <div>
-                <label htmlFor="bar_council_number" className="block text-sm font-medium text-cream/90 mb-1">
-                  Bar Council Number
-                </label>
-                <input
-                  id="bar_council_number"
-                  required
-                  value={profileForm.bar_council_number}
-                  onChange={(e) => setProfileForm((f) => ({ ...f, bar_council_number: e.target.value }))}
-                  placeholder="D/1234/2015"
-                  className="w-full bg-navy/50 border border-border rounded-lg px-3 py-2 text-cream"
-                />
-              </div>
-              <div>
-                <label htmlFor="court_jurisdiction" className="block text-sm font-medium text-cream/90 mb-1">
-                  City / Court / Jurisdiction
-                </label>
-                <input
-                  id="court_jurisdiction"
-                  required
-                  value={profileForm.court_jurisdiction}
-                  onChange={(e) => setProfileForm((f) => ({ ...f, court_jurisdiction: e.target.value }))}
-                  placeholder="Delhi District Court"
-                  className="w-full bg-navy/50 border border-border rounded-lg px-3 py-2 text-cream"
-                />
-              </div>
-
-              {profileError && (
-                <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
-                  {profileError}
-                </p>
-              )}
-
-              <div className="pt-2 flex flex-col sm:flex-row-reverse gap-3">
-                <button
-                  type="submit"
-                  disabled={isSavingProfile}
-                  className="btn-primary flex-1"
-                >
-                  {isSavingProfile ? 'Saving...' : 'Save & Continue'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowProfileModal(false)}
-                  disabled={isSavingProfile}
-                  className="btn-secondary flex-1"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
