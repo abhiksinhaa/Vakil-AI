@@ -357,3 +357,30 @@ export function getReferralLink(referralCode) {
   const base = window.location.origin;
   return `${base}/?ref=${referralCode}`;
 }
+
+export async function submitFeedback(feedbackData) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('advocate_name, full_name')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const advocateName = profile?.advocate_name || profile?.full_name || '';
+
+  const { error } = await supabase.from('feedback').insert({
+    user_id: user.id,
+    user_email: user.email,
+    advocate_name: advocateName,
+    feedback_type: feedbackData.type,
+    subject: feedbackData.subject,
+    description: feedbackData.description,
+    rating: feedbackData.rating,
+  });
+
+  if (error) throw error;
+}

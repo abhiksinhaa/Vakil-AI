@@ -4,6 +4,7 @@ import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import TermsContent from './TermsContent';
 import PrivacyContent from './PrivacyContent';
+import FeedbackModal from './FeedbackModal';
 
 export default function SettingsPage() {
   const { theme, toggleTheme, session } = useApp();
@@ -93,6 +94,19 @@ export default function SettingsPage() {
               className="w-full text-left px-4 py-3 bg-navy/50 border border-border rounded-lg hover:border-gold/40 hover:text-gold transition-colors text-cream text-sm flex justify-between items-center"
             >
               <span>Report a Bug</span>
+              <svg className="w-4 h-4 text-cream/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setModalContent('feedback')}
+              className="w-full text-left px-4 py-3 bg-navy/50 border border-border rounded-lg hover:border-gold/40 hover:text-gold transition-colors text-cream text-sm flex justify-between items-center"
+            >
+              <div className="flex items-center gap-2">
+                <span>Send Feedback</span>
+                <span role="img" aria-label="chat">💬</span>
+              </div>
               <svg className="w-4 h-4 text-cream/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -209,6 +223,10 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {modalContent === 'feedback' && (
+        <FeedbackModal onClose={() => setModalContent(null)} />
       )}
     </div>
   );
