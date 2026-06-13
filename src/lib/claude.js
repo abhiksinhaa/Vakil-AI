@@ -99,7 +99,7 @@ Generate the complete ${draftType} now:`;
         },
       ],
       generationConfig: {
-        maxOutputTokens: 2000,
+        maxOutputTokens: 8192,
         temperature: 0.4,
       },
     }),
@@ -137,16 +137,21 @@ Generate the complete ${draftType} now:`;
 
   const parts = data.candidates?.[0]?.content?.parts ?? [];
   const text = parts.map((part) => part.text).filter(Boolean).join('\n');
+  const finishReason = data.candidates?.[0]?.finishReason;
 
   if (!text) {
-    const blockReason = data.candidates?.[0]?.finishReason;
     console.error('Gemini API empty response:', data);
     throw new Error(
-      blockReason === 'SAFETY'
+      finishReason === 'SAFETY'
         ? 'Draft blocked by safety filters. Please modify the facts and try again.'
         : 'Draft could not be generated. Please try again.'
     );
   }
 
-  return stripMarkdown(text);
+  let finalDraft = stripMarkdown(text);
+  if (finishReason === 'MAX_TOKENS') {
+    finalDraft += '\n\n[WARNING: Draft generation was truncated due to length limits. Please review the ending.]';
+  }
+
+  return finalDraft;
 }
