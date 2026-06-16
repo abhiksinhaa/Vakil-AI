@@ -4,72 +4,93 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 
 ## Stack
 
-- React + Vite
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - Tailwind CSS
-- Google Gemini (`gemini-2.5-flash` — `gemini-1.5-flash` is no longer on the API)
-- Supabase Auth + PostgreSQL
+- **Firebase** — Authentication (Email/Password + Google) & Cloud Firestore
+- **Firebase Admin SDK** — server-side Pro activation & referral rewards (Next route handlers)
+- Google Gemini (`gemini-2.5-flash`) via the `/api/gemini` route handler
+- Razorpay for the Pro plan (`/api/razorpay/*`)
 - Deploy on [Vercel](https://vercel.com)
 
 ## Setup
 
-1. **Install dependencies**
+### 1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-2. **Environment variables**
+### 2. Create a Firebase project
 
-   Copy `.env.example` to `.env` and fill in:
+1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
+2. **Authentication → Sign-in method**: enable **Email/Password** and **Google**.
+3. **Firestore Database**: create a database (production mode).
+4. **Project settings → General → Your apps**: add a Web app and copy the config values.
+5. **Project settings → Service accounts → Generate new private key**: download the JSON (used by the server for Pro activation & referral rewards).
 
-   - `VITE_GEMINI_API_KEY` — [Google AI Studio](https://aistudio.google.com/apikey) (local dev + optional client)
-   - `GEMINI_API_KEY` — same key, **required on Vercel** for the `/api/gemini` serverless function
-   - `VITE_SUPABASE_URL` — Supabase project URL
-   - `VITE_SUPABASE_ANON_KEY` — Supabase anon key
+### 3. Environment variables
 
-3. **Supabase database**
+Copy `.env.example` to `.env.local` and fill in:
 
-   Run all SQL in `supabase/schema.sql` in the Supabase SQL editor (drafts, profiles, subscriptions, referrals, payments, triggers).
+| Variable | Where to find it |
+| --- | --- |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase web app config (API key, auth domain, project id, etc.) |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | The service-account JSON, **minified onto one line** |
+| `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `GEMINI_MODEL` | optional, default `gemini-2.5-flash` |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` / `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Razorpay dashboard (optional — Pro plan) |
 
-4. **Razorpay (optional — Pro plan)**
+> `NEXT_PUBLIC_*` values are exposed to the browser (safe for Firebase web config). Everything else stays server-only.
 
-   - `VITE_RAZORPAY_KEY_ID` — public key for checkout
-   - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — server keys for `/api/razorpay/*` on Vercel
+### 4. Deploy Firestore rules & indexes
 
-5. **Run locally**
+The security rules and composite indexes live in `firestore.rules` / `firestore.indexes.json`.
 
-   ```bash
-   npm run dev
-   ```
+```bash
+npm i -g firebase-tools
+firebase login
+firebase deploy --only firestore:rules,firestore:indexes
+```
 
-   For Razorpay API routes locally, use `npx vercel dev` instead of Vite-only dev.
+(Or run the local emulators with `firebase emulators:start`.)
 
-6. **Build for production**
+### 5. Run locally
 
-   ```bash
-   npm run build
-   ```
+```bash
+npm run dev
+```
 
-## Security note (important)
+App runs at [http://localhost:3000](http://localhost:3000). The `/api/*` route handlers run in the same Next.js dev server — no separate proxy needed.
 
-This MVP calls the Gemini API **directly from the browser**. That exposes your API key to anyone who inspects the client.
+### 6. Build for production
 
-**Before a public launch**, move draft generation to a serverless backend (e.g. Vercel API route) and keep `GEMINI_API_KEY` server-side only.
+```bash
+npm run build
+npm start
+```
+
+## Data model (Firestore)
+
+| Collection | Doc id | Purpose |
+| --- | --- | --- |
+| `profiles` | uid | advocate details, theme, referral code |
+| `subscriptions` | uid | plan, Pro expiry, usage counters |
+| `drafts` | auto | saved generated drafts |
+| `referrals` | referred uid | one referral per referred user |
+| `referralCodes` | CODE | code → uid lookup |
+| `payments` | auto | Razorpay payment records (server-written) |
+| `feedback` / `waitlist` | auto | user submissions |
+
+Sensitive writes — activating Pro after a verified payment and granting referral rewards — are performed **only** by the Admin SDK in server route handlers; clients cannot self-grant Pro (enforced by `firestore.rules`).
 
 ## Deploy to Vercel
 
-1. Push the repo to GitHub.
-2. Import the project in Vercel.
-3. In Project Settings → Environment Variables, add:
-   - `GEMINI_API_KEY` (your Google AI key — used by `/api/gemini`)
-   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-   - Optional: `VITE_GEMINI_MODEL` (default `gemini-2.5-flash`)
-4. Deploy. Confirm the deployment shows **`api/gemini.cjs`** under Serverless Functions (λ).
-
-**Note:** Plain Vite SPAs do not auto-deploy `/api` routes. This project uses an explicit `builds` entry in `vercel.json` so the Gemini proxy is included.
-
-`vercel.json` includes SPA rewrites so client-side routing works.
+1. Push the repo to GitHub and import it in Vercel (framework auto-detected as **Next.js**).
+2. In **Project Settings → Environment Variables**, add every variable from `.env.example`
+   (the `NEXT_PUBLIC_FIREBASE_*` set, `FIREBASE_SERVICE_ACCOUNT_KEY`, `GEMINI_API_KEY`, and the Razorpay keys).
+3. Deploy. The `/api/*` endpoints are served as Next.js route handlers automatically — no `vercel.json` needed.
+4. Add your Vercel domain to **Firebase → Authentication → Settings → Authorized domains**.
 
 ---
 
-*Draftee MVP — Built for Indian Lawyers*
+*Draftee — Built for Indian Lawyers*
