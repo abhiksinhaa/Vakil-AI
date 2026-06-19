@@ -1,0 +1,78 @@
+rules_version = '2';
+
+// Draftee — Firestore security rules.
+// Sensitive grants (Pro activation, referral rewards) are written only by the
+// Firebase Admin SDK in server routes, which bypasses these rules. Clients may
+// manage their own profile, drafts, usage counters, feedback, and waitlist.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Per-user profile (doc id = uid).
+    match /profiles/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && request.resource.data.user_id == uid;
+      allow update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    // Per-user subscription (doc id = uid). Clients may only touch usage counters,
+    // never plan / pro_until / referral_rewards_granted (those are server-only).
+    match /subscriptions/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && request.resource.data.plan == 'free';
+      allow update: if isOwner(uid)
+        && request.resource.data.plan == resource.data.plan
+        && request.resource.data.pro_until == resource.data.pro_until
+        && request.resource.data.referral_rewards_granted == resource.data.referral_rewards_granted;
+      allow delete: if false;
+    }
+
+    // Drafts — owner-only.
+    match /drafts/{draftId} {
+      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    // Referral code -> uid mapping. Readable by signed-in users (lookup + uniqueness);
+    // a user may only create a mapping that points to themselves.
+    match /referralCodes/{code} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Referrals — server-written (Admin SDK). Clients may read their own (as referrer or referred).
+    match /referrals/{referredUid} {
+      allow read: if isSignedIn()
+        && (resource.data.referrer_id == request.auth.uid
+            || resource.data.referred_user_id == request.auth.uid);
+      allow write: if false;
+    }
+
+    // Payments — server-written, owner can read.
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Feedback — users submit their own; not client-readable.
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    // Public waitlist signups (pre-auth). Write-only from clients.
+    match /waitlist/{entryId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+  }
+}
