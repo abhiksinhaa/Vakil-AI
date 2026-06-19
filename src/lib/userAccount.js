@@ -1,9 +1,9 @@
 import { supabase } from './supabase';
 
-export const FREE_DRAFT_LIMIT = 3;
+export const FREE_DRAFT_LIMIT = 10;
 export const FREE_CHAT_DAILY_LIMIT = 5;
-export const PRO_PRICE_PAISE = 139900;
-export const PRO_PRICE_INR = 1399;
+export const PRO_PRICE_PAISE = 9900;
+export const PRO_PRICE_INR = 99;
 
 export function getMonthKey() {
   return new Date().toISOString().slice(0, 7);
@@ -124,7 +124,7 @@ async function normalizeSubscription(sub) {
     const updates = { updated_at: new Date().toISOString() };
     if (needsMonthReset) {
       updates.month_key = monthKey;
-      updates.drafts_this_month = 0;
+      // We no longer reset drafts_this_month because it's now a lifetime limit
     }
     if (needsDayReset) {
       updates.chat_day_key = dayKey;

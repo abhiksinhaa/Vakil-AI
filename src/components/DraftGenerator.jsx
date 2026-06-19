@@ -9,6 +9,7 @@ import { useApp } from '../context/AppContext';
 import {
   isAdvocateProfileComplete,
   PRO_PRICE_INR,
+  checkDraftAllowance,
 } from '../lib/userAccount';
 
 const DRAFT_TYPES = [
@@ -64,6 +65,7 @@ export default function DraftGenerator() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [profileFilled, setProfileFilled] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -107,6 +109,12 @@ export default function DraftGenerator() {
     }
 
     if (form.partyMentionStyle === 'include' && !form.party1Name.trim()) {
+      return;
+    }
+
+    const allowance = await checkDraftAllowance();
+    if (!allowance.allowed) {
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -154,6 +162,36 @@ export default function DraftGenerator() {
   return (
     <div className="min-h-screen bg-navy flex flex-col">
       <Navbar />
+
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
+          <div className="card max-w-md w-full text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-2">
+              <span className="text-gold text-2xl">👑</span>
+            </div>
+            <h3 className="font-display text-2xl text-cream">Draft Limit Reached</h3>
+            <p className="text-cream/80 leading-relaxed">
+              You've used your 10 free drafts! Upgrade to Pro for unlimited drafts at ₹99/month.
+            </p>
+            <div className="pt-4 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/pricing')}
+                className="btn-primary w-full py-3"
+              >
+                Upgrade to Pro
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="text-sm text-cream/50 hover:text-cream transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-6 lg:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

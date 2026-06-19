@@ -4,6 +4,8 @@ import Navbar from './Navbar';
 import CourtNewsCarousel from './CourtNewsCarousel';
 import { fetchRecentDrafts } from '../lib/supabase';
 import { stripMarkdown } from '../lib/stripMarkdown';
+import { useApp } from '../context/AppContext';
+import { FREE_DRAFT_LIMIT } from '../lib/userAccount';
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -50,6 +52,7 @@ function DraftModal({ draft, onClose }) {
 }
 
 export default function Dashboard({ session }) {
+  const { subscription, isPro } = useApp();
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDraft, setSelectedDraft] = useState(null);
@@ -85,8 +88,15 @@ export default function Dashboard({ session }) {
           to="/generate"
           className="card flex items-center justify-between gap-4 mb-10 group hover:border-gold/40 transition-colors"
         >
-          <div>
-            <h2 className="font-display text-xl text-gold mb-1">Create New Draft</h2>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-3 mb-1">
+              <h2 className="font-display text-xl text-gold">Create New Draft</h2>
+              {subscription && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isPro ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-cream/10 text-cream/80 border border-cream/20'}`}>
+                  {isPro ? 'Pro: Unlimited' : `${Math.max(0, FREE_DRAFT_LIMIT - (subscription.drafts_this_month || 0))} free drafts left`}
+                </span>
+              )}
+            </div>
             <p className="text-cream/50 text-sm">
               Legal Notice, Rent Agreement, Affidavit and more
             </p>
