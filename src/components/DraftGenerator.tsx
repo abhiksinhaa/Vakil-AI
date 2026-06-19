@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
 import FactsTextareaWithMic from './FactsTextareaWithMic';
@@ -58,6 +59,7 @@ const INITIAL_FORM = {
 };
 
 export default function DraftGenerator() {
+  const router = useRouter();
   const { profile, isPro, refreshAccount, accountLoading } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
@@ -177,7 +179,7 @@ export default function DraftGenerator() {
             <div className="pt-4 flex flex-col gap-3">
               <button
                 type="button"
-                onClick={() => navigate('/pricing')}
+                onClick={() => router.push('/pricing')}
                 className="btn-primary w-full py-3"
               >
                 Upgrade to Pro
