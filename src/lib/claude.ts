@@ -1,6 +1,7 @@
 import { stripMarkdown } from './stripMarkdown';
+import type { DocumentSchema } from './draftSchemas';
 
-export async function generateLegalDraft(formData) {
+export async function generateLegalDraft(formData: any) {
   const {
     draftType,
     advocateName,
@@ -12,16 +13,26 @@ export async function generateLegalDraft(formData) {
     party2Address,
     partyMentionStyle,
     situation,
-    amount,
-    responseTime,
+    dynamicFields,
+    schema,
     language,
     incidentTiming,
   } = formData;
 
+  const typedSchema = schema as DocumentSchema;
+
   const isSimpleFormat = partyMentionStyle === 'simple';
-  const styleInstruction = isSimpleFormat
-    ? 'Generate this document in first person simple format without mentioning opposing parties.'
-    : 'Generate this document with clear Party 1 and Party 2 details as provided.';
+  const isParty1Only = partyMentionStyle === 'party1_only';
+  const includeBothParties = partyMentionStyle === 'include';
+
+  let styleInstruction = '';
+  if (isSimpleFormat) {
+    styleInstruction = 'Generate this document in first person simple format without mentioning opposing parties.';
+  } else if (isParty1Only) {
+    styleInstruction = `Generate this document with clear ${typedSchema.party1Label} details as provided. Do not mention opposing parties directly.`;
+  } else {
+    styleInstruction = `Generate this document with clear ${typedSchema.party1Label} and ${typedSchema.party2Label} details as provided.`;
+  }
 
   const incidentLawGuide =
     incidentTiming === 'before'
@@ -52,34 +63,45 @@ Rules:
 Note: Please verify all legal citations and sections with a qualified advocate before use.
 13. ${styleInstruction}`;
 
+  // Build Party Details Section
+  let partyDetailsSection = '';
+  if (!isSimpleFormat) {
+    partyDetailsSection += `\n${typedSchema.party1Label.toUpperCase()}:\nName: ${party1Name}\nAddress: ${party1Address}\n`;
+    if (includeBothParties) {
+      partyDetailsSection += `\n${typedSchema.party2Label.toUpperCase()}:\nName: ${party2Name}\nAddress: ${party2Address}\n`;
+    }
+  }
+
+  // Build Dynamic Fields Section
+  let dynamicFieldsSection = '';
+  if (typedSchema.fields.length > 0) {
+    dynamicFieldsSection = '\nSPECIFIC DETAILS:\n';
+    typedSchema.fields.forEach(field => {
+      const val = dynamicFields[field.id];
+      if (val && val.trim()) {
+        dynamicFieldsSection += `- ${field.label}: ${val}\n`;
+      }
+    });
+  }
+
   const userPrompt = `Generate a ${draftType} with the following details:
 
 ADVOCATE DETAILS:
 Name: ${advocateName || 'Advocate'}
 Bar Council No: ${barCouncilNumber || 'N/A'}
 City/Court: ${advocateCity || 'India'}
-
-PARTY 1 (CLIENT/SENDER):
-Name: ${party1Name}
-Address: ${party1Address}
-${!isSimpleFormat ? `
-PARTY 2 (OPPOSITE PARTY/RECIPIENT):
-Name: ${party2Name}
-Address: ${party2Address}
-` : ''}
+${partyDetailsSection}
 INCIDENT TIMING (applicable criminal law):
 ${incidentLawGuide}
 
 FACTS & SITUATION:
 ${situation}
-
-${amount ? `AMOUNT INVOLVED: ₹${amount}` : ''}
-${responseTime ? `RESPONSE TIME DEMANDED: ${responseTime}` : '15 days'}
+${dynamicFieldsSection}
 
 LANGUAGE: ${language || 'English'}
 DATE: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
 
-${isSimpleFormat ? 'Style: first person simple format without mentioning opposing parties.' : 'Style: include Party 1 and Party 2 details clearly as provided.'}
+Style: ${styleInstruction}
 
 Generate the complete ${draftType} now:`;
 
@@ -136,7 +158,7 @@ Generate the complete ${draftType} now:`;
   }
 
   const parts = data.candidates?.[0]?.content?.parts ?? [];
-  const text = parts.map((part) => part.text).filter(Boolean).join('\n');
+  const text = parts.map((part: any) => part.text).filter(Boolean).join('\n');
   const finishReason = data.candidates?.[0]?.finishReason;
 
   if (!text) {

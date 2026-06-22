@@ -48,6 +48,8 @@ export interface DraftInput {
   party2Name?: string;
   party2Address?: string;
   situation: string;
+  dynamicFields?: Record<string, string>;
+  schema?: any; // The DocumentSchema
   amount?: string;
   generatedDraft: string;
 }

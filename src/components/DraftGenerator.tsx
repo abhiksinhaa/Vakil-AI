@@ -11,38 +11,13 @@ import { saveDraft } from '../lib/firestore';
 import { useApp } from '../context/AppContext';
 import {
   isAdvocateProfileComplete,
-  PRO_PRICE_INR,
   checkDraftAllowance,
 } from '../lib/userAccount';
-
-const DRAFT_TYPES = [
-  'Legal Notice',
-  'Rent Agreement',
-  'Affidavit',
-  'Demand Letter',
-  'Power of Attorney',
-  'Partnership Agreement',
-  'Employment Agreement',
-  'Consumer Complaint',
-  'Cheque Bounce Notice (NI Act Section 138)',
-  'Vakalatnama',
-];
-
-const PARTY_DETAILS_DEFAULT_TYPES = [
-  'Legal Notice',
-  'Demand Letter',
-  'Cheque Bounce Notice (NI Act Section 138)',
-  'Consumer Complaint',
-  'Rent Agreement',
-];
-
-const SIMPLE_FORMAT_DEFAULT_TYPES = ['Affidavit', 'Vakalatnama'];
-
-const RESPONSE_TIMES = ['7 days', '15 days', '30 days', 'Custom'];
+import { DOCUMENT_SCHEMAS, DRAFT_TYPES } from '../lib/draftSchemas';
 
 const INITIAL_FORM = {
-  draftType: 'Legal Notice',
-  partyMentionStyle: 'include',
+  draftType: 'Affidavit',
+  partyMentionStyle: 'simple',
   advocateName: '',
   barCouncilNumber: '',
   advocateCity: '',
@@ -51,24 +26,24 @@ const INITIAL_FORM = {
   party2Name: '',
   party2Address: '',
   situation: '',
-  amount: '',
-  responseTime: '15 days',
-  customResponseTime: '',
   language: 'English',
   incidentTiming: '',
+  dynamicFields: {} as Record<string, string>,
 };
 
 export default function DraftGenerator() {
   const router = useRouter();
-  const { profile, isPro, refreshAccount, accountLoading } = useApp();
+  const { profile, isPro, refreshAccount } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [profileFilled, setProfileFilled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  
+  const [showAdvocateDetails, setShowAdvocateDetails] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -82,39 +57,38 @@ export default function DraftGenerator() {
     }
   }, [profile]);
 
-  const update = (field, value) => {
+  const update = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setSaveSuccess(false);
   };
 
-  const getResponseTime = () => {
-    if (form.responseTime === 'Custom') {
-      return form.customResponseTime || '15 days';
-    }
-    return form.responseTime;
+  const updateDynamic = (fieldId: string, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      dynamicFields: {
+        ...prev.dynamicFields,
+        [fieldId]: value,
+      },
+    }));
+    setSaveSuccess(false);
   };
 
-  const getRecommendedPartyMentionStyle = (draftType) => {
-    if (SIMPLE_FORMAT_DEFAULT_TYPES.includes(draftType)) return 'simple';
-    if (PARTY_DETAILS_DEFAULT_TYPES.includes(draftType)) return 'include';
-    return 'include';
-  };
+  const handleDraftTypeChange = (value: string) => {
+    const schema = DOCUMENT_SCHEMAS[value];
+    let style = 'include';
+    if (schema.defaultPartyStyle === 'none') style = 'simple';
+    if (schema.defaultPartyStyle === 'party1') style = 'party1_only';
 
-  const handleDraftTypeChange = (value) => {
-    const newStyle = getRecommendedPartyMentionStyle(value);
-    setForm((prev) => ({ ...prev, draftType: value, partyMentionStyle: newStyle }));
+    setForm((prev) => ({
+      ...prev,
+      draftType: value,
+      partyMentionStyle: style,
+      dynamicFields: {}, // Reset dynamic fields when changing types
+    }));
     setSaveSuccess(false);
   };
 
   const runGenerate = async () => {
-    if (!form.situation.trim() || !form.incidentTiming) {
-      return;
-    }
-
-    if (form.partyMentionStyle === 'include' && !form.party1Name.trim()) {
-      return;
-    }
-
     const allowance = await checkDraftAllowance();
     if (!allowance.allowed) {
       setShowUpgradeModal(true);
@@ -128,11 +102,11 @@ export default function DraftGenerator() {
     try {
       const text = await generateLegalDraft({
         ...form,
-        responseTime: getResponseTime(),
+        schema: DOCUMENT_SCHEMAS[form.draftType],
       });
       setDraft(text);
       await refreshAccount();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Draft could not be generated. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -150,7 +124,8 @@ export default function DraftGenerator() {
         party2Name: form.party2Name,
         party2Address: form.party2Address,
         situation: form.situation,
-        amount: form.amount,
+        dynamicFields: form.dynamicFields,
+        schema: DOCUMENT_SCHEMAS[form.draftType],
         generatedDraft: draft,
       });
       setSaveSuccess(true);
@@ -161,6 +136,8 @@ export default function DraftGenerator() {
       setIsSaving(false);
     }
   };
+
+  const currentSchema = DOCUMENT_SCHEMAS[form.draftType];
 
   return (
     <div className="min-h-screen bg-navy flex flex-col">
@@ -216,20 +193,21 @@ export default function DraftGenerator() {
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:min-h-[calc(100vh-12rem)]">
           <form
-            className="lg:w-[40%] shrink-0 space-y-6 overflow-y-auto max-h-none lg:max-h-[calc(100vh-10rem)] lg:pr-2"
+            className="lg:w-[40%] shrink-0 space-y-6 overflow-y-auto max-h-none lg:max-h-[calc(100vh-10rem)] lg:pr-2 pb-10"
             onSubmit={(e) => {
               e.preventDefault();
               runGenerate();
             }}
           >
+            {/* DOCUMENT TYPE SELECTOR */}
             <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Draft Type</h2>
+              <h2 className="font-display text-lg text-gold">Document Type</h2>
               <div>
-                <label htmlFor="draftType">Document</label>
                 <select
                   id="draftType"
                   value={form.draftType}
                   onChange={(e) => handleDraftTypeChange(e.target.value)}
+                  className="w-full text-base py-3"
                 >
                   {DRAFT_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -238,11 +216,13 @@ export default function DraftGenerator() {
                   ))}
                 </select>
               </div>
+
+              {/* PARTY MENTION STYLE SELECTOR */}
               <fieldset className="mt-4 space-y-3">
-                <legend className="text-sm text-cream/80">Party Mention Style</legend>
+                <legend className="text-sm text-cream/80">Include Party Details</legend>
                 <div className="grid gap-3">
-                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40">
-                    <div className="flex flex-col gap-3">
+                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40 cursor-pointer">
+                    <div className="flex flex-row items-center gap-3">
                       <input
                         type="radio"
                         name="partyMentionStyle"
@@ -251,14 +231,24 @@ export default function DraftGenerator() {
                         onChange={(e) => update('partyMentionStyle', e.target.value)}
                         className="accent-gold"
                       />
-                      <div className="min-w-0">
-                        <p className="font-medium text-cream break-words">Include Party 1 & Party 2 Details</p>
-                        <p className="text-cream/60 text-xs mt-1 break-words">Recommended for Legal Notice, Demand Letter, Cheque Bounce, Consumer Complaint, Rent Agreement.</p>
-                      </div>
+                      <span className="font-medium text-cream text-sm">Party 1 & Party 2 Details</span>
                     </div>
                   </label>
-                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40">
-                    <div className="flex flex-col gap-3">
+                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40 cursor-pointer">
+                    <div className="flex flex-row items-center gap-3">
+                      <input
+                        type="radio"
+                        name="partyMentionStyle"
+                        value="party1_only"
+                        checked={form.partyMentionStyle === 'party1_only'}
+                        onChange={(e) => update('partyMentionStyle', e.target.value)}
+                        className="accent-gold"
+                      />
+                      <span className="font-medium text-cream text-sm">Party 1 Details Only</span>
+                    </div>
+                  </label>
+                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40 cursor-pointer">
+                    <div className="flex flex-row items-center gap-3">
                       <input
                         type="radio"
                         name="partyMentionStyle"
@@ -267,115 +257,173 @@ export default function DraftGenerator() {
                         onChange={(e) => update('partyMentionStyle', e.target.value)}
                         className="accent-gold"
                       />
-                      <div className="min-w-0">
-                        <p className="font-medium text-cream break-words">Simple Format - No Party Details</p>
-                        <p className="text-cream/60 text-xs mt-1 break-words">Recommended for Affidavit and Vakalatnama.</p>
-                      </div>
+                      <span className="font-medium text-cream text-sm">Simple Format (No Party Details)</span>
                     </div>
                   </label>
                 </div>
               </fieldset>
             </section>
 
-            {form.partyMentionStyle === 'include' && (
-              <>
-                <section className="card space-y-4">
-                  <h2 className="font-display text-lg text-gold">Party 1 — Client</h2>
-                  <div>
-                    <label htmlFor="party1Name">Full Name</label>
-                    <input
-                      id="party1Name"
-                      value={form.party1Name}
-                      onChange={(e) => update('party1Name', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="party1Address">Address</label>
-                    <textarea
-                      id="party1Address"
-                      rows={3}
-                      value={form.party1Address}
-                      onChange={(e) => update('party1Address', e.target.value)}
-                    />
-                  </div>
-                </section>
-
-                <section className="card space-y-4">
-                  <h2 className="font-display text-lg text-gold">Party 2 — Opposite Party</h2>
-                  <div>
-                    <label htmlFor="party2Name">Full Name</label>
-                    <input
-                      id="party2Name"
-                      value={form.party2Name}
-                      onChange={(e) => update('party2Name', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="party2Address">Address</label>
-                    <textarea
-                      id="party2Address"
-                      rows={3}
-                      value={form.party2Address}
-                      onChange={(e) => update('party2Address', e.target.value)}
-                    />
-                  </div>
-                </section>
-              </>
-            )}
-
-            {form.partyMentionStyle === 'simple' && (
-              <section className="card space-y-3">
-                <p className="text-cream/80 text-sm">
-                  Simple format selected. Party 1 and Party 2 fields are hidden and will not be included in the draft.
-                </p>
+            {/* PARTY DETAILS (Conditional) */}
+            {(form.partyMentionStyle === 'include' || form.partyMentionStyle === 'party1_only') && (
+              <section className="card space-y-4 border-l-4 border-l-gold/50">
+                <h2 className="font-display text-lg text-gold">{currentSchema.party1Label} (Party 1)</h2>
+                <div>
+                  <label htmlFor="party1Name">Full Name</label>
+                  <input
+                    id="party1Name"
+                    value={form.party1Name}
+                    onChange={(e) => update('party1Name', e.target.value)}
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="party1Address">Address</label>
+                  <textarea
+                    id="party1Address"
+                    rows={2}
+                    value={form.party1Address}
+                    onChange={(e) => update('party1Address', e.target.value)}
+                    placeholder="Enter complete address"
+                  />
+                </div>
               </section>
             )}
 
+            {form.partyMentionStyle === 'include' && (
+              <section className="card space-y-4 border-l-4 border-l-cream/20">
+                <h2 className="font-display text-lg text-gold">{currentSchema.party2Label} (Party 2)</h2>
+                <div>
+                  <label htmlFor="party2Name">Full Name</label>
+                  <input
+                    id="party2Name"
+                    value={form.party2Name}
+                    onChange={(e) => update('party2Name', e.target.value)}
+                    placeholder="Enter full name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="party2Address">Address</label>
+                  <textarea
+                    id="party2Address"
+                    rows={2}
+                    value={form.party2Address}
+                    onChange={(e) => update('party2Address', e.target.value)}
+                    placeholder="Enter complete address"
+                  />
+                </div>
+              </section>
+            )}
+
+            {/* COLLAPSIBLE ADVOCATE DETAILS */}
+            <section className="card space-y-4 transition-all duration-300">
+              <button 
+                type="button" 
+                onClick={() => setShowAdvocateDetails(!showAdvocateDetails)}
+                className="w-full flex items-center justify-between"
+              >
+                <h2 className="font-display text-lg text-gold">Advocate Details <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
+                <span className={`text-gold transition-transform duration-300 ${showAdvocateDetails ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+              
+              {showAdvocateDetails && (
+                <div className="pt-4 space-y-4 border-t border-border mt-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Link href="/profile" className="text-xs text-gold hover:underline shrink-0">
+                      Edit profile
+                    </Link>
+                  </div>
+                  <p className="text-xs text-cream/50 -mt-2">
+                    Auto-filled from your saved profile
+                  </p>
+                  <div>
+                    <label htmlFor="advocateName">Advocate Name</label>
+                    <input
+                      id="advocateName"
+                      value={form.advocateName}
+                      onChange={(e) => update('advocateName', e.target.value)}
+                      placeholder="Adv. Rajesh Kumar"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="barCouncilNumber">Bar Council Number</label>
+                    <input
+                      id="barCouncilNumber"
+                      value={form.barCouncilNumber}
+                      onChange={(e) => update('barCouncilNumber', e.target.value)}
+                      placeholder="D/1234/2015"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="advocateCity">City / Court</label>
+                    <input
+                      id="advocateCity"
+                      value={form.advocateCity}
+                      onChange={(e) => update('advocateCity', e.target.value)}
+                      placeholder="Delhi District Court"
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* DYNAMIC FIELDS PER DOCUMENT TYPE */}
+            {currentSchema.fields.length > 0 && (
+              <section className="card space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[40px] pointer-events-none"></div>
+                <h2 className="font-display text-lg text-gold">{currentSchema.name} Details <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
+                <div className="space-y-4">
+                  {currentSchema.fields.map(field => (
+                    <div key={field.id} className="relative z-10">
+                      <label htmlFor={field.id}>{field.label}</label>
+                      {field.type === 'textarea' ? (
+                        <textarea
+                          id={field.id}
+                          rows={2}
+                          value={form.dynamicFields[field.id] || ''}
+                          onChange={(e) => updateDynamic(field.id, e.target.value)}
+                          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                          className="w-full"
+                        />
+                      ) : (
+                        <input
+                          id={field.id}
+                          type={field.type}
+                          value={form.dynamicFields[field.id] || ''}
+                          onChange={(e) => updateDynamic(field.id, e.target.value)}
+                          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                          className="w-full"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* FACTS & SITUATION (OPTIONAL) */}
             <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Advocate Details</h2>
-              <div className="flex items-center justify-between gap-2">
-                <Link href="/profile" className="text-xs text-gold hover:underline shrink-0">
-                  Edit profile
-                </Link>
-              </div>
-              <p className="text-xs text-cream/50 -mt-2">
-                Auto-filled from your saved profile
-              </p>
+              <h2 className="font-display text-lg text-gold">Facts & Situation <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
               <div>
-                <label htmlFor="advocateName">Advocate Name</label>
-                <input
-                  id="advocateName"
-                  value={form.advocateName}
-                  onChange={(e) => update('advocateName', e.target.value)}
-                  placeholder="Adv. Rajesh Kumar"
-                />
-              </div>
-              <div>
-                <label htmlFor="barCouncilNumber">Bar Council Number</label>
-                <input
-                  id="barCouncilNumber"
-                  value={form.barCouncilNumber}
-                  onChange={(e) => update('barCouncilNumber', e.target.value)}
-                  placeholder="D/1234/2015"
-                />
-              </div>
-              <div>
-                <label htmlFor="advocateCity">City / Court</label>
-                <input
-                  id="advocateCity"
-                  value={form.advocateCity}
-                  onChange={(e) => update('advocateCity', e.target.value)}
-                  placeholder="Delhi District Court"
+                <label htmlFor="situation">Situation / Facts</label>
+                <FactsTextareaWithMic
+                  id="situation"
+                  value={form.situation}
+                  onChange={(text) => update('situation', text)}
+                  language={form.language}
+                  placeholder="What happened? Write all the facts here... (use mic)"
                 />
               </div>
             </section>
 
+            {/* GLOBALS (TIMING & LANGUAGE) */}
             <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Facts & Details</h2>
+              <h2 className="font-display text-lg text-gold">Generation Settings</h2>
               <fieldset>
                 <legend className="text-sm text-cream/80 mb-2">
-                  When did the incident occur? Before or after 1 July 2024?
+                  When did the incident occur? (For Criminal Law citations)
                 </legend>
                 <div className="grid gap-2">
                   {[
@@ -398,7 +446,6 @@ export default function DraftGenerator() {
                           checked={form.incidentTiming === value}
                           onChange={(e) => update('incidentTiming', e.target.value)}
                           className="accent-gold"
-                          required
                         />
                         <span className="break-words">{label}</span>
                       </div>
@@ -406,57 +453,7 @@ export default function DraftGenerator() {
                   ))}
                 </div>
               </fieldset>
-              <div>
-                <label htmlFor="situation">Situation / Facts</label>
-                <FactsTextareaWithMic
-                  id="situation"
-                  value={form.situation}
-                  onChange={(text) => update('situation', text)}
-                  language={form.language}
-                  placeholder="What happened? Write all the facts here — date, amount, demands, previous steps taken... (use mic)"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="amount">Amount Involved (optional)</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cream/50">
-                    ₹
-                  </span>
-                  <input
-                    id="amount"
-                    value={form.amount}
-                    onChange={(e) => update('amount', e.target.value)}
-                    className="pl-8"
-                    placeholder="50,000"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="responseTime">Response Time Demanded (optional)</label>
-                <select
-                  id="responseTime"
-                  value={form.responseTime}
-                  onChange={(e) => update('responseTime', e.target.value)}
-                >
-                  {RESPONSE_TIMES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {form.responseTime === 'Custom' && (
-                <div>
-                  <label htmlFor="customResponseTime">Custom response period</label>
-                  <input
-                    id="customResponseTime"
-                    value={form.customResponseTime}
-                    onChange={(e) => update('customResponseTime', e.target.value)}
-                    placeholder="e.g. 21 days"
-                  />
-                </div>
-              )}
+              
               <div>
                 <label>Language Preference</label>
                 <div className="flex gap-2 mt-2">
@@ -480,21 +477,16 @@ export default function DraftGenerator() {
 
             <button
               type="submit"
-              disabled={
-                isGenerating ||
-                !form.situation.trim() ||
-                (form.partyMentionStyle === 'include' && !form.party1Name.trim()) ||
-                !form.incidentTiming
-              }
-              className="btn-primary w-full py-3 text-base"
+              disabled={isGenerating}
+              className="btn-primary w-full py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02]"
             >
               {isGenerating ? (
-                <>
+                <div className="flex items-center justify-center gap-3">
                   <span className="w-5 h-5 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
-                  Generating draft...
-                </>
+                  Generating Document...
+                </div>
               ) : (
-                'Generate Draft'
+                'Generate Document'
               )}
             </button>
           </form>

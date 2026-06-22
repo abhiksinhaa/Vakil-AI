@@ -42,6 +42,38 @@ export async function saveDraft(draft: DraftInput) {
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
 
+  let fullSituation = draft.situation || '';
+  let extractedAmount = draft.amount || null;
+
+  if (draft.dynamicFields && Object.keys(draft.dynamicFields).length > 0) {
+    if (fullSituation) fullSituation += '\n\n';
+    fullSituation += '--- Additional Details ---\n';
+    
+    // Also try to extract an amount field if it exists in dynamic fields
+    if (draft.dynamicFields['amount_involved']) {
+      extractedAmount = draft.dynamicFields['amount_involved'];
+    } else if (draft.dynamicFields['amount_claimed']) {
+      extractedAmount = draft.dynamicFields['amount_claimed'];
+    } else if (draft.dynamicFields['rent_amount']) {
+      extractedAmount = draft.dynamicFields['rent_amount'];
+    }
+
+    if (draft.schema && draft.schema.fields) {
+      draft.schema.fields.forEach((field: any) => {
+        const val = draft.dynamicFields![field.id];
+        if (val && val.trim()) {
+          fullSituation += `${field.label}: ${val}\n`;
+        }
+      });
+    } else {
+      for (const [key, val] of Object.entries(draft.dynamicFields)) {
+        if (val && val.trim()) {
+          fullSituation += `${key}: ${val}\n`;
+        }
+      }
+    }
+  }
+
   const ref = await addDoc(collection(db, 'drafts'), {
     user_id: user.uid,
     draft_type: draft.draftType,
@@ -49,8 +81,8 @@ export async function saveDraft(draft: DraftInput) {
     party1_address: draft.party1Address ?? '',
     party2_name: draft.party2Name ?? '',
     party2_address: draft.party2Address ?? '',
-    situation: draft.situation,
-    amount: draft.amount || null,
+    situation: fullSituation,
+    amount: extractedAmount,
     generated_draft: draft.generatedDraft,
     created_at: serverTimestamp(),
   });
