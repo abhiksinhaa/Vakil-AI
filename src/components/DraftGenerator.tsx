@@ -414,6 +414,7 @@ export default function DraftGenerator() {
                   onChange={(text) => update('situation', text)}
                   language={form.language}
                   placeholder="What happened? Write all the facts here... (use mic)"
+                  required={false}
                 />
               </div>
             </section>
