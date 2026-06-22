@@ -242,7 +242,7 @@ export default function Navbar() {
                     History
                   </DropdownItem>
                   <DropdownItem to="/pricing" onClick={closeAll}>
-                    Unlock Premium Version
+                    Unlock Premium
                   </DropdownItem>
                   <div className="my-1 border-t border-border" />
                   <DropdownItem onClick={handleLogout} destructive>
