@@ -16,6 +16,17 @@ function formatDate(iso) {
 function ViewModal({ draft, onClose }) {
   if (!draft) return null;
 
+  let headerTitle = draft.draft_type;
+  let headerSubtitle = formatDate(draft.created_at);
+  if (draft.party1_name) {
+    headerTitle = draft.party1_name;
+    if (draft.party2_name) headerTitle += ` vs ${draft.party2_name}`;
+    headerSubtitle = `${draft.draft_type} • ${formatDate(draft.created_at)}`;
+  } else {
+    headerTitle = `${draft.draft_type} - ${formatDate(draft.created_at)}`;
+    headerSubtitle = 'Simple Format';
+  }
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm"
@@ -27,10 +38,8 @@ function ViewModal({ draft, onClose }) {
       >
         <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-border">
           <div>
-            <h3 className="font-display text-lg text-gold">{draft.draft_type}</h3>
-            <p className="text-sm text-cream/50 mt-1">
-              {draft.party1_name} vs {draft.party2_name || '—'} · {formatDate(draft.created_at)}
-            </p>
+            <h3 className="font-display text-lg text-gold">{headerTitle}</h3>
+            <p className="text-sm text-cream/50 mt-1">{headerSubtitle}</p>
           </div>
           <button
             type="button"
@@ -111,46 +120,41 @@ export default function DraftHistory() {
           </div>
         ) : (
           <div className="card overflow-hidden p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-navy/50">
-                    <th className="text-left py-3 px-4 text-cream/60 font-medium">Date</th>
-                    <th className="text-left py-3 px-4 text-cream/60 font-medium">Type</th>
-                    <th className="text-left py-3 px-4 text-cream/60 font-medium">Party 1</th>
-                    <th className="text-left py-3 px-4 text-cream/60 font-medium hidden sm:table-cell">
-                      Party 2
-                    </th>
-                    <th className="text-right py-3 px-4 text-cream/60 font-medium">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((draft) => (
-                    <tr
-                      key={draft.id}
-                      className="border-b border-border/50 last:border-0 hover:bg-navy/30"
+            <div className="flex flex-col">
+              {filtered.map((draft) => {
+                let mainTitle = '';
+                let subTitle = '';
+                
+                if (draft.party1_name) {
+                  mainTitle = draft.party1_name;
+                  if (draft.party2_name) {
+                    mainTitle += ` vs ${draft.party2_name}`;
+                  }
+                  subTitle = `${draft.draft_type} • ${formatDate(draft.created_at)}`;
+                } else {
+                  mainTitle = `${draft.draft_type} - ${formatDate(draft.created_at)}`;
+                  subTitle = 'Simple Format';
+                }
+
+                return (
+                  <div
+                    key={draft.id}
+                    className="border-b border-border/50 last:border-0 hover:bg-navy/30 p-4 sm:px-6 flex items-center justify-between transition-colors"
+                  >
+                    <div>
+                      <h2 className="text-lg font-medium text-cream">{mainTitle}</h2>
+                      <p className="text-sm text-cream/60 mt-1">{subTitle}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewDraft(draft)}
+                      className="text-gold hover:text-gold/80 text-sm font-medium px-4 py-2 bg-gold/10 rounded-lg transition-colors border border-gold/20 hover:border-gold/40 whitespace-nowrap ml-4"
                     >
-                      <td className="py-3 px-4 text-cream/80 whitespace-nowrap">
-                        {formatDate(draft.created_at)}
-                      </td>
-                      <td className="py-3 px-4 text-cream">{draft.draft_type}</td>
-                      <td className="py-3 px-4 text-cream/80">{draft.party1_name || '—'}</td>
-                      <td className="py-3 px-4 text-cream/80 hidden sm:table-cell">
-                        {draft.party2_name || '—'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setViewDraft(draft)}
-                          className="text-gold hover:underline text-sm font-medium"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      View
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
