@@ -4,6 +4,7 @@ import type { DocumentSchema } from './draftSchemas';
 export async function generateLegalDraft(formData: any) {
   const {
     draftType,
+    affidavitSubType,
     advocateName,
     barCouncilNumber,
     advocateCity,
@@ -84,7 +85,54 @@ Note: Please verify all legal citations and sections with a qualified advocate b
     });
   }
 
+  let affidavitInstructions = '';
+  if (draftType === 'Affidavit') {
+    affidavitInstructions = `
+CRITICAL INSTRUCTION FOR AFFIDAVITS:
+You are generating a "${affidavitSubType}". Ensure the facts/declarations you generate are specifically tailored to this exact sub-type.
+You MUST ALWAYS follow this exact format for the affidavit:
+
+---
+AFFIDAVIT
+
+I, [Name of Deponent], Son/Daughter/Wife of
+[Father's/Husband's Name], aged about [Age] years,
+residing at [Full Address], do hereby solemnly
+affirm and state as under:
+
+1. That I am the deponent herein and competent
+   to swear this affidavit.
+
+2. That [fact/declaration relevant to the purpose].
+
+3. That [additional facts].
+
+4. That the statements made above are true and
+   correct to my knowledge and belief.
+
+VERIFICATION
+
+Verified at [Place] on this [Date] that the
+contents of this affidavit are true and correct
+to my knowledge and belief and nothing material
+has been concealed therefrom.
+
+DEPONENT
+
+(Signature)
+
+Attested before me
+
+(Notary/Oath Commissioner)
+---
+
+Replace the bracketed placeholders with the actual provided facts or logical, highly relevant clauses for the "${affidavitSubType}".
+`;
+  }
+
   const userPrompt = `Generate a ${draftType} with the following details:
+
+${affidavitInstructions}
 
 ADVOCATE DETAILS:
 Name: ${advocateName || 'Advocate'}

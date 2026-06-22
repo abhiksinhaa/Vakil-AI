@@ -15,8 +15,27 @@ import {
 } from '../lib/userAccount';
 import { DOCUMENT_SCHEMAS, DRAFT_TYPES } from '../lib/draftSchemas';
 
+const AFFIDAVIT_SUB_TYPES = [
+  "Name Change Affidavit",
+  "Address Proof/Residence Affidavit",
+  "Date of Birth Affidavit",
+  "Marriage Affidavit",
+  "Joint Affidavit for Marriage Registration",
+  "Lost Document Affidavit",
+  "One and the Same Person Affidavit",
+  "Income Affidavit",
+  "No Objection Affidavit (NOC Affidavit)",
+  "Gap Year Affidavit",
+  "Heirship/Legal Heir Affidavit",
+  "Affidavit for Correction in Documents",
+  "Affidavit for Duplicate Certificates",
+  "Property Affidavit",
+  "Court Affidavit (Evidence/Reply/Rejoinder Affidavit)"
+];
+
 const INITIAL_FORM = {
   draftType: 'Affidavit',
+  affidavitSubType: 'Court Affidavit (Evidence/Reply/Rejoinder Affidavit)',
   partyMentionStyle: 'simple',
   advocateName: '',
   barCouncilNumber: '',
@@ -110,7 +129,7 @@ export default function DraftGenerator() {
       // Auto-save to Firestore
       try {
         await saveDraft({
-          draftType: form.draftType,
+          draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
           party1Name: form.party1Name,
           party1Address: form.party1Address,
           party2Name: form.party2Name,
@@ -137,7 +156,7 @@ export default function DraftGenerator() {
     setIsSaving(true);
     try {
       await saveDraft({
-        draftType: form.draftType,
+        draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
         party1Name: form.party1Name,
         party1Address: form.party1Address,
         party2Name: form.party2Name,
@@ -235,6 +254,24 @@ export default function DraftGenerator() {
                   ))}
                 </select>
               </div>
+
+              {form.draftType === 'Affidavit' && (
+                <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                  <label htmlFor="affidavitSubType">Affidavit Type</label>
+                  <select
+                    id="affidavitSubType"
+                    value={form.affidavitSubType}
+                    onChange={(e) => update('affidavitSubType', e.target.value)}
+                    className="w-full text-base py-3 mt-1"
+                  >
+                    {AFFIDAVIT_SUB_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* PARTY MENTION STYLE SELECTOR */}
               <div className="mt-4">
