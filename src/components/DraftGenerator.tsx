@@ -292,9 +292,9 @@ export default function DraftGenerator() {
             {/* PARTY DETAILS (Conditional) */}
             {(form.partyMentionStyle === 'include' || form.partyMentionStyle === 'party1_only') && (
               <section className="card space-y-4 border-l-4 border-l-gold/50">
-                <h2 className="font-display text-lg text-gold">{currentSchema.party1Label} (Party 1)</h2>
+                <h2 className="font-display text-lg text-gold">{currentSchema.party1Label} (Party 1) <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
                 <div>
-                  <label htmlFor="party1Name">Full Name</label>
+                  <label htmlFor="party1Name">Full Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                   <input
                     id="party1Name"
                     value={form.party1Name}
@@ -303,7 +303,7 @@ export default function DraftGenerator() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="party1Address">Address</label>
+                  <label htmlFor="party1Address">Address <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                   <textarea
                     id="party1Address"
                     rows={2}
@@ -317,9 +317,9 @@ export default function DraftGenerator() {
 
             {form.partyMentionStyle === 'include' && (
               <section className="card space-y-4 border-l-4 border-l-cream/20">
-                <h2 className="font-display text-lg text-gold">{currentSchema.party2Label} (Party 2)</h2>
+                <h2 className="font-display text-lg text-gold">{currentSchema.party2Label} (Party 2) <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
                 <div>
-                  <label htmlFor="party2Name">Full Name</label>
+                  <label htmlFor="party2Name">Full Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                   <input
                     id="party2Name"
                     value={form.party2Name}
@@ -328,7 +328,7 @@ export default function DraftGenerator() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="party2Address">Address</label>
+                  <label htmlFor="party2Address">Address <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                   <textarea
                     id="party2Address"
                     rows={2}
@@ -364,7 +364,7 @@ export default function DraftGenerator() {
                     Auto-filled from your saved profile
                   </p>
                   <div>
-                    <label htmlFor="advocateName">Advocate Name</label>
+                    <label htmlFor="advocateName">Advocate Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                     <input
                       id="advocateName"
                       value={form.advocateName}
@@ -373,7 +373,7 @@ export default function DraftGenerator() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="barCouncilNumber">Bar Council Number</label>
+                    <label htmlFor="barCouncilNumber">Bar Council Number <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                     <input
                       id="barCouncilNumber"
                       value={form.barCouncilNumber}
@@ -382,7 +382,7 @@ export default function DraftGenerator() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="advocateCity">City / Court</label>
+                    <label htmlFor="advocateCity">City / Court <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                     <input
                       id="advocateCity"
                       value={form.advocateCity}
@@ -402,7 +402,7 @@ export default function DraftGenerator() {
                 <div className="space-y-4">
                   {currentSchema.fields.map(field => (
                     <div key={field.id} className="relative z-10">
-                      <label htmlFor={field.id}>{field.label}</label>
+                      <label htmlFor={field.id}>{field.label} <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                       {field.type === 'textarea' ? (
                         <textarea
                           id={field.id}
@@ -432,7 +432,7 @@ export default function DraftGenerator() {
             <section className="card space-y-4">
               <h2 className="font-display text-lg text-gold">Facts & Situation <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
               <div>
-                <label htmlFor="situation">Situation / Facts</label>
+                <label htmlFor="situation">Situation / Facts <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
                 <FactsTextareaWithMic
                   id="situation"
                   value={form.situation}

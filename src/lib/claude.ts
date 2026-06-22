@@ -62,7 +62,8 @@ Rules:
 11. CRITICAL: Never fabricate case laws, judgments, or citations. If a specific case law is needed, write [Case Law Required - Please verify with advocate] as placeholder. Only use well-known, verified landmark judgments you are certain about. When in doubt, omit the citation entirely.
 12. End every generated draft with this disclaimer on its own line at the bottom:
 Note: Please verify all legal citations and sections with a qualified advocate before use.
-13. ${styleInstruction}`;
+13. If any field, fact, or detail (e.g., Names, Addresses, Amounts, Dates) is left empty or missing, you MUST generate the draft using placeholder text like "[To be filled]" or "[Empty]" for that specific field.
+14. ${styleInstruction}`;
 
   // Build Party Details Section
   let partyDetailsSection = '';
