@@ -34,11 +34,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Drafts — owner-only.
+    // Legacy Drafts — owner-only.
     match /drafts/{draftId} {
       allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    // New Drafts - nested under users
+    match /users/{uid}/drafts/{draftId} {
+      allow read, write: if isOwner(uid);
     }
 
     // Referral code -> uid mapping. Readable by signed-in users (lookup + uniqueness);

@@ -106,6 +106,25 @@ export default function DraftGenerator() {
       });
       setDraft(text);
       await refreshAccount();
+      
+      // Auto-save to Firestore
+      try {
+        await saveDraft({
+          draftType: form.draftType,
+          party1Name: form.party1Name,
+          party1Address: form.party1Address,
+          party2Name: form.party2Name,
+          party2Address: form.party2Address,
+          situation: form.situation,
+          dynamicFields: form.dynamicFields,
+          schema: DOCUMENT_SCHEMAS[form.draftType],
+          generatedDraft: text,
+        });
+        console.log('✅ Auto-saved draft successfully to users/uid/drafts');
+        setSaveSuccess(true);
+      } catch (saveErr) {
+        console.error('❌ Failed to auto-save draft:', saveErr);
+      }
     } catch (err: any) {
       setError(err.message || 'Draft could not be generated. Please try again.');
     } finally {

@@ -26,15 +26,15 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
   return {
     id,
     user_id: String(data.user_id ?? ''),
-    draft_type: String(data.draft_type ?? ''),
-    party1_name: String(data.party1_name ?? ''),
+    draft_type: String(data.documentType ?? data.draft_type ?? ''),
+    party1_name: String(data.partyName ?? data.party1_name ?? ''),
     party1_address: String(data.party1_address ?? ''),
     party2_name: String(data.party2_name ?? ''),
     party2_address: String(data.party2_address ?? ''),
     situation: String(data.situation ?? ''),
     amount: (data.amount as string) ?? null,
-    generated_draft: String(data.generated_draft ?? ''),
-    created_at: tsToIso(data.created_at),
+    generated_draft: String(data.draftContent ?? data.generated_draft ?? ''),
+    created_at: tsToIso(data.createdAt ?? data.created_at),
   };
 }
 
@@ -74,7 +74,14 @@ export async function saveDraft(draft: DraftInput) {
     }
   }
 
-  const ref = await addDoc(collection(db, 'drafts'), {
+  const ref = await addDoc(collection(db, 'users', user.uid, 'drafts'), {
+    // New fields requested
+    documentType: draft.draftType,
+    partyName: draft.party1Name ?? '',
+    draftContent: draft.generatedDraft,
+    createdAt: serverTimestamp(),
+
+    // Legacy/compatibility fields
     user_id: user.uid,
     draft_type: draft.draftType,
     party1_name: draft.party1Name ?? '',
@@ -95,8 +102,7 @@ export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
   if (!user) return [];
 
   const q = query(
-    collection(db, 'drafts'),
-    where('user_id', '==', user.uid),
+    collection(db, 'users', user.uid, 'drafts'),
     orderBy('created_at', 'desc'),
     fbLimit(max)
   );
@@ -109,8 +115,7 @@ export async function fetchAllDrafts(): Promise<DraftRecord[]> {
   if (!user) return [];
 
   const q = query(
-    collection(db, 'drafts'),
-    where('user_id', '==', user.uid),
+    collection(db, 'users', user.uid, 'drafts'),
     orderBy('created_at', 'desc')
   );
   const snap = await getDocs(q);
