@@ -218,50 +218,19 @@ export default function DraftGenerator() {
               </div>
 
               {/* PARTY MENTION STYLE SELECTOR */}
-              <fieldset className="mt-4 space-y-3">
-                <legend className="text-sm text-cream/80">Include Party Details</legend>
-                <div className="grid gap-3">
-                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40 cursor-pointer">
-                    <div className="flex flex-row items-center gap-3">
-                      <input
-                        type="radio"
-                        name="partyMentionStyle"
-                        value="include"
-                        checked={form.partyMentionStyle === 'include'}
-                        onChange={(e) => update('partyMentionStyle', e.target.value)}
-                        className="accent-gold"
-                      />
-                      <span className="font-medium text-cream text-sm">Party 1 & Party 2 Details</span>
-                    </div>
-                  </label>
-                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40 cursor-pointer">
-                    <div className="flex flex-row items-center gap-3">
-                      <input
-                        type="radio"
-                        name="partyMentionStyle"
-                        value="party1_only"
-                        checked={form.partyMentionStyle === 'party1_only'}
-                        onChange={(e) => update('partyMentionStyle', e.target.value)}
-                        className="accent-gold"
-                      />
-                      <span className="font-medium text-cream text-sm">Party 1 Details Only</span>
-                    </div>
-                  </label>
-                  <label className="group block w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-gold/40 cursor-pointer">
-                    <div className="flex flex-row items-center gap-3">
-                      <input
-                        type="radio"
-                        name="partyMentionStyle"
-                        value="simple"
-                        checked={form.partyMentionStyle === 'simple'}
-                        onChange={(e) => update('partyMentionStyle', e.target.value)}
-                        className="accent-gold"
-                      />
-                      <span className="font-medium text-cream text-sm">Simple Format (No Party Details)</span>
-                    </div>
-                  </label>
-                </div>
-              </fieldset>
+              <div className="mt-4">
+                <label htmlFor="partyMentionStyle">Include Party Details</label>
+                <select
+                  id="partyMentionStyle"
+                  value={form.partyMentionStyle}
+                  onChange={(e) => update('partyMentionStyle', e.target.value)}
+                  className="w-full text-base py-3 mt-1"
+                >
+                  <option value="include">Party 1 & Party 2 Details</option>
+                  <option value="party1_only">Party 1 Details Only</option>
+                  <option value="simple">Simple Format (No Party Details)</option>
+                </select>
+              </div>
             </section>
 
             {/* PARTY DETAILS (Conditional) */}
