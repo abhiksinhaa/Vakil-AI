@@ -46,10 +46,10 @@ async function applyPendingReferral() {
   }
 }
 
-export default function AuthPage() {
+export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'login' | 'signup' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -232,8 +232,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
+                router.push(isLogin ? '/signup' : '/login');
               }}
               className="text-gold hover:underline font-medium"
             >

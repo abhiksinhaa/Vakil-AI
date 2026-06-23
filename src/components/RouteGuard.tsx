@@ -21,7 +21,7 @@ export function Protected({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!authLoading && !session) {
-      router.replace('/');
+      router.replace('/login');
     }
   }, [authLoading, session, router]);
 
