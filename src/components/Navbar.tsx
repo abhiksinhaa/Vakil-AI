@@ -244,6 +244,9 @@ export default function Navbar() {
                   <DropdownItem to="/pricing" onClick={closeAll}>
                     Unlock Premium
                   </DropdownItem>
+                  <DropdownItem to="/refer" onClick={closeAll}>
+                    🎁 Refer 5 Lawyers
+                  </DropdownItem>
                   <div className="my-1 border-t border-border" />
                   <DropdownItem onClick={handleLogout} destructive>
                     Logout
