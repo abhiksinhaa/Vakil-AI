@@ -66,7 +66,7 @@ export default function ReferAndEarn() {
             Refer 5 friends who sign up — get 2 months Premium free
           </p>
           <p className="text-sm text-cream/60">
-            Premium at ₹99/month. Your referrals are being tracked now.
+            Your referrals are being tracked now.
           </p>
         </section>
 
