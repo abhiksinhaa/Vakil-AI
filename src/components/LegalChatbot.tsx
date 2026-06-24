@@ -43,10 +43,10 @@ export default function LegalChatbot() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState<{x: number, y: number} | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
-  const modalRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, lastPos: null as {x: number, y: number} | null });
+  const fabRef = useRef<HTMLButtonElement>(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -62,53 +62,96 @@ export default function LegalChatbot() {
     content: WELCOME_PRO,
   });
 
+  const getBoundedPosition = (x: number, y: number) => {
+    if (typeof window === 'undefined') return { x, y };
+    const buttonSize = 56; // 14 * 4 = 56px
+    const padding = 16;
+    let newX = x;
+    let newY = y;
+    if (newX < padding) newX = padding;
+    if (newX > window.innerWidth - buttonSize - padding) newX = window.innerWidth - buttonSize - padding;
+    if (newY < padding) newY = padding;
+    if (newY > window.innerHeight - buttonSize - padding) newY = window.innerHeight - buttonSize - padding;
+    return { x: newX, y: newY };
+  };
+
   useEffect(() => {
-    const savedPos = sessionStorage.getItem('neikx_chat_pos');
+    const savedPos = sessionStorage.getItem('neikx_fab_pos');
     if (savedPos) {
       try {
-        setPosition(JSON.parse(savedPos));
+        const parsed = JSON.parse(savedPos);
+        setPosition(getBoundedPosition(parsed.x, parsed.y));
       } catch (e) {}
     }
+
+    const handleResize = () => {
+      setPosition(prev => {
+        if (!prev) return prev;
+        return getBoundedPosition(prev.x, prev.y);
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
-    setIsDragging(true);
+    setIsDragging(false);
+    
+    let currentX = position?.x;
+    let currentY = position?.y;
+    if (currentX === undefined || currentY === undefined) {
+      if (fabRef.current) {
+        const rect = fabRef.current.getBoundingClientRect();
+        currentX = rect.left;
+        currentY = rect.top;
+      } else {
+        currentX = window.innerWidth - 80;
+        currentY = window.innerHeight - 80;
+      }
+    }
+    
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      initialX: position.x,
-      initialY: position.y
+      initialX: currentX,
+      initialY: currentY,
+      lastPos: position
     };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || !modalRef.current) return;
-    e.preventDefault();
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
-    let newX = dragRef.current.initialX + dx;
-    let newY = dragRef.current.initialY + dy;
     
-    const modalRect = modalRef.current.getBoundingClientRect();
-    const maxX = Math.max(0, (window.innerWidth - modalRect.width) / 2);
-    const maxY = Math.max(0, (window.innerHeight - modalRect.height) / 2);
+    if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+      setIsDragging(true);
+    }
     
-    if (newX > maxX) newX = maxX;
-    if (newX < -maxX) newX = -maxX;
-    if (newY > maxY) newY = maxY;
-    if (newY < -maxY) newY = -maxY;
+    if (!isDragging) return;
+    
+    e.preventDefault();
+    const newPos = getBoundedPosition(
+      dragRef.current.initialX + dx,
+      dragRef.current.initialY + dy
+    );
 
-    setPosition({ x: newX, y: newY });
+    setPosition(newPos);
+    dragRef.current.lastPos = newPos;
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (isDragging) {
-      setIsDragging(false);
-      sessionStorage.setItem('neikx_chat_pos', JSON.stringify(position));
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      e.preventDefault();
+      const finalPos = dragRef.current.lastPos || position;
+      if (finalPos) {
+        sessionStorage.setItem('neikx_fab_pos', JSON.stringify(finalPos));
+      }
+    } else {
+      setIsOpen(true);
     }
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
   const resetChat = () => {
@@ -475,17 +518,11 @@ export default function LegalChatbot() {
   return (
     <>
       <style>{PREMIUM_ANIMATIONS}</style>
-      <div 
-        className={`fixed inset-0 z-[190] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
-      />
       <div
-        ref={modalRef}
-        style={{ transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))` }}
-        className={`fixed top-1/2 left-1/2 w-[95vw] h-[95dvh] sm:w-[90vw] sm:max-w-4xl sm:h-[90vh] z-[200] bg-[#000000] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden transition-[opacity,border-radius] duration-300 ease-out font-sans flex flex-col
+        className={`fixed inset-0 w-screen h-dvh z-[200] bg-[#000000] overflow-hidden transition-opacity duration-300 ease-out font-sans flex flex-col
           ${isOpen
             ? 'opacity-100 pointer-events-auto'
-            : 'opacity-0 pointer-events-none'}
-          ${isDragging ? 'cursor-grabbing select-none' : 'cursor-auto'}`}
+            : 'opacity-0 pointer-events-none'}`}
         role="dialog"
         aria-label="Neikx AI"
         aria-hidden={!isOpen}
@@ -562,13 +599,7 @@ export default function LegalChatbot() {
         </div>
 
         {/* Header */}
-        <header 
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className={`shrink-0 px-4 pt-5 sm:pt-6 pb-3 flex items-center justify-between gap-2 bg-transparent z-[10] border-b border-white/5 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        >
+        <header className="shrink-0 px-4 pt-8 pb-3 flex items-center justify-between gap-2 bg-transparent z-[10]">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -816,13 +847,18 @@ export default function LegalChatbot() {
       {/* FAB Trigger */}
       {!isOpen && (
         <button
+          ref={fabRef}
           type="button"
-          onClick={() => setIsOpen(true)}
-          className="fixed z-50 bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 bg-[#08122e] border border-white/20 text-white hover:scale-105 hover:bg-[#0c1a40]"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          style={position ? { left: `${position.x}px`, top: `${position.y}px`, right: 'auto', bottom: 'auto' } : {}}
+          className={`fixed z-50 bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center touch-none transition-[background-color,transform] duration-300 bg-[#08122e] border border-white/20 text-white ${isDragging ? 'scale-110 cursor-grabbing bg-[#0c1a40]' : 'hover:scale-105 hover:bg-[#0c1a40] cursor-grab'}`}
           aria-label="Open Neikx AI"
           aria-expanded={isOpen}
         >
-          <Sparkles className="w-6 h-6" />
+          <Sparkles className="w-6 h-6 pointer-events-none" />
         </button>
       )}
 
