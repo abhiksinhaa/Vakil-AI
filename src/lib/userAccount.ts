@@ -186,11 +186,10 @@ export async function checkDraftAllowance() {
   const remaining = Math.max(0, limit - used);
   const paidBalance = sub?.paid_drafts_balance ?? 0;
   
-  // Individual users can always generate, but are paywalled if remaining <= 0
-  const isPaywalled = !isAdvocate && remaining <= 0;
+  // Individual users can always generate
   const allowed = isAdvocate ? (remaining > 0 || paidBalance > 0) : true;
   
-  return { allowed, isPro: false, used, limit, remaining, userType: profile?.user_type || 'advocate', isPaywalled };
+  return { allowed, isPro: false, used, limit, remaining, userType: profile?.user_type || 'advocate' };
 }
 
 export async function incrementDraftUsage() {

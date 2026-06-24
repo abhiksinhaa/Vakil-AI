@@ -4,10 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Navbar from './Navbar';
 import { fetchAllDrafts } from '../lib/firestore';
 import { stripMarkdown } from '../lib/stripMarkdown';
-import { useApp } from '../context/AppContext';
-import { startPayPerUseCheckout } from '../lib/razorpay';
-import { auth, db } from '../lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -17,36 +13,8 @@ function formatDate(iso) {
   });
 }
 
-function ViewModal({ draft, onClose, profile }) {
-  const [unlockedState, setUnlockedState] = useState(false);
-  
+function ViewModal({ draft, onClose }) {
   if (!draft) return null;
-
-  const showPaywall = draft.unlocked === false && !unlockedState;
-  const fullText = stripMarkdown(draft.generated_draft);
-  const displayText = showPaywall ? fullText.slice(0, Math.floor(fullText.length / 2)) : fullText;
-
-  const handleUnlock = async () => {
-    try {
-      await startPayPerUseCheckout({
-        userEmail: auth.currentUser?.email || '',
-        userName: profile?.full_name || profile?.user_name || '',
-        onSuccess: async () => {
-          setUnlockedState(true);
-          if (draft.id && profile?.user_id) {
-            try {
-              await updateDoc(doc(db, 'users', profile.user_id, 'drafts', draft.id), { unlocked: true });
-              draft.unlocked = true;
-            } catch (err) {
-              console.error('Failed to update draft unlocked status:', err);
-            }
-          }
-        }
-      });
-    } catch (err) {
-      alert(err.message || 'Payment failed');
-    }
-  };
 
   let headerTitle = draft.draft_type;
   let headerSubtitle = formatDate(draft.created_at);
@@ -82,27 +50,15 @@ function ViewModal({ draft, onClose, profile }) {
             ×
           </button>
         </div>
-        <div className="relative flex-1 overflow-auto">
-          <pre className={`whitespace-pre-wrap text-sm text-cream/90 leading-relaxed ${showPaywall ? 'overflow-hidden pb-32 mb-4' : ''}`}>
-            {displayText}
-          </pre>
-          {showPaywall && (
-            <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-navy via-navy/90 to-transparent flex flex-col items-center justify-end pb-4 px-4 text-center">
-              <p className="text-gold font-display text-lg mb-1">🔒 Unlock Full Draft</p>
-              <p className="text-cream/80 text-sm mb-4">Pay ₹50 to unlock this draft</p>
-              <button onClick={handleUnlock} className="btn-primary text-sm shadow-lg shadow-gold/20">
-                Unlock - ₹50
-              </button>
-            </div>
-          )}
-        </div>
+        <pre className="flex-1 overflow-auto whitespace-pre-wrap text-sm text-cream/90 leading-relaxed">
+          {stripMarkdown(draft.generated_draft)}
+        </pre>
       </div>
     </div>
   );
 }
 
 export default function DraftHistory() {
-  const { profile } = useApp();
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -204,7 +160,7 @@ export default function DraftHistory() {
         )}
       </main>
 
-      <ViewModal draft={viewDraft} onClose={() => setViewDraft(null)} profile={profile} />
+      <ViewModal draft={viewDraft} onClose={() => setViewDraft(null)} />
     </div>
   );
 }

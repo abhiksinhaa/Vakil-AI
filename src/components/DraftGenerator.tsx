@@ -58,7 +58,6 @@ export default function DraftGenerator() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
   const [draftId, setDraftId] = useState<string | null>(null);
-  const [isPaywalled, setIsPaywalled] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -132,7 +131,6 @@ export default function DraftGenerator() {
       await refreshAccount();
       
       // Auto-save to Firestore
-      setIsPaywalled(allowance.isPaywalled);
       try {
         const res = await saveDraft({
           draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
@@ -144,7 +142,6 @@ export default function DraftGenerator() {
           dynamicFields: form.dynamicFields,
           schema: DOCUMENT_SCHEMAS[form.draftType],
           generatedDraft: text,
-          unlocked: !allowance.isPaywalled,
         });
         setDraftId(res.id);
         console.log('✅ Auto-saved draft successfully to users/uid/drafts');
@@ -575,7 +572,6 @@ export default function DraftGenerator() {
             <DraftPreview
               draft={draft}
               draftId={draftId}
-              isPaywalled={isPaywalled}
               onDraftChange={setDraft}
               formData={form}
               onRegenerate={runGenerate}

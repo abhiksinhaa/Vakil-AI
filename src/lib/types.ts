@@ -43,7 +43,6 @@ export interface DraftRecord {
   situation: string;
   amount: string | null;
   generated_draft: string;
-  unlocked?: boolean;
   created_at: string;
 }
 
@@ -58,7 +57,6 @@ export interface DraftInput {
   schema?: any; // The DocumentSchema
   amount?: string;
   generatedDraft: string;
-  unlocked?: boolean;
 }
 
 export interface SessionUser {
