@@ -613,8 +613,7 @@ export default function LegalChatbot() {
               <Sparkles className="sparkle-particle w-1.5 h-1.5 top-1/2 -right-2" style={{ animationDelay: '0.5s' }} />
               <h1 className="text-xl font-bold tracking-tight animate-light-sweep drop-shadow-md">Neikx AI</h1>
               <div className="flex items-center gap-1 mt-0.5 text-white/50 pointer-events-auto">
-                <span className="text-[11px] font-medium tracking-wide">Gemini 2.5 Flash</span>
-                <ChevronDown className="w-3 h-3" />
+                <span className="text-[11px] font-medium tracking-wide">AI Legal Assistant</span>
               </div>
             </div>
           </div>
