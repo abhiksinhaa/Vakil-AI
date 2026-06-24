@@ -55,6 +55,7 @@ export default function LegalChatbot() {
   const copiedTimeoutRef = useRef(null);
   const attachmentMenuRef = useRef(null);
   const recognitionRef = useRef<any>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const getWelcomeMessage = () => ({
     id: 'welcome',
@@ -385,6 +386,12 @@ export default function LegalChatbot() {
     const trimmed = text?.trim() || '';
     if (!trimmed && !attachment) return;
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     const userMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -394,34 +401,61 @@ export default function LegalChatbot() {
         : null,
     };
 
-    const historyForApi = [...messages.filter((m) => m.id !== 'welcome'), userMessage];
+    let currentMessages = messages;
+    if (attachment?.inlineData) {
+      currentMessages = messages.map(m => {
+        if (m.attachment?.inlineData) {
+          return {
+            ...m,
+            attachment: { fileName: m.attachment.fileName }
+          };
+        }
+        return m;
+      });
+    }
+
+    const historyForApi = [...currentMessages.filter((m) => m.id !== 'welcome'), userMessage];
     
     // Optimistic update
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages([...currentMessages, userMessage]);
     setInput('');
     setPendingAttachment(null);
     setError(null);
     setIsLoading(true);
 
     try {
-      const reply = await sendLegalChatMessage(historyForApi, { isPro: true, draftMode });
+      const reply = await sendLegalChatMessage(historyForApi, { 
+        isPro: true, 
+        draftMode,
+        signal: abortController.signal
+      });
+      
+      if (abortController.signal.aborted) return;
+      
       await refreshAccount();
 
       setMessages((prev) => [
-        ...prev,
+        ...prev.map(m => m.id === userMessage.id ? {
+          ...m, 
+          attachment: m.attachment ? { fileName: m.attachment.fileName } : null
+        } : m),
         {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
           content: stripMarkdown(reply),
         },
       ]);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      
       setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
       setInput(trimmed);
       setPendingAttachment(attachment);
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
-      setIsLoading(false);
+      if (!abortController.signal.aborted) {
+        setIsLoading(false);
+      }
     }
   };
 

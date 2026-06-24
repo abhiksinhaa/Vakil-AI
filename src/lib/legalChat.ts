@@ -63,12 +63,13 @@ function extractReply(data) {
   return text;
 }
 
-export async function sendLegalChatMessage(messages, options: { isPro?: boolean; draftMode?: boolean } = {}) {
-  const { isPro = false, draftMode = false } = options;
+export async function sendLegalChatMessage(messages, options: { isPro?: boolean; draftMode?: boolean; signal?: AbortSignal } = {}) {
+  const { isPro = false, draftMode = false, signal } = options;
 
   const response = await fetch('/api/gemini', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal,
     body: JSON.stringify({
       systemInstruction: {
         parts: [{ text: buildSystemPrompt({ isPro, draftMode }) }],
