@@ -12,6 +12,7 @@ import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
 import { readFileForChat } from '../lib/readChatFile';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { saveChatSession, fetchChatHistory, type ChatSession } from '../lib/firestore';
+import LiveVoiceMode from './LiveVoiceMode';
 
 const WELCOME_PRO = 'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
 
@@ -37,6 +38,7 @@ export default function LegalChatbot() {
   const [appFeedbackText, setAppFeedbackText] = useState('');
   const [appFeedbackSubmitted, setAppFeedbackSubmitted] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isLiveModeOpen, setIsLiveModeOpen] = useState(false);
   
   const [sessionId, setSessionId] = useState(`chat-${Date.now()}`);
   const [historyList, setHistoryList] = useState<ChatSession[]>([]);
@@ -445,6 +447,7 @@ export default function LegalChatbot() {
           content: stripMarkdown(reply),
         },
       ]);
+      return stripMarkdown(reply);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       
@@ -452,6 +455,7 @@ export default function LegalChatbot() {
       setInput(trimmed);
       setPendingAttachment(attachment);
       setError(err.message || 'Something went wrong. Please try again.');
+      throw err;
     } finally {
       if (!abortController.signal.aborted) {
         setIsLoading(false);
@@ -861,15 +865,27 @@ export default function LegalChatbot() {
                     <Send className="w-4 h-4 ml-0.5" />
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={toggleListening}
-                    className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-                      isListening ? 'text-red-400 bg-red-400/10 animate-pulse' : 'text-white/60 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <Mic className="w-5 h-5" />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                        isListening ? 'text-red-400 bg-red-400/10 animate-pulse' : 'text-white/60 hover:text-white hover:bg-white/10'
+                      }`}
+                      title="Voice Typing"
+                    >
+                      <Mic className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsLiveModeOpen(true)}
+                      className="w-10 h-10 flex items-center justify-center rounded-full transition-all relative group text-[#a8b8d8] hover:text-white hover:bg-white/10"
+                      title="Neikx Live Voice Mode"
+                    >
+                      <div className="absolute inset-0 bg-[#a8b8d8]/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
+                      <Sparkles className="w-5 h-5 relative z-10" />
+                    </button>
+                  </>
                 )}
               </div>
             </form>
@@ -940,6 +956,13 @@ export default function LegalChatbot() {
           </div>
         </div>
       )}
+
+      {/* Live Voice Mode Overlay */}
+      <LiveVoiceMode
+        isOpen={isLiveModeOpen}
+        onClose={() => setIsLiveModeOpen(false)}
+        onSendMessage={(text) => sendMessage({ text })}
+      />
     </>
   );
 }
