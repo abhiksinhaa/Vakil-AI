@@ -24,13 +24,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const model = resolveModel(process.env.GEMINI_MODEL);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
-    apiKey
-  )}`;
-
   try {
     const body = await req.json();
+    const requestedModel = body.model || process.env.GEMINI_MODEL;
+    const model = resolveModel(requestedModel);
+    delete body.model; // Don't send this to Gemini API
+    
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
+      apiKey
+    )}`;
+
     const upstream = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

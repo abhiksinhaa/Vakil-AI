@@ -59,6 +59,7 @@ export default function DraftGenerator() {
   const [draft, setDraft] = useState('');
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingStatus, setGeneratingStatus] = useState('Generating Document...');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +119,7 @@ export default function DraftGenerator() {
     }
 
     setIsGenerating(true);
+    setGeneratingStatus('Generating Document...');
     setError(null);
     setSaveSuccess(false);
     setDraftId(null);
@@ -126,7 +128,7 @@ export default function DraftGenerator() {
       const text = await generateLegalDraft({
         ...form,
         schema: DOCUMENT_SCHEMAS[form.draftType],
-      });
+      }, (status) => setGeneratingStatus(status));
       setDraft(text);
       await refreshAccount();
       
@@ -560,7 +562,7 @@ export default function DraftGenerator() {
               {isGenerating ? (
                 <div className="flex items-center justify-center gap-3">
                   <span className="w-5 h-5 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
-                  Generating Document...
+                  {generatingStatus}
                 </div>
               ) : (
                 'Generate Document'

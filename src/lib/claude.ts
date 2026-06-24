@@ -1,7 +1,7 @@
 import { stripMarkdown } from './stripMarkdown';
 import type { DocumentSchema } from './draftSchemas';
 
-export async function generateLegalDraft(formData: any) {
+export async function generateLegalDraft(formData: any, onStatusChange?: (status: string) => void) {
   const {
     draftType,
     affidavitSubType,
@@ -154,75 +154,108 @@ Style: ${styleInstruction}
 
 Generate the complete ${draftType} now:`;
 
-  const response = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: systemPrompt }],
-      },
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: userPrompt }],
+  let currentModel = 'gemini-2.5-flash';
+  let attempt = 0;
+  const maxRetries = 3;
+
+  while (attempt <= maxRetries) {
+    try {
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      ],
-      generationConfig: {
-        maxOutputTokens: 8192,
-        temperature: 0.4,
-      },
-    }),
-  });
+        body: JSON.stringify({
+          model: currentModel,
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: userPrompt }],
+            },
+          ],
+          generationConfig: {
+            maxOutputTokens: 8192,
+            temperature: 0.4,
+          },
+        }),
+      });
 
-  const contentType = response.headers.get('content-type') || '';
-  const raw = await response.text();
+      const contentType = response.headers.get('content-type') || '';
+      const raw = await response.text();
 
-  if (!contentType.includes('application/json')) {
-    console.error(
-      'Gemini API returned non-JSON (API route may be misconfigured):',
-      response.status,
-      raw.slice(0, 300)
-    );
-    throw new Error(
-      'Draft API route not reachable. Redeploy with api/gemini serverless function.'
-    );
+      if (!contentType.includes('application/json')) {
+        console.error(
+          'Gemini API returned non-JSON (API route may be misconfigured):',
+          response.status,
+          raw.slice(0, 300)
+        );
+        throw new Error(
+          'Draft API route not reachable. Redeploy with api/gemini serverless function.'
+        );
+      }
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        console.error('Gemini API invalid JSON:', raw.slice(0, 300));
+        throw new Error('Draft could not be generated. Please try again.');
+      }
+
+      if (!response.ok) {
+        const message =
+          data?.error?.message ||
+          'Draft generate nahi hua. Dobara try karo.';
+        console.error('Gemini API error:', response.status, data);
+        
+        // Throw special error for high demand/503/429
+        if (response.status === 503 || response.status === 429 || message.toLowerCase().includes('high demand') || message.toLowerCase().includes('overloaded')) {
+            throw new Error(`HIGH_DEMAND: ${message}`);
+        }
+        
+        throw new Error(message);
+      }
+
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const text = parts.map((part: any) => part.text).filter(Boolean).join('\n');
+      const finishReason = data.candidates?.[0]?.finishReason;
+
+      if (!text) {
+        console.error('Gemini API empty response:', data);
+        throw new Error(
+          finishReason === 'SAFETY'
+            ? 'Draft blocked by safety filters. Please modify the facts and try again.'
+            : 'Draft could not be generated. Please try again.'
+        );
+      }
+
+      let finalDraft = stripMarkdown(text);
+      if (finishReason === 'MAX_TOKENS') {
+        finalDraft += '\n\n[WARNING: Draft generation was truncated due to length limits. Please review the ending.]';
+      }
+
+      return finalDraft;
+
+    } catch (err: any) {
+      const isHighDemand = err.message.includes('HIGH_DEMAND') || err.message.includes('503') || err.message.includes('429');
+      
+      if (isHighDemand && attempt < maxRetries) {
+        attempt++;
+        currentModel = 'gemini-2.0-flash'; // Fallback model
+        if (onStatusChange) {
+            onStatusChange('Please wait, retrying...');
+        }
+        // Wait 5 seconds before retrying
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        continue;
+      }
+      
+      throw err;
+    }
   }
-
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    console.error('Gemini API invalid JSON:', raw.slice(0, 300));
-    throw new Error('Draft could not be generated. Please try again.');
-  }
-
-  if (!response.ok) {
-    const message =
-      data?.error?.message ||
-      'Draft generate nahi hua. Dobara try karo.';
-    console.error('Gemini API error:', response.status, data);
-    throw new Error(message);
-  }
-
-  const parts = data.candidates?.[0]?.content?.parts ?? [];
-  const text = parts.map((part: any) => part.text).filter(Boolean).join('\n');
-  const finishReason = data.candidates?.[0]?.finishReason;
-
-  if (!text) {
-    console.error('Gemini API empty response:', data);
-    throw new Error(
-      finishReason === 'SAFETY'
-        ? 'Draft blocked by safety filters. Please modify the facts and try again.'
-        : 'Draft could not be generated. Please try again.'
-    );
-  }
-
-  let finalDraft = stripMarkdown(text);
-  if (finishReason === 'MAX_TOKENS') {
-    finalDraft += '\n\n[WARNING: Draft generation was truncated due to length limits. Please review the ending.]';
-  }
-
-  return finalDraft;
+  
+  throw new Error('Draft could not be generated after multiple attempts. Please try again later.');
 }
