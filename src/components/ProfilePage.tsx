@@ -84,7 +84,7 @@ export default function ProfilePage() {
     window.open(url, '_blank');
   };
 
-  const isIndividual = profile?.user_type === 'individual';
+  const isIndividual = profile?.user_type !== 'advocate';
   const complete = isIndividual ? true : isAdvocateProfileComplete(form);
 
   return (
