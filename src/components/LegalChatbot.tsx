@@ -1,83 +1,42 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import Link from 'next/link';
-import { RefreshCw, Star, Volume2, VolumeX, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  Volume2, VolumeX, Copy, Check, ThumbsUp, ThumbsDown,
+  Menu, X, Plus, Mic, Send, MessageSquare, History, FileText, Search, Settings, FileUp, FileDown, ChevronDown, Sparkles
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
 import { readFileForChat } from '../lib/readChatFile';
 import { stripMarkdown } from '../lib/stripMarkdown';
-import {
-  PRO_PRICE_INR,
-} from '../lib/userAccount';
 
-const WELCOME_FREE =
-  'Welcome! I am your Draftee Legal Assistant. Ask about BNS, BNSS, BSA, or court procedure.';
-
-const WELCOME_PRO =
-  'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
-
-function LogoMark({ className = '', inverted = false }) {
-  return (
-    <span className={`font-display font-semibold ${className}`}>
-      Draft
-      <span className={inverted ? 'text-navy/80' : 'text-cream'}>ee</span>
-    </span>
-  );
-}
-
-function ProOnlyButton({
-  isPro,
-  onClick,
-  children,
-  className = '',
-  disabled = false,
-}: {
-  isPro: boolean;
-  onClick?: () => void;
-  children: ReactNode;
-  className?: string;
-  disabled?: boolean;
-}) {
-  if (isPro) {
-    return (
-      <button type="button" onClick={onClick} disabled={disabled} className={className}>
-        {children}
-      </button>
-    );
-  }
-  return (
-    <Link
-      href="/pricing"
-      className={`${className} opacity-50 cursor-not-allowed`}
-      title={`Pro only — ₹${PRO_PRICE_INR}/month`}
-    >
-      {children}
-    </Link>
-  );
-}
+const WELCOME_PRO = 'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
 
 export default function LegalChatbot() {
+  const router = useRouter();
   const { refreshAccount, profile } = useApp();
-  const isPro = true;
+  
   const [isOpen, setIsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pendingAttachment, setPendingAttachment] = useState(null);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackRating, setFeedbackRating] = useState(0);
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [activeSpeechId, setActiveSpeechId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [messageFeedback, setMessageFeedback] = useState({});
+  
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const speechUtteranceRef = useRef(null);
   const copiedTimeoutRef = useRef(null);
+  const attachmentMenuRef = useRef(null);
 
   const getWelcomeMessage = () => ({
     id: 'welcome',
@@ -90,21 +49,9 @@ export default function LegalChatbot() {
     setInput('');
     setError(null);
     setPendingAttachment(null);
-    setFeedbackOpen(false);
-    setFeedbackRating(0);
-    setFeedbackSubmitted(false);
     setCopiedId(null);
     setMessageFeedback({});
-  };
-
-  const handleFeedbackSelect = (value) => {
-    setFeedbackRating(value);
-    setFeedbackSubmitted(true);
-    setTimeout(() => {
-      setFeedbackOpen(false);
-      setFeedbackSubmitted(false);
-      setFeedbackRating(0);
-    }, 2000);
+    setSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -117,6 +64,15 @@ export default function LegalChatbot() {
         setMessageFeedback({});
       }
     }
+    
+    // Click outside handler for attachment menu
+    const handleClickOutside = (e: MouseEvent) => {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(e.target as Node)) {
+        setAttachmentMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -226,14 +182,6 @@ export default function LegalChatbot() {
     const trimmed = text?.trim() || '';
     if (!trimmed && !attachment) return;
 
-    if (attachment) {
-      // all users can upload attachments in chat
-    }
-
-    if (draftMode) {
-      // all users can generate drafts in chat
-    }
-
     const userMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -245,7 +193,7 @@ export default function LegalChatbot() {
 
     const historyForApi = [...messages.filter((m) => m.id !== 'welcome'), userMessage];
     
-    // Optimistic update: clear input and show message immediately
+    // Optimistic update
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setPendingAttachment(null);
@@ -265,7 +213,6 @@ export default function LegalChatbot() {
         },
       ]);
     } catch (err) {
-      // Revert optimistic update on error
       setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
       setInput(trimmed);
       setPendingAttachment(attachment);
@@ -287,9 +234,8 @@ export default function LegalChatbot() {
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
+    setAttachmentMenuOpen(false);
     if (!file) return;
-
-    // all users can upload files for chat analysis
 
     try {
       const parsed = await readFileForChat(file);
@@ -301,6 +247,7 @@ export default function LegalChatbot() {
   };
 
   const handleGenerateDraft = () => {
+    setAttachmentMenuOpen(false);
     sendMessage({
       text: 'Based on our entire conversation, generate a complete court-ready legal draft appropriate for this matter. Include all necessary parties, facts, legal grounds, and relief sought.',
       draftMode: true,
@@ -308,6 +255,7 @@ export default function LegalChatbot() {
   };
 
   const handleExportChatPdf = async () => {
+    setAttachmentMenuOpen(false);
     const transcript = buildChatTranscript(messages);
     if (!transcript.trim()) return;
     try {
@@ -319,287 +267,307 @@ export default function LegalChatbot() {
       setError(err.message || 'PDF export failed');
     }
   };
+  
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e);
+    }
+  };
+
+  // Check if we are showing the empty state
+  const isEmptyState = messages.length === 1 && messages[0].id === 'welcome';
 
   return (
     <>
       <div
-        className={`fixed inset-0 w-screen h-dvh z-[200] flex flex-col bg-navy overflow-hidden transition-opacity duration-300 ease-out
+        className={`fixed inset-0 w-screen h-dvh z-[200] flex flex-col bg-[#000000] overflow-hidden transition-opacity duration-300 ease-out font-sans
           ${isOpen
             ? 'opacity-100 pointer-events-auto'
             : 'opacity-0 pointer-events-none'}`}
         role="dialog"
-        aria-label="Draftee Legal Assistant"
+        aria-label="Neikx AI"
         aria-hidden={!isOpen}
       >
-        <header className="shrink-0 bg-navy border-b border-border px-4 py-3 flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gold/20 border border-gold/30 flex items-center justify-center shrink-0">
-                <LogoMark className="text-sm text-gold" inverted />
-              </div>
-              <h2 className="font-display text-base text-cream leading-tight truncate">
-                Legal Assistant
-                {isPro && (
-                  <span className="ml-1.5 text-[10px] uppercase text-gold font-body">Pro</span>
-                )}
-              </h2>
-            </div>
-            <p className="text-cream/50 text-xs mt-1 ml-10">
-              {isPro
-                ? 'Unlimited · Upload · Drafts · PDF'
-                : 'Ask any legal question'}
-            </p>
+        {/* Sidebar Overlay */}
+        {sidebarOpen && (
+           <div 
+             className="fixed inset-0 bg-black/60 z-[210] backdrop-blur-sm transition-opacity" 
+             onClick={() => setSidebarOpen(false)} 
+           />
+        )}
+        
+        {/* Sidebar */}
+        <div className={`fixed inset-y-0 left-0 w-72 bg-[#121212] z-[220] transform transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="p-4 flex items-center justify-between border-b border-white/10">
+            <h2 className="text-xl font-medium text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#a8b8d8]" /> Neikx AI
+            </h2>
+            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <div className="relative flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setFeedbackOpen((open) => !open)}
-              className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
-              aria-label="Feedback"
-            >
-              <Star className="h-5 w-5" />
+          
+          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <button onClick={resetChat} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+              <MessageSquare className="w-5 h-5 text-white/70" />
+              <span className="font-medium text-sm">New Chat</span>
             </button>
-            <button
-              type="button"
-              onClick={resetChat}
-              className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
-              aria-label="Reload chat"
-            >
-              <RefreshCw className="h-5 w-5" />
+            <button onClick={() => { setSidebarOpen(false); router.push('/history'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+              <History className="w-5 h-5 text-white/70" />
+              <span className="font-medium text-sm">Chat History</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="text-cream/50 hover:text-cream text-3xl leading-none p-2 shrink-0 rounded-lg hover:bg-gold/10 transition-colors"
-              aria-label="Close chat"
-            >
-              ×
+            <button onClick={() => { setSidebarOpen(false); router.push('/generate'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+              <FileText className="w-5 h-5 text-white/70" />
+              <span className="font-medium text-sm">Draft Generator</span>
             </button>
+            <button onClick={() => { setSidebarOpen(false); router.push('/research'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+              <Search className="w-5 h-5 text-white/70" />
+              <span className="font-medium text-sm">Legal Research</span>
+            </button>
+          </div>
+          
+          <div className="p-4 border-t border-white/10">
+            <button onClick={() => { setSidebarOpen(false); router.push('/profile'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+              <Settings className="w-5 h-5 text-white/70" />
+              <span className="font-medium text-sm">Settings</span>
+            </button>
+          </div>
+        </div>
 
-            {feedbackOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-border bg-card p-3 shadow-xl z-20">
-                {feedbackSubmitted ? (
-                  <p className="text-cream text-sm">Thank you for feedback!</p>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-cream text-sm font-medium">Rate your experience</p>
-                    <div className="flex items-center gap-2">
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => handleFeedbackSelect(value)}
-                          className={`text-2xl ${value <= feedbackRating ? 'text-gold' : 'text-cream/50'} hover:text-gold transition-colors`}
-                          aria-label={`${value} star`}
-                        >
-                          ★
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        {/* Header */}
+        <header className="shrink-0 px-4 py-3 flex items-center justify-between gap-2 bg-transparent z-[10]">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-xl font-medium text-white tracking-tight">Neikx AI</h1>
+              <div className="flex items-center gap-1 mt-0.5 text-white/50 cursor-pointer hover:text-white/80 transition-colors">
+                <span className="text-[11px] font-medium tracking-wide">Gemini 2.5 Flash</span>
+                <ChevronDown className="w-3 h-3" />
               </div>
-            )}
+            </div>
           </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 pb-6 space-y-3 bg-navy/40 min-h-0">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start flex-col'}`}
-            >
-              <div
-                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                  msg.role === 'user'
-                    ? 'bg-gold text-navy rounded-br-md'
-                    : 'bg-card border border-border text-cream/90 rounded-bl-md'
-                }`}
-              >
-                {msg.attachment?.fileName && (
-                  <p className="text-xs opacity-80 mb-1 font-medium">📎 {msg.attachment.fileName}</p>
-                )}
-                {msg.content}
+        {/* Chat Area */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 min-h-0 relative z-[5] w-full max-w-4xl mx-auto scroll-smooth">
+          {isEmptyState ? (
+            <div className="h-full flex flex-col items-center justify-center -mt-10 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-[0_0_40px_rgba(28,48,101,0.5)] mb-8">
+                <Sparkles className="w-10 h-10 text-white" />
               </div>
-              {msg.role === 'assistant' && (
-                <div className="flex items-center gap-2 mt-2 ml-1 text-cream/60">
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(msg.content, msg.id)}
-                    className="p-1 rounded transition-all hover:text-cream/90 hover:bg-navy/40"
-                    aria-label="Copy message"
+              <h2 className="text-3xl sm:text-4xl font-medium text-white tracking-tight mb-12">Where should we start?</h2>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
+                {[
+                  { title: 'Draft a legal notice', desc: 'Create a formal notice for a dispute', icon: <FileText className="w-5 h-5 text-[#a8b8d8]" /> },
+                  { title: 'Review a contract', desc: 'Analyze an agreement for risks', icon: <Search className="w-5 h-5 text-[#a8b8d8]" /> },
+                  { title: 'Research case laws', desc: 'Find precedents for your matter', icon: <History className="w-5 h-5 text-[#a8b8d8]" /> },
+                  { title: 'Analyze a document', desc: 'Upload a file for summary', icon: <FileUp className="w-5 h-5 text-[#a8b8d8]" /> }
+                ].map((chip, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setInput(chip.title)}
+                    className="flex flex-col items-start p-4 bg-[#1e1e1e]/50 hover:bg-[#1e1e1e] border border-white/5 rounded-2xl transition-all text-left group"
                   >
-                    {copiedId === msg.id ? (
-                      <Check className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-white/5 rounded-xl group-hover:bg-white/10 transition-colors">
+                        {chip.icon}
+                      </div>
+                      <span className="font-medium text-white/90">{chip.title}</span>
+                    </div>
+                    <span className="text-sm text-white/50">{chip.desc}</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => speakMessage(msg)}
-                    className="p-1 rounded transition-all hover:text-cream/90 hover:bg-navy/40"
-                    aria-label={activeSpeechId === msg.id ? 'Stop voice' : 'Read aloud'}
-                  >
-                    {activeSpeechId === msg.id ? (
-                      <VolumeX className="w-4 h-4 text-gold" />
-                    ) : (
-                      <Volume2 className="w-4 h-4" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleLike(msg.id)}
-                    className={`p-1 rounded transition-all ${
-                      messageFeedback[msg.id] === 'like'
-                        ? 'text-gold'
-                        : 'hover:text-cream/90 hover:bg-navy/40'
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="pt-6 space-y-2 pb-6">
+              {messages.filter(m => m.id !== 'welcome').map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.role === 'user' ? 'justify-end mb-6' : 'justify-start flex-col mb-8 animate-in fade-in slide-in-from-bottom-2 duration-300'}`}
+                >
+                  {msg.role === 'assistant' && (
+                    <div className="flex items-center gap-3 mb-3">
+                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-sm shrink-0">
+                         <Sparkles className="w-4 h-4 text-white" />
+                       </div>
+                       <span className="text-sm font-medium text-white/90">Neikx AI</span>
+                    </div>
+                  )}
+
+                  <div
+                    className={`${
+                      msg.role === 'user'
+                        ? 'max-w-[85%] sm:max-w-[75%] px-5 py-3.5 text-[15px] leading-relaxed whitespace-pre-wrap bg-[#1e1e1e] text-white rounded-3xl rounded-br-sm'
+                        : 'w-full pl-11 pr-4 text-[15px] leading-relaxed whitespace-pre-wrap text-white/90'
                     }`}
-                    aria-label="Like message"
                   >
-                    <ThumbsUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleDislike(msg.id)}
-                    className={`p-1 rounded transition-all ${
-                      messageFeedback[msg.id] === 'dislike'
-                        ? 'text-red-400'
-                        : 'hover:text-cream/90 hover:bg-navy/40'
-                    }`}
-                    aria-label="Dislike message"
-                  >
-                    <ThumbsDown className="w-4 h-4" />
-                  </button>
+                    {msg.attachment?.fileName && (
+                      <div className={`flex items-center gap-2 text-xs text-white/60 bg-white/5 p-2 rounded-lg mb-2 ${msg.role === 'assistant' ? 'w-fit' : ''}`}>
+                        <FileText className="w-4 h-4" />
+                        <span className="truncate">{msg.attachment.fileName}</span>
+                      </div>
+                    )}
+                    {msg.content}
+                  </div>
+                  {msg.role === 'assistant' && (
+                    <div className="flex items-center gap-1 mt-3 pl-10 text-white/40">
+                      <button onClick={() => copyToClipboard(msg.content, msg.id)} className="p-1.5 rounded-full transition-all hover:text-white hover:bg-white/10" title="Copy">
+                        {copiedId === msg.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => speakMessage(msg)} className="p-1.5 rounded-full transition-all hover:text-white hover:bg-white/10" title="Read Aloud">
+                        {activeSpeechId === msg.id ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => toggleLike(msg.id)} className={`p-1.5 rounded-full transition-all ${messageFeedback[msg.id] === 'like' ? 'text-white' : 'hover:text-white hover:bg-white/10'}`}>
+                        <ThumbsUp className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => toggleDislike(msg.id)} className={`p-1.5 rounded-full transition-all ${messageFeedback[msg.id] === 'dislike' ? 'text-white' : 'hover:text-white hover:bg-white/10'}`}>
+                        <ThumbsDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex justify-start flex-col mb-8 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-3 mb-3">
+                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-sm shrink-0">
+                       <Sparkles className="w-4 h-4 text-white animate-pulse" />
+                     </div>
+                     <span className="text-sm font-medium text-white/90">Neikx AI is thinking...</span>
+                  </div>
+                  <div className="pl-11">
+                    <div className="flex gap-1.5 items-center py-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-white/40 animate-pulse" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-white/40 animate-pulse delay-150" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-white/40 animate-pulse delay-300" />
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
-          ))}
-
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3 flex gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-gold/60 animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 rounded-full bg-gold/60 animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 rounded-full bg-gold/60 animate-bounce [animation-delay:300ms]" />
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <p className="text-red-400/90 text-xs text-center bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
-              {error}
-              {error.includes('Pro') && (
-                <>
-                  {' '}
-                  <Link href="/pricing" className="text-gold underline">
-                    View plans
-                  </Link>
-                </>
+              
+              {error && (
+                <p className="text-red-400/90 text-sm text-center bg-red-400/10 border border-red-400/20 rounded-2xl px-4 py-3 mx-auto max-w-md">
+                  {error}
+                </p>
               )}
-            </p>
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* Input Bar */}
+        <div className="shrink-0 w-full max-w-4xl mx-auto px-4 sm:px-8 pb-6 pt-2 z-[20]">
+          {pendingAttachment && (
+            <div className="mb-2 px-4 py-2 bg-[#1e1e1e]/80 backdrop-blur-md rounded-2xl flex items-center justify-between gap-3 text-sm text-white/80 border border-white/5 animate-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-2 truncate">
+                <FileText className="w-4 h-4 text-white/50 shrink-0" />
+                <span className="truncate">{pendingAttachment.fileName}</span>
+              </div>
+              <button onClick={() => setPendingAttachment(null)} className="text-white/40 hover:text-white p-1">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           )}
 
-          <div ref={messagesEndRef} />
-        </div>
-
-        {pendingAttachment && (
-          <div className="shrink-0 px-3 py-2 border-t border-border bg-navy/30 flex items-center justify-between gap-2 text-xs">
-            <span className="text-cream/70 truncate">📎 {pendingAttachment.fileName}</span>
-            <button
-              type="button"
-              onClick={() => setPendingAttachment(null)}
-              className="text-cream/50 hover:text-cream shrink-0"
-            >
-              Remove
-            </button>
-          </div>
-        )}
-
-        <div className="shrink-0 border-t border-border bg-card px-2 pt-2 pb-2 flex flex-wrap gap-1">
-          <ProOnlyButton
-            isPro={isPro}
-            onClick={() => fileInputRef.current?.click()}
-            className="text-xs px-2 py-1 rounded border border-border text-cream/70 hover:border-gold/40 hover:text-gold"
-          >
-            📎 Upload
-          </ProOnlyButton>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.txt,application/pdf,text/plain"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-          <ProOnlyButton
-            isPro={isPro}
-            onClick={handleGenerateDraft}
-            disabled={isLoading}
-            className="text-xs px-2 py-1 rounded border border-border text-cream/70 hover:border-gold/40 hover:text-gold disabled:opacity-50"
-          >
-            Generate draft
-          </ProOnlyButton>
-          <ProOnlyButton
-            isPro={isPro}
-            onClick={handleExportChatPdf}
-            className="text-xs px-2 py-1 rounded border border-border text-cream/70 hover:border-gold/40 hover:text-gold"
-          >
-            Chat PDF
-          </ProOnlyButton>
-        </div>
-
-        <form
-          onSubmit={handleSend}
-          className="shrink-0 border-t border-border bg-card p-3 flex gap-2 relative z-10"
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a legal question..."
-            disabled={isLoading}
-            className="flex-1 text-sm py-2.5"
-            autoComplete="off"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || (!input.trim() && !pendingAttachment)}
-            className="btn-primary px-4 py-2.5 shrink-0"
-            aria-label="Send message"
-          >
-            {isLoading ? (
-              <span className="w-4 h-4 border-2 border-navy/30 border-t-navy rounded-full animate-spin block" />
-            ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+          <div className="relative" ref={attachmentMenuRef}>
+            {/* Attachment Popover Menu */}
+            {attachmentMenuOpen && (
+              <div className="absolute bottom-[calc(100%+12px)] left-0 w-56 bg-[#1e1e1e] border border-white/10 rounded-3xl p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 z-50">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.txt,application/pdf,text/plain"
+                  className="hidden"
+                  onChange={handleFileSelect}
                 />
-              </svg>
+                <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/90 hover:bg-white/10 rounded-2xl transition-colors">
+                  <FileUp className="w-4 h-4 text-white/50" />
+                  Upload File
+                </button>
+                <button onClick={handleGenerateDraft} disabled={isLoading} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/90 hover:bg-white/10 rounded-2xl transition-colors disabled:opacity-50">
+                  <FileText className="w-4 h-4 text-white/50" />
+                  Generate Draft
+                </button>
+                <button onClick={handleExportChatPdf} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/90 hover:bg-white/10 rounded-2xl transition-colors">
+                  <FileDown className="w-4 h-4 text-white/50" />
+                  Export to PDF
+                </button>
+              </div>
             )}
-          </button>
-        </form>
+
+            {/* Input Pill Container */}
+            <form
+              onSubmit={handleSend}
+              className="flex items-center gap-2 p-2 bg-white/5 backdrop-blur-[20px] border border-white/10 rounded-full shadow-2xl focus-within:bg-white/10 focus-within:border-white/20 transition-all duration-300"
+            >
+              <button
+                type="button"
+                onClick={() => setAttachmentMenuOpen(!attachmentMenuOpen)}
+                className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+              
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask Neikx AI"
+                disabled={isLoading}
+                className="flex-1 bg-transparent border-none text-white placeholder:text-white/40 focus:ring-0 text-[15px] py-3 px-2 min-w-0"
+                autoComplete="off"
+              />
+              
+              <div className="flex items-center gap-1 shrink-0 pr-1">
+                {input.trim() || pendingAttachment ? (
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4 ml-0.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    <Mic className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
 
+      {/* FAB Trigger */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed z-50 bottom-6 left-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 border-2 bg-gold border-gold text-navy hover:scale-105 hover:shadow-gold/20"
-          aria-label="Open legal assistant"
+          className="fixed z-50 bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 bg-[#08122e] border border-white/20 text-white hover:scale-105 hover:bg-[#0c1a40]"
+          aria-label="Open Neikx AI"
           aria-expanded={isOpen}
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
+          <Sparkles className="w-6 h-6" />
         </button>
       )}
     </>
