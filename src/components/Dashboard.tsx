@@ -96,7 +96,7 @@ function DraftModal({ draft, onClose, profile }) {
 }
 
 export default function Dashboard() {
-  const { session, subscription, isPro } = useApp();
+  const { session, subscription, isPro, profile } = useApp();
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDraft, setSelectedDraft] = useState(null);
