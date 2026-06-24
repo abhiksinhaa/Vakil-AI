@@ -43,6 +43,11 @@ export default function LegalChatbot() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
+  const modalRef = useRef<HTMLDivElement>(null);
+
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -56,6 +61,55 @@ export default function LegalChatbot() {
     role: 'assistant',
     content: WELCOME_PRO,
   });
+
+  useEffect(() => {
+    const savedPos = sessionStorage.getItem('neikx_chat_pos');
+    if (savedPos) {
+      try {
+        setPosition(JSON.parse(savedPos));
+      } catch (e) {}
+    }
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) return;
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y
+    };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging || !modalRef.current) return;
+    e.preventDefault();
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    let newX = dragRef.current.initialX + dx;
+    let newY = dragRef.current.initialY + dy;
+    
+    const modalRect = modalRef.current.getBoundingClientRect();
+    const maxX = Math.max(0, (window.innerWidth - modalRect.width) / 2);
+    const maxY = Math.max(0, (window.innerHeight - modalRect.height) / 2);
+    
+    if (newX > maxX) newX = maxX;
+    if (newX < -maxX) newX = -maxX;
+    if (newY > maxY) newY = maxY;
+    if (newY < -maxY) newY = -maxY;
+
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isDragging) {
+      setIsDragging(false);
+      sessionStorage.setItem('neikx_chat_pos', JSON.stringify(position));
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    }
+  };
 
   const resetChat = () => {
     setMessages([getWelcomeMessage()]);
@@ -384,13 +438,54 @@ export default function LegalChatbot() {
   // Check if we are showing the empty state
   const isEmptyState = messages.length === 1 && messages[0].id === 'welcome';
 
+  const PREMIUM_ANIMATIONS = `
+    @keyframes breath-glow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(168, 184, 216, 0.3)); }
+      50% { filter: drop-shadow(0 0 14px rgba(168, 184, 216, 0.7)); }
+    }
+    @keyframes gentle-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes light-sweep {
+      0% { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+    @keyframes sparkle-twinkle {
+      0%, 100% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+    .animate-breath-glow { animation: breath-glow 3s ease-in-out infinite; }
+    .animate-gentle-float { animation: gentle-float 4s ease-in-out infinite; }
+    .animate-light-sweep {
+      background: linear-gradient(90deg, #ffffff 0%, #a8b8d8 25%, #ffffff 50%, #a8b8d8 75%, #ffffff 100%);
+      background-size: 200% auto;
+      color: transparent;
+      background-clip: text;
+      -webkit-background-clip: text;
+      animation: light-sweep 4s linear infinite;
+    }
+    .sparkle-particle {
+      position: absolute;
+      animation: sparkle-twinkle 2s ease-in-out infinite;
+      color: #ffffff;
+    }
+  `;
+
   return (
     <>
+      <style>{PREMIUM_ANIMATIONS}</style>
+      <div 
+        className={`fixed inset-0 z-[190] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
+      />
       <div
-        className={`fixed inset-0 w-screen h-dvh z-[200] bg-[#000000] overflow-hidden transition-opacity duration-300 ease-out font-sans flex flex-col
+        ref={modalRef}
+        style={{ transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))` }}
+        className={`fixed top-1/2 left-1/2 w-[95vw] h-[95dvh] sm:w-[90vw] sm:max-w-4xl sm:h-[90vh] z-[200] bg-[#000000] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden transition-[opacity,border-radius] duration-300 ease-out font-sans flex flex-col
           ${isOpen
             ? 'opacity-100 pointer-events-auto'
-            : 'opacity-0 pointer-events-none'}`}
+            : 'opacity-0 pointer-events-none'}
+          ${isDragging ? 'cursor-grabbing select-none' : 'cursor-auto'}`}
         role="dialog"
         aria-label="Neikx AI"
         aria-hidden={!isOpen}
@@ -467,17 +562,26 @@ export default function LegalChatbot() {
         </div>
 
         {/* Header */}
-        <header className="shrink-0 px-4 pt-8 pb-3 flex items-center justify-between gap-2 bg-transparent z-[10]">
+        <header 
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className={`shrink-0 px-4 pt-5 sm:pt-6 pb-3 flex items-center justify-between gap-2 bg-transparent z-[10] border-b border-white/5 touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        >
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70"
+              className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 relative z-10"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <div>
-              <h1 className="text-xl font-medium text-white tracking-tight">Neikx AI</h1>
-              <div className="flex items-center gap-1 mt-0.5 text-white/50 cursor-pointer hover:text-white/80 transition-colors">
+            <div className="relative animate-gentle-float animate-breath-glow py-1 px-2 cursor-pointer pointer-events-none">
+              <Sparkles className="sparkle-particle w-2 h-2 top-0 left-0" style={{ animationDelay: '0s' }} />
+              <Sparkles className="sparkle-particle w-3 h-3 bottom-0 right-0" style={{ animationDelay: '1s' }} />
+              <Sparkles className="sparkle-particle w-1.5 h-1.5 top-1/2 -right-2" style={{ animationDelay: '0.5s' }} />
+              <h1 className="text-xl font-bold tracking-tight animate-light-sweep drop-shadow-md">Neikx AI</h1>
+              <div className="flex items-center gap-1 mt-0.5 text-white/50 pointer-events-auto">
                 <span className="text-[11px] font-medium tracking-wide">Gemini 2.5 Flash</span>
                 <ChevronDown className="w-3 h-3" />
               </div>
@@ -519,23 +623,23 @@ export default function LegalChatbot() {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
                 {[
-                  { title: 'Draft a legal notice', desc: 'Create a formal notice for a dispute', icon: <FileText className="w-5 h-5 text-[#a8b8d8]" /> },
-                  { title: 'Review a contract', desc: 'Analyze an agreement for risks', icon: <Search className="w-5 h-5 text-[#a8b8d8]" /> },
-                  { title: 'Research case laws', desc: 'Find precedents for your matter', icon: <History className="w-5 h-5 text-[#a8b8d8]" /> },
-                  { title: 'Analyze a document', desc: 'Upload a file for summary', icon: <FileUp className="w-5 h-5 text-[#a8b8d8]" /> }
+                  { title: 'Draft a legal notice', desc: 'Create a formal notice for a dispute', icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#a8b8d8]" /> },
+                  { title: 'Review a contract', desc: 'Analyze an agreement for risks', icon: <Search className="w-4 h-4 sm:w-5 sm:h-5 text-[#a8b8d8]" /> },
+                  { title: 'Research case laws', desc: 'Find precedents for your matter', icon: <History className="w-4 h-4 sm:w-5 sm:h-5 text-[#a8b8d8]" /> },
+                  { title: 'Analyze a document', desc: 'Upload a file for summary', icon: <FileUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#a8b8d8]" /> }
                 ].map((chip, i) => (
                   <button 
                     key={i}
                     onClick={() => setInput(chip.title)}
-                    className="flex flex-col items-start p-4 bg-[#1e1e1e]/50 hover:bg-[#1e1e1e] border border-white/5 rounded-2xl transition-all text-left group"
+                    className="flex flex-col items-start p-3 sm:p-4 bg-[#1e1e1e]/50 hover:bg-[#1e1e1e] border border-white/5 rounded-[1rem] sm:rounded-2xl transition-all text-left group"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-white/5 rounded-xl group-hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                      <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg sm:rounded-xl group-hover:bg-white/10 transition-colors">
                         {chip.icon}
                       </div>
-                      <span className="font-medium text-white/90">{chip.title}</span>
+                      <span className="font-medium text-white/90 text-sm sm:text-base">{chip.title}</span>
                     </div>
-                    <span className="text-sm text-white/50">{chip.desc}</span>
+                    <span className="text-xs sm:text-sm text-white/50 line-clamp-1">{chip.desc}</span>
                   </button>
                 ))}
               </div>
