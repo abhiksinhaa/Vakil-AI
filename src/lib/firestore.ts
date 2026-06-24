@@ -1,6 +1,8 @@
 import {
   addDoc,
   collection,
+  doc,
+  setDoc,
   getDocs,
   limit as fbLimit,
   orderBy,
@@ -11,6 +13,14 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import type { DraftInput, DraftRecord } from './types';
+
+export interface ChatSession {
+  id: string;
+  preview: string;
+  updatedAt: string;
+  messages: any[];
+}
+
 
 /** Firestore Timestamps -> ISO strings so existing `new Date(...)` UI code keeps working. */
 function tsToIso(value: unknown): string {
@@ -130,4 +140,51 @@ export async function saveWaitlist(entry: Record<string, string>) {
   } catch (error) {
     return { data: null, error };
   }
+}
+
+export async function saveChatSession(sessionId: string, messages: any[]) {
+  const user = auth.currentUser;
+  if (!user || messages.length <= 1) return; // Don't save if it's just the welcome message
+
+  // Exclude attachment binary data or huge payloads if necessary, but saving directly is usually okay if they aren't massive.
+  // The inlineData can be large, so we strip it out for storage to avoid quota issues.
+  const cleanMessages = messages.map(msg => {
+    const cleanMsg = { ...msg };
+    if (cleanMsg.attachment && cleanMsg.attachment.inlineData) {
+      cleanMsg.attachment = { fileName: cleanMsg.attachment.fileName }; // keep filename, drop base64
+    }
+    return cleanMsg;
+  });
+
+  const firstUserMessage = cleanMessages.find(m => m.role === 'user');
+  const preview = firstUserMessage ? firstUserMessage.content.substring(0, 60) + '...' : 'New Chat';
+
+  const ref = doc(db, 'users', user.uid, 'chats', sessionId);
+  await setDoc(ref, {
+    preview,
+    updatedAt: serverTimestamp(),
+    messages: cleanMessages
+  }, { merge: true });
+}
+
+export async function fetchChatHistory(): Promise<ChatSession[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+
+  const q = query(
+    collection(db, 'users', user.uid, 'chats'),
+    orderBy('updatedAt', 'desc'),
+    fbLimit(30)
+  );
+
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      preview: data.preview || 'Chat',
+      updatedAt: tsToIso(data.updatedAt),
+      messages: data.messages || [],
+    };
+  });
 }

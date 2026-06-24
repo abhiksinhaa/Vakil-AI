@@ -11,6 +11,7 @@ import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
 import { readFileForChat } from '../lib/readChatFile';
 import { stripMarkdown } from '../lib/stripMarkdown';
+import { saveChatSession, fetchChatHistory, type ChatSession } from '../lib/firestore';
 
 const WELCOME_PRO = 'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
 
@@ -37,6 +38,11 @@ export default function LegalChatbot() {
   const [appFeedbackSubmitted, setAppFeedbackSubmitted] = useState(false);
   const [isListening, setIsListening] = useState(false);
   
+  const [sessionId, setSessionId] = useState(`chat-${Date.now()}`);
+  const [historyList, setHistoryList] = useState<ChatSession[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -53,13 +59,40 @@ export default function LegalChatbot() {
 
   const resetChat = () => {
     setMessages([getWelcomeMessage()]);
+    setSessionId(`chat-${Date.now()}`);
     setInput('');
     setError(null);
     setPendingAttachment(null);
     setCopiedId(null);
     setMessageFeedback({});
     setSidebarOpen(false);
+    setShowHistoryPanel(false);
   };
+
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const hist = await fetchChatHistory();
+      setHistoryList(hist);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const loadChatSession = (session: ChatSession) => {
+    setMessages(session.messages && session.messages.length ? session.messages : [getWelcomeMessage()]);
+    setSessionId(session.id);
+    setSidebarOpen(false);
+    setShowHistoryPanel(false);
+  };
+
+  useEffect(() => {
+    if (messages.length > 1) {
+      saveChatSession(sessionId, messages).catch(console.error);
+    }
+  }, [messages, sessionId]);
 
   useEffect(() => {
     setMessages([getWelcomeMessage()]);
@@ -354,7 +387,7 @@ export default function LegalChatbot() {
   return (
     <>
       <div
-        className={`fixed inset-0 w-screen h-dvh z-[200] bg-[#000000] overflow-y-auto overflow-x-hidden transition-opacity duration-300 ease-out font-sans flex flex-col
+        className={`fixed inset-0 w-screen h-dvh z-[200] bg-[#000000] overflow-hidden transition-opacity duration-300 ease-out font-sans flex flex-col
           ${isOpen
             ? 'opacity-100 pointer-events-auto'
             : 'opacity-0 pointer-events-none'}`}
@@ -382,22 +415,47 @@ export default function LegalChatbot() {
           </div>
           
           <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-            <button onClick={resetChat} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
-              <MessageSquare className="w-5 h-5 text-white/70" />
-              <span className="font-medium text-sm">New Chat</span>
-            </button>
-            <button onClick={() => { setSidebarOpen(false); router.push('/history'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
-              <History className="w-5 h-5 text-white/70" />
-              <span className="font-medium text-sm">Chat History</span>
-            </button>
-            <button onClick={() => { setSidebarOpen(false); router.push('/generate'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
-              <FileText className="w-5 h-5 text-white/70" />
-              <span className="font-medium text-sm">Draft Generator</span>
-            </button>
-            <button onClick={() => { setSidebarOpen(false); router.push('/research'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
-              <Search className="w-5 h-5 text-white/70" />
-              <span className="font-medium text-sm">Legal Research</span>
-            </button>
+            {!showHistoryPanel ? (
+              <>
+                <button onClick={resetChat} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                  <MessageSquare className="w-5 h-5 text-white/70" />
+                  <span className="font-medium text-sm">New Chat</span>
+                </button>
+                <button onClick={() => { setShowHistoryPanel(true); loadHistory(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                  <History className="w-5 h-5 text-white/70" />
+                  <span className="font-medium text-sm">Chat History</span>
+                </button>
+                <button onClick={() => { setSidebarOpen(false); setIsOpen(false); router.push('/generate'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                  <FileText className="w-5 h-5 text-white/70" />
+                  <span className="font-medium text-sm">Draft Generator</span>
+                </button>
+                <button onClick={() => { setSidebarOpen(false); setIsOpen(false); router.push('/research'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                  <Search className="w-5 h-5 text-white/70" />
+                  <span className="font-medium text-sm">Legal Research</span>
+                </button>
+              </>
+            ) : (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <button onClick={() => setShowHistoryPanel(false)} className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left border border-white/10">
+                  <ChevronDown className="w-5 h-5 rotate-90 text-white/70" />
+                  <span className="font-medium text-sm">Back</span>
+                </button>
+                {historyLoading ? (
+                  <div className="py-8 flex justify-center"><span className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin block" /></div>
+                ) : historyList.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-white/50">No previous chats found.</div>
+                ) : (
+                  <div className="space-y-1">
+                    {historyList.map(session => (
+                      <button key={session.id} onClick={() => loadChatSession(session)} className="w-full text-left px-4 py-3 rounded-xl hover:bg-white/10 transition-colors group">
+                        <div className="text-sm text-white/90 truncate">{session.preview}</div>
+                        <div className="text-xs text-white/40 mt-1">{new Date(session.updatedAt).toLocaleDateString()}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="p-4 border-t border-white/10">
@@ -409,7 +467,7 @@ export default function LegalChatbot() {
         </div>
 
         {/* Header */}
-        <header className="shrink-0 px-4 py-3 flex items-center justify-between gap-2 bg-transparent z-[10]">
+        <header className="shrink-0 px-4 pt-8 pb-3 flex items-center justify-between gap-2 bg-transparent z-[10]">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -451,9 +509,9 @@ export default function LegalChatbot() {
         </header>
 
         {/* Chat Area */}
-        <div className="px-4 sm:px-8 relative z-[5] w-full max-w-4xl mx-auto flex-1 min-h-[60vh] flex flex-col justify-end">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 min-h-0 relative z-[5] w-full max-w-4xl mx-auto scroll-smooth">
           {isEmptyState ? (
-            <div className="h-full flex flex-col items-center justify-center -mt-10 animate-in fade-in zoom-in duration-500">
+            <div className="h-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-[0_0_40px_rgba(28,48,101,0.5)] mb-8">
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
@@ -561,8 +619,7 @@ export default function LegalChatbot() {
         </div>
 
         {/* Input Bar */}
-        <div className="sticky bottom-0 bg-gradient-to-t from-[#000000] via-[#000000]/95 to-transparent pt-8 pb-6 w-full z-[20]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-8">
+        <div className="shrink-0 w-full max-w-4xl mx-auto px-4 sm:px-8 pb-6 pt-2 z-[20]">
           {pendingAttachment && (
             <div className="mb-2 px-4 py-2 bg-[#1e1e1e]/80 backdrop-blur-md rounded-2xl flex items-center justify-between gap-3 text-sm text-white/80 border border-white/5 animate-in slide-in-from-bottom-2">
               <div className="flex items-center gap-2 truncate">
@@ -649,7 +706,6 @@ export default function LegalChatbot() {
               </div>
             </form>
           </div>
-        </div>
         </div>
       </div>
 
