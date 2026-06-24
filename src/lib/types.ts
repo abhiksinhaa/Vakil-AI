@@ -11,6 +11,7 @@ export interface Profile {
   referred_by: string | null;
   theme: 'dark' | 'light';
   language?: string;
+  user_type?: 'advocate' | 'individual';
   created_at?: string;
   updated_at?: string;
 }
@@ -24,6 +25,7 @@ export interface Subscription {
   referral_rewards_granted: number;
   chat_messages_today: number;
   chat_day_key: string;
+  paid_drafts_balance?: number;
   updated_at?: string;
 }
 

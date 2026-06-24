@@ -56,6 +56,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userType, setUserType] = useState<'advocate' | 'individual'>('advocate');
 
   useEffect(() => {
     const ref = searchParams.get('ref');
@@ -77,7 +78,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
         if (fullName.trim()) {
           await updateProfile(cred.user, { displayName: fullName.trim() });
         }
-        await ensureUserRecords();
+        await ensureUserRecords(userType);
         await applyPendingReferral();
       }
       router.replace('/dashboard');
@@ -93,7 +94,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
     setGoogleLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      await ensureUserRecords();
+      await ensureUserRecords(userType);
       // Newly created Google accounts get any pending referral applied.
       const isNewUser =
         result?.user?.metadata?.creationTime === result?.user?.metadata?.lastSignInTime;
@@ -127,6 +128,42 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
           <h2 className="font-display text-xl text-cream mb-6">
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
+
+          <div className="mb-6 space-y-3">
+            <label className="text-sm font-medium text-cream/80">I am a...</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setUserType('advocate')}
+                className={`p-3 rounded-xl border flex flex-col items-center text-center transition-all ${
+                  userType === 'advocate'
+                    ? 'bg-gold/20 border-gold shadow-[0_0_15px_rgba(201,168,76,0.2)]'
+                    : 'bg-navy/40 border-border hover:border-gold/50'
+                }`}
+              >
+                <span className="text-2xl mb-1">🧑‍⚖️</span>
+                <span className={`text-sm font-medium ${userType === 'advocate' ? 'text-gold' : 'text-cream'}`}>
+                  Advocate / Lawyer
+                </span>
+                {!isLogin && <span className="text-[10px] text-cream/50 mt-1">₹99/mo unlimited drafts</span>}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserType('individual')}
+                className={`p-3 rounded-xl border flex flex-col items-center text-center transition-all ${
+                  userType === 'individual'
+                    ? 'bg-gold/20 border-gold shadow-[0_0_15px_rgba(201,168,76,0.2)]'
+                    : 'bg-navy/40 border-border hover:border-gold/50'
+                }`}
+              >
+                <span className="text-2xl mb-1">👤</span>
+                <span className={`text-sm font-medium ${userType === 'individual' ? 'text-gold' : 'text-cream'}`}>
+                  Individual / General
+                </span>
+                {!isLogin && <span className="text-[10px] text-cream/50 mt-1">₹50 per draft</span>}
+              </button>
+            </div>
+          </div>
 
           <button
             type="button"
@@ -220,9 +257,9 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
                   {isLogin ? 'Signing in…' : 'Creating account…'}
                 </>
               ) : isLogin ? (
-                'Sign In'
+                userType === 'advocate' ? 'Sign in as Advocate' : 'Sign in as Individual'
               ) : (
-                'Sign Up'
+                userType === 'advocate' ? 'Sign up as Advocate' : 'Sign up as Individual'
               )}
             </button>
           </form>

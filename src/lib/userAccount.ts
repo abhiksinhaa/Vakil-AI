@@ -56,7 +56,7 @@ async function getIdToken() {
 }
 
 /** Creates profile + subscription + referral-code mapping on first sign-in. */
-export async function ensureUserRecords() {
+export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
   const user = auth.currentUser;
   if (!user) return null;
 
@@ -74,6 +74,7 @@ export async function ensureUserRecords() {
       referral_code: referralCode,
       referred_by: null,
       theme: 'dark',
+      user_type: userType || 'advocate',
       created_at: serverTimestamp(),
       updated_at: serverTimestamp(),
     });
@@ -97,6 +98,7 @@ export async function ensureUserRecords() {
       referral_rewards_granted: 0,
       chat_messages_today: 0,
       chat_day_key: getDayKey(),
+      paid_drafts_balance: 0,
       updated_at: serverTimestamp(),
     });
     subSnap = await getDoc(subRef);
@@ -171,26 +173,47 @@ export async function fetchSubscription(): Promise<Subscription | null> {
 
 export async function checkDraftAllowance() {
   const sub = await fetchSubscription();
+  const profile = await fetchProfile();
+  const isAdvocate = profile?.user_type !== 'individual';
+  const limit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
   const pro = isProActive(sub);
 
-  if (pro) {
-    return { allowed: true, isPro: true, used: sub!.drafts_this_month, limit: null, remaining: null };
+  if (pro && isAdvocate) {
+    return { allowed: true, isPro: true, used: sub!.drafts_this_month, limit: null, remaining: null, userType: profile?.user_type || 'advocate' };
   }
 
   const used = sub?.drafts_this_month ?? 0;
-  const remaining = Math.max(0, FREE_DRAFT_LIMIT - used);
-  return { allowed: remaining > 0, isPro: false, used, limit: FREE_DRAFT_LIMIT, remaining };
+  const remaining = Math.max(0, limit - used);
+  const paidBalance = sub?.paid_drafts_balance ?? 0;
+  const allowed = remaining > 0 || paidBalance > 0;
+  
+  return { allowed, isPro: false, used, limit, remaining, userType: profile?.user_type || 'advocate' };
 }
 
 export async function incrementDraftUsage() {
   const user = auth.currentUser;
   if (!user) return;
   const sub = await fetchSubscription();
-  if (isProActive(sub)) return;
-  await updateDoc(doc(db, 'subscriptions', user.uid), {
-    drafts_this_month: (sub?.drafts_this_month ?? 0) + 1,
-    updated_at: serverTimestamp(),
-  });
+  const profile = await fetchProfile();
+  const isAdvocate = profile?.user_type !== 'individual';
+  
+  if (isProActive(sub) && isAdvocate) return;
+  
+  const limit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
+  const used = sub?.drafts_this_month ?? 0;
+  const remaining = Math.max(0, limit - used);
+  
+  if (remaining > 0) {
+    await updateDoc(doc(db, 'subscriptions', user.uid), {
+      drafts_this_month: used + 1,
+      updated_at: serverTimestamp(),
+    });
+  } else if ((sub?.paid_drafts_balance ?? 0) > 0) {
+    await updateDoc(doc(db, 'subscriptions', user.uid), {
+      paid_drafts_balance: (sub?.paid_drafts_balance ?? 0) - 1,
+      updated_at: serverTimestamp(),
+    });
+  }
 }
 
 export async function checkChatAllowance() {

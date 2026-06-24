@@ -9,6 +9,8 @@ import FactsTextareaWithMic from './FactsTextareaWithMic';
 import { generateLegalDraft } from '../lib/claude';
 import { saveDraft } from '../lib/firestore';
 import { useApp } from '../context/AppContext';
+import { auth } from '../lib/firebase';
+import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
   isAdvocateProfileComplete,
   checkDraftAllowance,
@@ -60,7 +62,7 @@ export default function DraftGenerator() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profileFilled, setProfileFilled] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState<false | 'advocate' | 'individual'>(false);
   
   const [showAdvocateDetails, setShowAdvocateDetails] = useState(false);
 
@@ -110,7 +112,7 @@ export default function DraftGenerator() {
   const runGenerate = async () => {
     const allowance = await checkDraftAllowance();
     if (!allowance.allowed) {
-      setShowUpgradeModal(true);
+      setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
       return;
     }
 
@@ -181,7 +183,7 @@ export default function DraftGenerator() {
     <div className="min-h-screen bg-navy flex flex-col">
       <Navbar />
 
-      {showUpgradeModal && (
+      {showUpgradeModal === 'advocate' && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
           <div className="card max-w-md w-full text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-2">
@@ -198,6 +200,49 @@ export default function DraftGenerator() {
                 className="btn-primary w-full py-3"
               >
                 Upgrade to Pro
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="text-sm text-cream/50 hover:text-cream transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUpgradeModal === 'individual' && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
+          <div className="card max-w-md w-full text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-2">
+              <span className="text-gold text-2xl">📝</span>
+            </div>
+            <h3 className="font-display text-2xl text-cream">Draft Limit Reached</h3>
+            <p className="text-cream/80 leading-relaxed">
+              You've used your 2 free drafts! Pay ₹50 to generate this draft.
+            </p>
+            <div className="pt-4 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await startPayPerUseCheckout({
+                      userEmail: auth.currentUser?.email || '',
+                      userName: profile?.full_name || '',
+                      onSuccess: () => {
+                        setShowUpgradeModal(false);
+                        runGenerate();
+                      }
+                    });
+                  } catch (err: any) {
+                    alert(err.message || 'Payment failed');
+                  }
+                }}
+                className="btn-primary w-full py-3"
+              >
+                Pay ₹50
               </button>
               <button
                 type="button"
