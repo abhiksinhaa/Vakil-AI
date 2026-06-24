@@ -17,6 +17,9 @@ export default function ProfilePage() {
     advocate_name: '',
     bar_council_number: '',
     court_jurisdiction: '',
+    state: '',
+    city: '',
+    pincode: '',
   });
   const [referralStats, setReferralStats] = useState(null);
   const [userIdRef, setUserIdRef] = useState('');
@@ -32,6 +35,9 @@ export default function ProfilePage() {
         advocate_name: profile.advocate_name || '',
         bar_council_number: profile.bar_council_number || '',
         court_jurisdiction: profile.court_jurisdiction || '',
+        state: profile.state || '',
+        city: profile.city || '',
+        pincode: profile.pincode || '',
       });
     }
   }, [profile]);
@@ -78,7 +84,8 @@ export default function ProfilePage() {
     window.open(url, '_blank');
   };
 
-  const complete = isAdvocateProfileComplete(form);
+  const isIndividual = profile?.user_type === 'individual';
+  const complete = isIndividual ? true : isAdvocateProfileComplete(form);
 
   return (
     <div className="min-h-screen bg-navy flex flex-col">
@@ -98,45 +105,79 @@ export default function ProfilePage() {
         )}
 
         <form onSubmit={handleSave} className="card space-y-4 mb-8">
-          <h2 className="font-display text-lg text-gold">Advocate Profile</h2>
+          <h2 className="font-display text-lg text-gold">
+            {isIndividual ? 'User Profile' : 'Advocate Profile'}
+          </h2>
           <div>
-            <label htmlFor="full_name">Display Name</label>
+            <label htmlFor="full_name">{isIndividual ? 'User Name' : 'Display Name'} <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
             <input
               id="full_name"
               value={form.full_name}
               onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
             />
           </div>
-          <div>
-            <label htmlFor="advocate_name">Advocate Name (on drafts)</label>
-            <input
-              id="advocate_name"
-              value={form.advocate_name}
-              onChange={(e) => setForm((f) => ({ ...f, advocate_name: e.target.value }))}
-              placeholder="Adv. Rajesh Kumar"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="bar_council_number">Bar Council Number</label>
-            <input
-              id="bar_council_number"
-              value={form.bar_council_number}
-              onChange={(e) => setForm((f) => ({ ...f, bar_council_number: e.target.value }))}
-              placeholder="D/1234/2015"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="court_jurisdiction">City / Court / Jurisdiction</label>
-            <input
-              id="court_jurisdiction"
-              value={form.court_jurisdiction}
-              onChange={(e) => setForm((f) => ({ ...f, court_jurisdiction: e.target.value }))}
-              placeholder="Delhi District Court"
-              required
-            />
-          </div>
+          
+          {isIndividual ? (
+            <>
+              <div>
+                <label htmlFor="state">State <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                <input
+                  id="state"
+                  value={form.state}
+                  onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+                  placeholder="e.g. Maharashtra"
+                />
+              </div>
+              <div>
+                <label htmlFor="city">City <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                <input
+                  id="city"
+                  value={form.city}
+                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                  placeholder="e.g. Mumbai"
+                />
+              </div>
+              <div>
+                <label htmlFor="pincode">PIN Code <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                <input
+                  id="pincode"
+                  value={form.pincode}
+                  onChange={(e) => setForm((f) => ({ ...f, pincode: e.target.value }))}
+                  placeholder="e.g. 400001"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label htmlFor="advocate_name">Advocate Name (on drafts) <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                <input
+                  id="advocate_name"
+                  value={form.advocate_name}
+                  onChange={(e) => setForm((f) => ({ ...f, advocate_name: e.target.value }))}
+                  placeholder="Adv. Rajesh Kumar"
+                />
+              </div>
+              <div>
+                <label htmlFor="bar_council_number">Bar Council Number <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                <input
+                  id="bar_council_number"
+                  value={form.bar_council_number}
+                  onChange={(e) => setForm((f) => ({ ...f, bar_council_number: e.target.value }))}
+                  placeholder="D/1234/2015"
+                />
+              </div>
+              <div>
+                <label htmlFor="court_jurisdiction">City / Court / Jurisdiction <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                <input
+                  id="court_jurisdiction"
+                  value={form.court_jurisdiction}
+                  onChange={(e) => setForm((f) => ({ ...f, court_jurisdiction: e.target.value }))}
+                  placeholder="Delhi District Court"
+                />
+              </div>
+            </>
+          )}
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
               {error}

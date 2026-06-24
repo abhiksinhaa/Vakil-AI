@@ -57,6 +57,8 @@ export default function DraftGenerator() {
   const { profile, isPro, refreshAccount } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [isPaywalled, setIsPaywalled] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -119,6 +121,7 @@ export default function DraftGenerator() {
     setIsGenerating(true);
     setError(null);
     setSaveSuccess(false);
+    setDraftId(null);
 
     try {
       const text = await generateLegalDraft({
@@ -129,8 +132,9 @@ export default function DraftGenerator() {
       await refreshAccount();
       
       // Auto-save to Firestore
+      setIsPaywalled(allowance.isPaywalled);
       try {
-        await saveDraft({
+        const res = await saveDraft({
           draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
           party1Name: form.party1Name,
           party1Address: form.party1Address,
@@ -140,7 +144,9 @@ export default function DraftGenerator() {
           dynamicFields: form.dynamicFields,
           schema: DOCUMENT_SCHEMAS[form.draftType],
           generatedDraft: text,
+          unlocked: !allowance.isPaywalled,
         });
+        setDraftId(res.id);
         console.log('✅ Auto-saved draft successfully to users/uid/drafts');
         setSaveSuccess(true);
       } catch (saveErr) {
@@ -167,6 +173,9 @@ export default function DraftGenerator() {
         dynamicFields: form.dynamicFields,
         schema: DOCUMENT_SCHEMAS[form.draftType],
         generatedDraft: draft,
+        // If we are in handleSave, it's manually triggered, but `runGenerate` already saved it. 
+        // We'll keep default unlocked true, or fetch from state. For simplicity, since it's an auto-saved draft, it's safer to just let the backend handle it or omit if it exists.
+        // Actually we can re-evaluate or use `allowance`.
       });
       setSaveSuccess(true);
     } catch (err) {
@@ -565,6 +574,8 @@ export default function DraftGenerator() {
           <div className="lg:w-[60%] flex-1 min-h-[400px] lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)]">
             <DraftPreview
               draft={draft}
+              draftId={draftId}
+              isPaywalled={isPaywalled}
               onDraftChange={setDraft}
               formData={form}
               onRegenerate={runGenerate}

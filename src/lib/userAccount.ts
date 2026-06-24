@@ -185,9 +185,12 @@ export async function checkDraftAllowance() {
   const used = sub?.drafts_this_month ?? 0;
   const remaining = Math.max(0, limit - used);
   const paidBalance = sub?.paid_drafts_balance ?? 0;
-  const allowed = remaining > 0 || paidBalance > 0;
   
-  return { allowed, isPro: false, used, limit, remaining, userType: profile?.user_type || 'advocate' };
+  // Individual users can always generate, but are paywalled if remaining <= 0
+  const isPaywalled = !isAdvocate && remaining <= 0;
+  const allowed = isAdvocate ? (remaining > 0 || paidBalance > 0) : true;
+  
+  return { allowed, isPro: false, used, limit, remaining, userType: profile?.user_type || 'advocate', isPaywalled };
 }
 
 export async function incrementDraftUsage() {

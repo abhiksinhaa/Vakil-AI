@@ -34,6 +34,7 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
     situation: String(data.situation ?? ''),
     amount: (data.amount as string) ?? null,
     generated_draft: String(data.draftContent ?? data.generated_draft ?? ''),
+    unlocked: data.unlocked as boolean | undefined,
     created_at: tsToIso(data.createdAt ?? data.created_at),
   };
 }
@@ -91,6 +92,7 @@ export async function saveDraft(draft: DraftInput) {
     situation: fullSituation,
     amount: extractedAmount,
     generated_draft: draft.generatedDraft,
+    unlocked: draft.unlocked ?? true, // Default true for backward compatibility and advocates
     created_at: serverTimestamp(),
   });
 

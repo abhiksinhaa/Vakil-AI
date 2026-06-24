@@ -4,8 +4,12 @@ import { useMemo, useState } from 'react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
+import { startPayPerUseCheckout } from '../lib/razorpay';
+import { auth } from '../lib/firebase';
 export default function DraftPreview({
   draft,
+  draftId,
+  isPaywalled = false,
   onDraftChange,
   formData,
   onRegenerate,
@@ -23,12 +27,19 @@ export default function DraftPreview({
   const [pdfError, setPdfError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editBuffer, setEditBuffer] = useState('');
+  const [unlockedState, setUnlockedState] = useState(false);
 
+  const showPaywall = isPaywalled && !unlockedState;
 
-  const displayDraft = useMemo(
-    () => (draft ? stripMarkdown(draft) : ''),
-    [draft]
-  );
+  const fullDraftText = useMemo(() => (draft ? stripMarkdown(draft) : ''), [draft]);
+
+  const displayDraft = useMemo(() => {
+    if (!fullDraftText) return '';
+    if (showPaywall) {
+      return fullDraftText.slice(0, Math.floor(fullDraftText.length / 2));
+    }
+    return fullDraftText;
+  }, [fullDraftText, showPaywall]);
 
   const startEdit = () => {
     setEditBuffer(displayDraft);
@@ -101,6 +112,41 @@ export default function DraftPreview({
     onSave?.();
   };
 
+  const handleUnlock = async (action) => {
+    try {
+      await startPayPerUseCheckout({
+        userEmail: auth.currentUser?.email || '',
+        userName: profile?.full_name || profile?.user_name || '',
+        onSuccess: async () => {
+          setUnlockedState(true);
+          if (draftId && profile?.user_id) {
+            try {
+              const { doc, updateDoc } = await import('firebase/firestore');
+              const { db } = await import('../lib/firebase');
+              await updateDoc(doc(db, 'users', profile.user_id, 'drafts', draftId), { unlocked: true });
+            } catch (err) {
+              console.error('Failed to update draft unlocked status:', err);
+            }
+          }
+          // The displayDraft will update immediately, so we can trigger the action shortly after
+          setTimeout(() => {
+            if (action === 'pdf') {
+              // We need to pass the full text, because displayDraft might still be updating
+              downloadDraftPdf(fullDraftText, formData).catch(console.error);
+            } else if (action === 'copy') {
+              navigator.clipboard.writeText(fullDraftText).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              });
+            }
+          }, 100);
+        }
+      });
+    } catch (err) {
+      alert(err.message || 'Payment failed');
+    }
+  };
+
   return (
     <div className="card h-full flex flex-col min-h-[400px] lg:min-h-0">
       <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-border">
@@ -146,9 +192,21 @@ export default function DraftPreview({
         )}
 
         {!isGenerating && !error && draft && !isEditing && (
-          <pre className="animate-fade-in whitespace-pre-wrap font-body text-sm text-cream/90 leading-relaxed bg-navy/50 rounded-lg p-5 border border-border/50 print:text-black print:bg-white">
-            {displayDraft}
-          </pre>
+          <div className="relative">
+            <pre className={`animate-fade-in whitespace-pre-wrap font-body text-sm text-cream/90 leading-relaxed bg-navy/50 rounded-lg p-5 border border-border/50 print:text-black print:bg-white ${showPaywall ? 'overflow-hidden pb-32 mb-4' : ''}`}>
+              {displayDraft}
+            </pre>
+            {showPaywall && (
+              <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-navy via-navy/90 to-transparent rounded-b-lg flex flex-col items-center justify-end pb-4 px-4 text-center">
+                 <p className="text-gold font-display text-lg mb-1">🔒 Unlock Full Draft</p>
+                 <p className="text-cream/80 text-sm mb-4">Pay ₹50 to download or copy this draft</p>
+                 <div className="flex gap-3">
+                   <button onClick={() => handleUnlock('pdf')} className="btn-primary text-sm shadow-lg shadow-gold/20">📄 Download PDF - ₹50</button>
+                   <button onClick={() => handleUnlock('copy')} className="btn-secondary text-sm">📋 Copy to Clipboard - ₹50</button>
+                 </div>
+              </div>
+            )}
+          </div>
         )}
 
         {!isGenerating && !error && !draft && (
@@ -179,7 +237,7 @@ export default function DraftPreview({
         <p className="text-red-400/90 text-xs px-1 mb-2">{pdfError}</p>
       )}
 
-      {draft && !isGenerating && !error && (
+      {draft && !isGenerating && !error && !showPaywall && (
         <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
           {isEditing ? (
             <>

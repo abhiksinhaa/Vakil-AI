@@ -12,6 +12,9 @@ export interface Profile {
   theme: 'dark' | 'light';
   language?: string;
   user_type?: 'advocate' | 'individual';
+  state?: string;
+  city?: string;
+  pincode?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -40,6 +43,7 @@ export interface DraftRecord {
   situation: string;
   amount: string | null;
   generated_draft: string;
+  unlocked?: boolean;
   created_at: string;
 }
 
@@ -54,6 +58,7 @@ export interface DraftInput {
   schema?: any; // The DocumentSchema
   amount?: string;
   generatedDraft: string;
+  unlocked?: boolean;
 }
 
 export interface SessionUser {
