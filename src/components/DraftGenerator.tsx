@@ -112,19 +112,22 @@ export default function DraftGenerator() {
   };
 
   const runGenerate = async () => {
-    const allowance = await checkDraftAllowance();
-    if (!allowance.allowed) {
-      setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
-      return;
-    }
-
     setIsGenerating(true);
-    setGeneratingStatus('Generating Document...');
+    setGeneratingStatus('Checking allowance...');
     setError(null);
     setSaveSuccess(false);
     setDraftId(null);
 
     try {
+      const allowance = await checkDraftAllowance();
+      if (!allowance.allowed) {
+        setIsGenerating(false);
+        setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
+        return;
+      }
+
+      setGeneratingStatus('Generating Document...');
+
       const text = await generateLegalDraft({
         ...form,
         schema: DOCUMENT_SCHEMAS[form.draftType],
@@ -152,6 +155,7 @@ export default function DraftGenerator() {
         console.error('❌ Failed to auto-save draft:', saveErr);
       }
     } catch (err: any) {
+      console.error('Draft generation error:', err);
       setError(err.message || 'Draft could not be generated. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -283,12 +287,8 @@ export default function DraftGenerator() {
         )}
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:min-h-[calc(100vh-12rem)]">
-          <form
+          <div
             className="lg:w-[40%] shrink-0 space-y-6 overflow-y-auto max-h-none lg:max-h-[calc(100vh-10rem)] lg:pr-2 pb-10"
-            onSubmit={(e) => {
-              e.preventDefault();
-              runGenerate();
-            }}
           >
             {/* DOCUMENT TYPE SELECTOR */}
             <section className="card space-y-4">
@@ -555,7 +555,8 @@ export default function DraftGenerator() {
             </section>
 
             <button
-              type="submit"
+              type="button"
+              onClick={runGenerate}
               disabled={isGenerating}
               className="btn-primary w-full py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02]"
             >
@@ -568,7 +569,7 @@ export default function DraftGenerator() {
                 'Generate Document'
               )}
             </button>
-          </form>
+          </div>
 
           <div className="lg:w-[60%] flex-1 min-h-[400px] lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)]">
             <DraftPreview
