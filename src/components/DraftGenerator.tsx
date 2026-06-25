@@ -65,6 +65,7 @@ export default function DraftGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [profileFilled, setProfileFilled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<false | 'advocate' | 'individual'>(false);
+  const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   
   const [showAdvocateDetails, setShowAdvocateDetails] = useState(false);
 
@@ -117,13 +118,23 @@ export default function DraftGenerator() {
     setError(null);
     setSaveSuccess(false);
     setDraftId(null);
+    setOfflineWarning(null);
 
     try {
-      const allowance = await checkDraftAllowance();
-      if (!allowance.allowed) {
-        setIsGenerating(false);
-        setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
-        return;
+      try {
+        const allowance = await checkDraftAllowance();
+        if (!allowance.allowed) {
+          setIsGenerating(false);
+          setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
+          return;
+        }
+      } catch (allowanceErr: any) {
+        // If offline or Firestore fails, we allow generation to proceed
+        if (allowanceErr.message?.includes('offline') || allowanceErr.code === 'unavailable') {
+          console.warn('Offline mode: Bypassing allowance check.');
+        } else {
+          console.error('Allowance check failed:', allowanceErr);
+        }
       }
 
       setGeneratingStatus('Generating Document...');
@@ -151,8 +162,11 @@ export default function DraftGenerator() {
         setDraftId(res.id);
         console.log('✅ Auto-saved draft successfully to users/uid/drafts');
         setSaveSuccess(true);
-      } catch (saveErr) {
+      } catch (saveErr: any) {
         console.error('❌ Failed to auto-save draft:', saveErr);
+        if (saveErr.message?.includes('offline') || saveErr.code === 'unavailable') {
+          setOfflineWarning('Draft generated but not saved to history (offline)');
+        }
       }
     } catch (err: any) {
       console.error('Draft generation error:', err);
@@ -583,6 +597,7 @@ export default function DraftGenerator() {
               isSaving={isSaving}
               saveSuccess={saveSuccess}
               error={error}
+              offlineWarning={offlineWarning}
               onRetry={runGenerate}
               profile={profile}
               refreshAccount={refreshAccount}

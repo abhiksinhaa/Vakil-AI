@@ -15,6 +15,7 @@ export default function DraftPreview({
   isSaving,
   saveSuccess,
   error,
+  offlineWarning,
   onRetry,
   profile,
   refreshAccount,
@@ -177,6 +178,12 @@ export default function DraftPreview({
 
       {pdfError && draft && !isGenerating && !error && (
         <p className="text-red-400/90 text-xs px-1 mb-2">{pdfError}</p>
+      )}
+
+      {offlineWarning && draft && !isGenerating && !error && (
+        <div className="bg-gold/10 border border-gold/30 rounded-lg p-3 mb-4 text-center">
+          <p className="text-gold text-sm font-medium">{offlineWarning}</p>
+        </div>
       )}
 
       {draft && !isGenerating && !error && (
