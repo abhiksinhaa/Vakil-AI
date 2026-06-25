@@ -160,6 +160,10 @@ Generate the complete ${draftType} now:`;
 
   while (attempt <= maxRetries) {
     try {
+      console.log(`[Draft Generation] Attempt ${attempt + 1}: Calling Gemini API with model ${currentModel}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: {
@@ -181,7 +185,11 @@ Generate the complete ${draftType} now:`;
             temperature: 0.4,
           },
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+      console.log(`[Draft Generation] Attempt ${attempt + 1}: Received response from Gemini API (status: ${response.status})`);
 
       const contentType = response.headers.get('content-type') || '';
       const raw = await response.text();
@@ -240,6 +248,10 @@ Generate the complete ${draftType} now:`;
       return finalDraft;
 
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error('Draft generation timed out after 30 seconds. Please try again.');
+      }
+      
       const isHighDemand = err.message.includes('HIGH_DEMAND') || err.message.includes('503') || err.message.includes('429');
       
       if (isHighDemand && attempt < maxRetries) {

@@ -143,8 +143,12 @@ export default function DraftGenerator() {
         ...form,
         schema: DOCUMENT_SCHEMAS[form.draftType],
       }, (status) => setGeneratingStatus(status));
+      
       setDraft(text);
-      await refreshAccount();
+      setIsGenerating(false); // Stop loading immediately so user sees the draft
+
+      // These can happen in the background without blocking the UI
+      refreshAccount().catch(err => console.error('Failed to refresh account:', err));
       
       // Auto-save to Firestore
       try {
@@ -171,8 +175,7 @@ export default function DraftGenerator() {
     } catch (err: any) {
       console.error('Draft generation error:', err);
       setError(err.message || 'Draft could not be generated. Please try again.');
-    } finally {
-      setIsGenerating(false);
+      setIsGenerating(false); // Ensure we stop loading on error
     }
   };
 
