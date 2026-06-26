@@ -189,10 +189,10 @@ export default function LegalChatbot() {
   };
 
   useEffect(() => {
-    if (messages.length > 1) {
+    if (messages.length > 1 && profile?.save_chat_history !== false) {
       saveChatSession(sessionId, messages).catch(console.error);
     }
-  }, [messages, sessionId]);
+  }, [messages, sessionId, profile?.save_chat_history]);
 
   useEffect(() => {
     setMessages([getWelcomeMessage()]);
@@ -429,7 +429,8 @@ export default function LegalChatbot() {
       const reply = await sendLegalChatMessage(historyForApi, { 
         isPro: true, 
         draftMode,
-        signal: abortController.signal
+        signal: abortController.signal,
+        profile
       });
       
       if (abortController.signal.aborted) return;
@@ -629,7 +630,7 @@ export default function LegalChatbot() {
           </div>
           
           <div className="p-4 border-t border-white/10">
-            <button onClick={() => { setSidebarOpen(false); router.push('/profile'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+            <button onClick={() => { setSidebarOpen(false); router.push('/settings'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
               <Settings className="w-5 h-5 text-white/70" />
               <span className="font-medium text-sm">Settings</span>
             </button>

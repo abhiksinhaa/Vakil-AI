@@ -9,12 +9,38 @@ export interface Profile {
   court_jurisdiction: string;
   referral_code: string;
   referred_by: string | null;
-  theme: 'dark' | 'light';
+  theme: 'dark' | 'light' | 'system';
   language?: string;
   user_type?: 'advocate' | 'individual';
   state?: string;
   city?: string;
   pincode?: string;
+  
+  // AI Settings
+  response_style?: string;
+  response_length?: string;
+  default_ai_mode?: string;
+  
+  // Voice Settings
+  voice_mode_enabled?: boolean;
+  voice_type?: string;
+  voice_speed?: number;
+  auto_speak?: boolean;
+  
+  // Legal Preferences
+  preferred_court_format?: string;
+  preferred_draft_language?: string;
+  default_jurisdiction?: string;
+  
+  // Chat Settings
+  save_chat_history?: boolean;
+  auto_delete_chats?: string;
+  
+  // Notifications
+  notify_product_updates?: boolean;
+  notify_new_features?: boolean;
+  notify_referrals?: boolean;
+
   created_at?: string;
   updated_at?: string;
 }

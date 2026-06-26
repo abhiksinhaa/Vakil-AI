@@ -23,10 +23,48 @@ const DRAFT_MODE_PROMPT = `
 
 The user wants a formal legal draft based on this conversation. Generate a complete, court-ready Indian legal document (appropriate type: notice, agreement, affidavit, etc.) with proper headings, parties, numbered paragraphs, date placeholders, and advocate signature block. Output ONLY the draft document.`;
 
-function buildSystemPrompt({ isPro, draftMode }) {
+function buildSystemPrompt({ isPro, draftMode, profile }: { isPro: boolean; draftMode: boolean; profile?: any }) {
   let prompt = BASE_SYSTEM_PROMPT;
   if (isPro) prompt += PRO_EXTRAS;
   if (draftMode) prompt += DRAFT_MODE_PROMPT;
+  
+  if (profile) {
+    const { 
+      response_style, 
+      response_length, 
+      preferred_court_format, 
+      preferred_draft_language, 
+      default_jurisdiction,
+      language
+    } = profile;
+
+    let profileExtras = `\n\nUSER PREFERENCES:\n`;
+    let hasExtras = false;
+
+    if (response_style) {
+      profileExtras += `- Tone/Style: ${response_style}\n`;
+      hasExtras = true;
+    }
+    if (response_length) {
+      profileExtras += `- Output Length: ${response_length}\n`;
+      hasExtras = true;
+    }
+    if (language && language !== 'English') {
+      profileExtras += `- Interaction Language: Respond primarily in ${language}\n`;
+      hasExtras = true;
+    }
+    if (draftMode) {
+      if (preferred_court_format) profileExtras += `- Court Format: ${preferred_court_format}\n`;
+      if (preferred_draft_language) profileExtras += `- Draft Language: ${preferred_draft_language}\n`;
+      if (default_jurisdiction) profileExtras += `- Default Jurisdiction: ${default_jurisdiction}\n`;
+      hasExtras = true;
+    }
+
+    if (hasExtras) {
+      prompt += profileExtras;
+    }
+  }
+
   return prompt;
 }
 
@@ -63,8 +101,8 @@ function extractReply(data) {
   return text;
 }
 
-export async function sendLegalChatMessage(messages, options: { isPro?: boolean; draftMode?: boolean; signal?: AbortSignal } = {}) {
-  const { isPro = false, draftMode = false, signal } = options;
+export async function sendLegalChatMessage(messages, options: { isPro?: boolean; draftMode?: boolean; signal?: AbortSignal; profile?: any } = {}) {
+  const { isPro = false, draftMode = false, signal, profile } = options;
 
   const response = await fetch('/api/gemini', {
     method: 'POST',
@@ -72,7 +110,7 @@ export async function sendLegalChatMessage(messages, options: { isPro?: boolean;
     signal,
     body: JSON.stringify({
       systemInstruction: {
-        parts: [{ text: buildSystemPrompt({ isPro, draftMode }) }],
+        parts: [{ text: buildSystemPrompt({ isPro, draftMode, profile }) }],
       },
       contents: toGeminiContents(messages),
       generationConfig: {
