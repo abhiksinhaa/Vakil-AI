@@ -152,7 +152,7 @@ export default function SettingsPage() {
               <button
                 key={sec.id}
                 onClick={() => setActiveSection(sec.id)}
-                className={\`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all \${activeSection === sec.id ? 'bg-gold/10 text-gold shadow-[0_0_20px_rgba(212,175,55,0.05)] font-medium' : 'text-white/70 hover:bg-white/5 hover:text-white'}\`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeSection === sec.id ? 'bg-gold/10 text-gold shadow-[0_0_20px_rgba(212,175,55,0.05)] font-medium' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
               >
                 {sec.icon}
                 <span>{sec.label}</span>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
                           <button 
                             key={t}
                             onClick={() => updateSetting('theme', val)}
-                            className={\`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all \${isActive ? 'bg-gold/10 border-gold text-gold' : 'border-white/10 text-white/60 hover:border-white/30 hover:bg-white/5'}\`}
+                            className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${isActive ? 'bg-gold/10 border-gold text-gold' : 'border-white/10 text-white/60 hover:border-white/30 hover:bg-white/5'}`}
                           >
                             {t === 'Dark' ? <Moon className="w-5 h-5"/> : t === 'Light' ? <Sun className="w-5 h-5"/> : <Smartphone className="w-5 h-5"/>}
                             <span className="text-sm font-medium">{t}</span>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
                         <button
                           key={lang}
                           onClick={() => updateSetting('language', lang)}
-                          className={\`px-6 py-2.5 rounded-full border text-sm font-medium transition-all \${settings.language === lang ? 'bg-gold border-gold text-black shadow-[0_0_15px_rgba(212,175,55,0.3)]' : 'border-white/20 text-white hover:bg-white/10'}\`}
+                          className={`px-6 py-2.5 rounded-full border text-sm font-medium transition-all ${settings.language === lang ? 'bg-gold border-gold text-black shadow-[0_0_15px_rgba(212,175,55,0.3)]' : 'border-white/20 text-white hover:bg-white/10'}`}
                         >
                           {lang}
                         </button>
@@ -230,7 +230,7 @@ export default function SettingsPage() {
                       <button
                         key={style}
                         onClick={() => updateSetting('response_style', style)}
-                        className={\`p-3 rounded-xl border text-sm text-center transition-all \${settings.response_style === style ? 'bg-gold/10 border-gold text-gold' : 'border-white/10 text-white/60 hover:bg-white/5'}\`}
+                        className={`p-3 rounded-xl border text-sm text-center transition-all ${settings.response_style === style ? 'bg-gold/10 border-gold text-gold' : 'border-white/10 text-white/60 hover:bg-white/5'}`}
                       >
                         {style}
                       </button>
@@ -247,7 +247,7 @@ export default function SettingsPage() {
                       <button
                         key={len}
                         onClick={() => updateSetting('response_length', len)}
-                        className={\`px-6 py-2 rounded-lg text-sm font-medium transition-all \${settings.response_length === len ? 'bg-gold text-black shadow-md' : 'text-white/60 hover:text-white'}\`}
+                        className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${settings.response_length === len ? 'bg-gold text-black shadow-md' : 'text-white/60 hover:text-white'}`}
                       >
                         {len}
                       </button>
@@ -270,9 +270,9 @@ export default function SettingsPage() {
                       <button
                         key={mode.name}
                         onClick={() => updateSetting('default_ai_mode', mode.name)}
-                        className={\`flex items-center gap-3 p-4 rounded-xl border transition-all \${settings.default_ai_mode === mode.name ? 'bg-gold/5 border-gold text-gold' : 'border-white/10 text-white hover:bg-white/5'}\`}
+                        className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${settings.default_ai_mode === mode.name ? 'bg-gold/5 border-gold text-gold' : 'border-white/10 text-white hover:bg-white/5'}`}
                       >
-                        <div className={\`p-2 rounded-lg \${settings.default_ai_mode === mode.name ? 'bg-gold/20' : 'bg-white/5'}\`}>
+                        <div className={`p-2 rounded-lg ${settings.default_ai_mode === mode.name ? 'bg-gold/20' : 'bg-white/5'}`}>
                           {mode.icon}
                         </div>
                         <span className="font-medium text-sm">{mode.name}</span>
@@ -298,7 +298,7 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className={\`space-y-8 transition-opacity duration-300 \${!settings.voice_mode_enabled ? 'opacity-30 pointer-events-none' : ''}\`}>
+                <div className={`space-y-8 transition-opacity duration-300 ${!settings.voice_mode_enabled ? 'opacity-30 pointer-events-none' : ''}`}>
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium text-white/70">Voice Type</h3>
                     <div className="flex gap-3">
@@ -306,7 +306,7 @@ export default function SettingsPage() {
                         <button
                           key={vt}
                           onClick={() => updateSetting('voice_type', vt)}
-                          className={\`px-6 py-2.5 rounded-full border text-sm font-medium transition-all \${settings.voice_type === vt ? 'bg-gold/10 border-gold text-gold' : 'border-white/20 text-white hover:bg-white/10'}\`}
+                          className={`px-6 py-2.5 rounded-full border text-sm font-medium transition-all ${settings.voice_type === vt ? 'bg-gold/10 border-gold text-gold' : 'border-white/20 text-white hover:bg-white/10'}`}
                         >
                           {vt}
                         </button>
