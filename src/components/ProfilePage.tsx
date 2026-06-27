@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
@@ -29,6 +29,10 @@ export default function ProfilePage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log('Profile page mounted');
+  }, []);
+
+  useEffect(() => {
     if (profile) {
       setForm({
         full_name: profile.full_name || '',
@@ -43,6 +47,12 @@ export default function ProfilePage() {
   }, [profile]);
 
   useEffect(() => {
+    if (profile && session?.user?.id) {
+      console.log('Auto-save triggered');
+    }
+  }, [profile, session?.user?.id]);
+
+  useEffect(() => {
     if (session?.user?.id) setUserIdRef(session.user.id.substring(0, 8));
     fetchReferralStats().then(setReferralStats).catch(console.error);
   }, [session]);
@@ -51,8 +61,10 @@ export default function ProfilePage() {
     ? `https://draftee.in/signup?ref=${userIdRef}`
     : '';
 
-  const handleSave = async (e) => {
-    e.preventDefault();
+  const handleSave = async (e?: FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
+    console.log('Manual save triggered');
+
     if (!session?.user?.id) {
       setError('Not signed in. Please sign in and try again.');
       return;
@@ -66,7 +78,6 @@ export default function ProfilePage() {
       await updateProfile(form);
       await refreshAccount();
       setSaved(true);
-      // temporary success toast behaviour: clear after 2s
       setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
       console.error('Profile save failed:', err);
