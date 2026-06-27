@@ -62,6 +62,7 @@ export default function ProfilePage() {
     setError(null);
     setSaved(false);
     try {
+      console.log('Saving profile... uid=', session.user.id, 'payload=', form);
       await updateProfile(form);
       await refreshAccount();
       setSaved(true);

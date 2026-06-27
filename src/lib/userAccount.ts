@@ -59,30 +59,37 @@ async function getIdToken() {
 export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
   const user = auth.currentUser;
   if (!user) return null;
+  console.log('ensureUserRecords: current user uid=', user.uid);
 
   const profileRef = doc(db, 'profiles', user.uid);
   let profileSnap = await getDoc(profileRef);
 
   if (!profileSnap.exists()) {
-    const referralCode = await generateUniqueReferralCode();
-    await setDoc(profileRef, {
-      user_id: user.uid,
-      full_name: user.displayName || '',
-      advocate_name: '',
-      bar_council_number: '',
-      court_jurisdiction: '',
-      referral_code: referralCode,
-      referred_by: null,
-      theme: 'dark',
-      user_type: userType || 'advocate',
-      created_at: serverTimestamp(),
-      updated_at: serverTimestamp(),
-    });
-    await setDoc(doc(db, 'referralCodes', referralCode), {
-      uid: user.uid,
-      created_at: serverTimestamp(),
-    });
-    profileSnap = await getDoc(profileRef);
+    try {
+      const referralCode = await generateUniqueReferralCode();
+      console.log('ensureUserRecords: creating profile for uid=', user.uid, 'referralCode=', referralCode);
+      await setDoc(profileRef, {
+        user_id: user.uid,
+        full_name: user.displayName || '',
+        advocate_name: '',
+        bar_council_number: '',
+        court_jurisdiction: '',
+        referral_code: referralCode,
+        referred_by: null,
+        theme: 'dark',
+        user_type: userType || 'advocate',
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      });
+      await setDoc(doc(db, 'referralCodes', referralCode), {
+        uid: user.uid,
+        created_at: serverTimestamp(),
+      });
+      profileSnap = await getDoc(profileRef);
+    } catch (err) {
+      console.error('ensureUserRecords: failed to create records for uid=', user.uid, err);
+      throw err;
+    }
   }
 
   const subRef = doc(db, 'subscriptions', user.uid);
@@ -113,6 +120,7 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
 export async function fetchProfile(): Promise<Profile | null> {
   const user = auth.currentUser;
   if (!user) return null;
+  console.log('fetchProfile: current user uid=', user.uid);
   await ensureUserRecords();
   const snap = await getDoc(doc(db, 'profiles', user.uid));
   return snap.exists() ? (snap.data() as Profile) : null;
@@ -121,10 +129,17 @@ export async function fetchProfile(): Promise<Profile | null> {
 export async function updateProfile(updates: Partial<Profile>) {
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
+  console.log('updateProfile: current user uid=', user.uid, 'updates=', updates);
   const ref = doc(db, 'profiles', user.uid);
-  await updateDoc(ref, { ...updates, updated_at: serverTimestamp() });
-  const snap = await getDoc(ref);
-  return snap.data() as Profile;
+  try {
+    await updateDoc(ref, { ...updates, updated_at: serverTimestamp() });
+    const snap = await getDoc(ref);
+    console.log('updateProfile: write successful for uid=', user.uid);
+    return snap.data() as Profile;
+  } catch (err) {
+    console.error('updateProfile: failed for uid=', user.uid, err);
+    throw err;
+  }
 }
 
 export async function updateTheme(theme: 'dark' | 'light') {

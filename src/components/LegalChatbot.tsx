@@ -197,7 +197,12 @@ export default function LegalChatbot() {
 
   useEffect(() => {
     if (messages.length > 1 && profile?.save_chat_history !== false) {
-      saveChatSession(sessionId, messages).catch(console.error);
+      if (!session?.user?.id) {
+        console.error('Skipping saveChatSession: no authenticated user');
+        return;
+      }
+      console.log('saveChatSession: invoking for uid=', session.user.id, 'sessionId=', sessionId, 'messageCount=', messages.length);
+      saveChatSession(sessionId, messages).catch((err) => console.error('saveChatSession failed:', err));
     }
   }, [messages, sessionId, profile?.save_chat_history]);
 

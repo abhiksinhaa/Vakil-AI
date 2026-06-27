@@ -15,6 +15,13 @@ if (!hasConfig) {
   );
 }
 
+if (typeof window !== 'undefined') {
+  console.log('Firebase config present?', {
+    apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    projectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  });
+}
+
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'missing-api-key',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'missing.firebaseapp.com',

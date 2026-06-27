@@ -51,6 +51,7 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
 export async function saveDraft(draft: DraftInput) {
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
+  console.log('saveDraft: current user uid=', user.uid);
 
   let fullSituation = draft.situation || '';
   let extractedAmount = draft.amount || null;
@@ -104,12 +105,14 @@ export async function saveDraft(draft: DraftInput) {
     created_at: serverTimestamp(),
   });
 
+  console.log('saveDraft: saved draft id=', ref.id, 'for uid=', user.uid);
   return { id: ref.id };
 }
 
 export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
   const user = auth.currentUser;
   if (!user) return [];
+  console.log('fetchRecentDrafts: current user uid=', user.uid, 'max=', max);
 
   const q = query(
     collection(db, 'users', user.uid, 'drafts'),
@@ -123,6 +126,7 @@ export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
 export async function fetchAllDrafts(): Promise<DraftRecord[]> {
   const user = auth.currentUser;
   if (!user) return [];
+  console.log('fetchAllDrafts: current user uid=', user.uid);
 
   const q = query(
     collection(db, 'users', user.uid, 'drafts'),
@@ -145,6 +149,7 @@ export async function saveWaitlist(entry: Record<string, string>) {
 export async function saveChatSession(sessionId: string, messages: any[]) {
   const user = auth.currentUser;
   if (!user || messages.length <= 1) return; // Don't save if it's just the welcome message
+  console.log('saveChatSession: current user uid=', user.uid, 'sessionId=', sessionId, 'messageCount=', messages.length);
 
   // Exclude attachment binary data or huge payloads if necessary, but saving directly is usually okay if they aren't massive.
   // The inlineData can be large, so we strip it out for storage to avoid quota issues.
@@ -165,11 +170,13 @@ export async function saveChatSession(sessionId: string, messages: any[]) {
     updatedAt: serverTimestamp(),
     messages: cleanMessages
   }, { merge: true });
+  console.log('saveChatSession: saved session', sessionId, 'for uid=', user.uid);
 }
 
 export async function fetchChatHistory(): Promise<ChatSession[]> {
   const user = auth.currentUser;
   if (!user) return [];
+  console.log('fetchChatHistory: current user uid=', user.uid);
 
   const q = query(
     collection(db, 'users', user.uid, 'chats'),
@@ -178,6 +185,7 @@ export async function fetchChatHistory(): Promise<ChatSession[]> {
   );
 
   const snap = await getDocs(q);
+  console.log('fetchChatHistory: fetched', snap.docs.length, 'sessions for uid=', user.uid);
   return snap.docs.map((d) => {
     const data = d.data();
     return {
