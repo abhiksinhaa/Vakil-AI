@@ -57,6 +57,7 @@ function buildSystemPrompt({ isPro, draftMode, profile }: { isPro: boolean; draf
       if (preferred_court_format) profileExtras += `- Court Format: ${preferred_court_format}\n`;
       if (preferred_draft_language) profileExtras += `- Draft Language: ${preferred_draft_language}\n`;
       if (default_jurisdiction) profileExtras += `- Default Jurisdiction: ${default_jurisdiction}\n`;
+      if (profile.preferred_date_format) profileExtras += `- Date Format: ${profile.preferred_date_format}\n`;
       hasExtras = true;
     }
 

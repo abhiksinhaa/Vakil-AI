@@ -10,7 +10,10 @@ export interface Profile {
   referral_code: string;
   referred_by: string | null;
   theme: 'dark' | 'light' | 'system';
+  font_size?: 'small' | 'medium' | 'large';
   language?: string;
+  phone_number?: string;
+  profile_photo_url?: string;
   user_type?: 'advocate' | 'individual';
   state?: string;
   city?: string;
@@ -20,17 +23,20 @@ export interface Profile {
   response_style?: string;
   response_length?: string;
   default_ai_mode?: string;
+  preferred_court_format?: string;
+  preferred_draft_language?: string;
+  default_jurisdiction?: string;
+  preferred_date_format?: string;
+  default_export_format?: string;
+  auto_download_drafts?: boolean;
+  cloud_backup_enabled?: boolean;
+  auto_save_drafts?: boolean;
   
   // Voice Settings
   voice_mode_enabled?: boolean;
   voice_type?: string;
   voice_speed?: number;
   auto_speak?: boolean;
-  
-  // Legal Preferences
-  preferred_court_format?: string;
-  preferred_draft_language?: string;
-  default_jurisdiction?: string;
   
   // Chat Settings
   save_chat_history?: boolean;
@@ -40,6 +46,8 @@ export interface Profile {
   notify_product_updates?: boolean;
   notify_new_features?: boolean;
   notify_referrals?: boolean;
+  promotional_emails?: boolean;
+  two_factor_enabled?: boolean;
 
   created_at?: string;
   updated_at?: string;

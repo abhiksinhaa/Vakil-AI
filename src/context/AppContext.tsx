@@ -18,18 +18,22 @@ import {
   fetchProfile,
   fetchSubscription,
   isProActive,
-  updateTheme,
+  updateProfile,
 } from '../lib/userAccount';
 import type { Profile, Session, Subscription } from '../lib/types';
 
 const THEME_KEY = 'draftee-theme';
+const FONT_SIZE_KEY = 'draftee-font-size';
 
 interface AppContextValue {
   session: Session | null;
   user: User | null;
   authLoading: boolean;
-  theme: string;
+  theme: 'dark' | 'light' | 'system';
+  fontSize: 'small' | 'medium' | 'large';
   toggleTheme: () => Promise<void>;
+  setThemeMode: (theme: 'dark' | 'light' | 'system') => Promise<void>;
+  setFontSizeMode: (size: 'small' | 'medium' | 'large') => Promise<void>;
   profile: Profile | null;
   subscription: Subscription | null;
   isPro: boolean;
@@ -56,28 +60,50 @@ function toSession(user: User | null): Session | null {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [theme, setTheme] = useState<string>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
+  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [profile, setProfile] = useState<Profile | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [accountLoading, setAccountLoading] = useState(false);
 
   const session = useMemo(() => toSession(user), [user]);
 
-  const applyTheme = useCallback((next: string) => {
+  const applyTheme = useCallback((next: 'dark' | 'light' | 'system') => {
     setTheme(next);
     if (typeof window !== 'undefined') {
       localStorage.setItem(THEME_KEY, next);
-      document.documentElement.setAttribute('data-theme', next);
+      const actualTheme = next === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : next;
+      document.documentElement.setAttribute('data-theme', actualTheme);
       document.documentElement.classList.add('theme-transition');
     }
   }, []);
 
-  // Restore persisted theme on mount (client only).
+  const applyFontSize = useCallback((size: 'small' | 'medium' | 'large') => {
+    setFontSize(size);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(FONT_SIZE_KEY, size);
+      document.documentElement.style.fontSize =
+        size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
+    }
+  }, []);
+
+  // Restore persisted theme and font size on mount (client only).
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(THEME_KEY) : null;
-    if (stored) applyTheme(stored);
-    else document.documentElement.setAttribute('data-theme', 'dark');
-  }, [applyTheme]);
+    const storedTheme = typeof window !== 'undefined' ? localStorage.getItem(THEME_KEY) : null;
+    const storedFontSize = typeof window !== 'undefined' ? localStorage.getItem(FONT_SIZE_KEY) : null;
+    if (storedTheme === 'dark' || storedTheme === 'light' || storedTheme === 'system') {
+      applyTheme(storedTheme);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    if (storedFontSize === 'small' || storedFontSize === 'medium' || storedFontSize === 'large') {
+      applyFontSize(storedFontSize);
+    } else {
+      applyFontSize('medium');
+    }
+  }, [applyTheme, applyFontSize]);
 
   // Subscribe to Firebase auth state.
   useEffect(() => {
@@ -103,12 +129,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (p?.theme && p.theme !== theme) {
         applyTheme(p.theme);
       }
+      if (p?.font_size && p.font_size !== fontSize) {
+        applyFontSize(p.font_size);
+      }
     } catch (err) {
       console.error('Account load error:', err);
     } finally {
       setAccountLoading(false);
     }
-  }, [theme, applyTheme]);
+  }, [theme, fontSize, applyTheme, applyFontSize]);
 
   useEffect(() => {
     if (!authLoading) refreshAccount();
@@ -120,13 +149,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     applyTheme(next);
     if (auth.currentUser) {
       try {
-        await updateTheme(next as 'dark' | 'light');
-        setProfile((prev) => (prev ? { ...prev, theme: next as 'dark' | 'light' } : prev));
+        await updateProfile({ theme: next });
+        setProfile((prev) => (prev ? { ...prev, theme: next } : prev));
       } catch (err) {
         console.error('Theme save error:', err);
       }
     }
   }, [theme, applyTheme]);
+
+  const setThemeMode = useCallback(async (next: 'dark' | 'light' | 'system') => {
+    applyTheme(next);
+    if (auth.currentUser) {
+      try {
+        await updateProfile({ theme: next });
+        setProfile((prev) => (prev ? { ...prev, theme: next } : prev));
+      } catch (err) {
+        console.error('Theme save error:', err);
+      }
+    }
+  }, [applyTheme]);
+
+  const setFontSizeMode = useCallback(async (size: 'small' | 'medium' | 'large') => {
+    applyFontSize(size);
+    if (auth.currentUser) {
+      try {
+        await updateProfile({ font_size: size });
+        setProfile((prev) => (prev ? { ...prev, font_size: size } : prev));
+      } catch (err) {
+        console.error('Font size save error:', err);
+      }
+    }
+  }, [applyFontSize]);
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -134,7 +187,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user,
       authLoading,
       theme,
+      fontSize,
       toggleTheme,
+      setThemeMode,
+      setFontSizeMode,
       profile,
       subscription,
       isPro: isProActive(subscription),
@@ -143,7 +199,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProfile,
       setSubscription,
     }),
-    [session, user, authLoading, theme, toggleTheme, profile, subscription, accountLoading, refreshAccount]
+    [session, user, authLoading, theme, fontSize, toggleTheme, setThemeMode, setFontSizeMode, profile, subscription, accountLoading, refreshAccount]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

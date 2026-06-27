@@ -319,3 +319,35 @@ export async function submitFeedback(feedbackData: {
     created_at: serverTimestamp(),
   });
 }
+
+export async function revokeAllSessions() {
+  const token = await getIdToken();
+  const res = await fetch('/api/auth/revoke-sessions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || 'Unable to sign out all devices.');
+  }
+  return res.json();
+}
+
+export async function deleteUserAccount() {
+  const token = await getIdToken();
+  const res = await fetch('/api/auth/delete-account', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || 'Unable to delete account.');
+  }
+  return res.json();
+}
