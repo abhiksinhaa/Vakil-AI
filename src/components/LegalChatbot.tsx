@@ -972,7 +972,7 @@ export default function LegalChatbot() {
       <LiveVoiceMode
         isOpen={isLiveModeOpen}
         onClose={() => setIsLiveModeOpen(false)}
-        onSendMessage={(text) => sendMessage({ text })}
+        onSendMessage={(payload) => sendMessage(payload)}
       />
     </>
   );

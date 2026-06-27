@@ -1,16 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, MicOff, Mic, Pause, Play, Square, Settings, Sparkles, ChevronDown } from 'lucide-react';
+import { X, Mic, Pause, Play, Square, Settings, Sparkles, Camera, ImagePlus, Trash2 } from 'lucide-react';
 
 interface LiveVoiceModeProps {
   isOpen: boolean;
   onClose: () => void;
-  onSendMessage: (text: string) => Promise<string>;
+  onSendMessage: (payload: LiveMessagePayload) => Promise<string>;
 }
 
 type LiveState = 'idle' | 'listening' | 'processing' | 'speaking' | 'paused';
 type VoicePreference = 'female' | 'male';
+
+interface LiveMessagePayload {
+  text: string;
+  attachment?: any;
+}
 
 export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVoiceModeProps) {
   const [liveState, setLiveState] = useState<LiveState>('idle');
@@ -18,13 +23,29 @@ export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVo
   const [sessionTime, setSessionTime] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [voicePreference, setVoicePreference] = useState<VoicePreference>('female');
-  
+  const [imageAttachment, setImageAttachment] = useState<{
+    src: string;
+    fileName: string;
+    mimeType: string;
+    data: string;
+  } | null>(null);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSpeakingRef = useRef(false);
+  const liveStateRef = useRef<LiveState>('idle');
+  const lastProcessedTranscriptRef = useRef<string>('');
+  const lastProcessedTimeRef = useRef<number>(0);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    liveStateRef.current = liveState;
+  }, [liveState]);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -50,7 +71,6 @@ export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVo
 
           setTranscript(currentTranscript);
 
-          // If user starts talking while AI is speaking, interrupt AI
           if (isSpeakingRef.current && currentTranscript.trim().length > 0) {
             stopSpeaking();
           }
@@ -61,14 +81,13 @@ export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVo
         };
 
         recognition.onstart = () => {
-          if (liveState !== 'paused' && liveState !== 'speaking' && liveState !== 'processing') {
-             setLiveState('listening');
+          if (liveStateRef.current !== 'paused' && liveStateRef.current !== 'speaking' && liveStateRef.current !== 'processing') {
+            setLiveState('listening');
           }
         };
 
         recognition.onend = () => {
-          // Auto-restart if we are supposed to be listening
-          if (liveState === 'listening' || liveState === 'idle') {
+          if (liveStateRef.current === 'listening' || liveStateRef.current === 'idle' || liveStateRef.current === 'speaking') {
             try {
               recognition.start();
             } catch (e) {
@@ -149,13 +168,20 @@ export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVo
 
   const handleFinalTranscript = async (text: string) => {
     if (!text) return;
-    
-    stopListening();
+    const now = Date.now();
+    if (text === lastProcessedTranscriptRef.current && now - lastProcessedTimeRef.current < 4000) return;
+    lastProcessedTranscriptRef.current = text;
+    lastProcessedTimeRef.current = now;
+
+    if (isSpeakingRef.current) {
+      stopSpeaking();
+    }
+
     setLiveState('processing');
     setTranscript('Processing...');
 
     try {
-      const reply = await onSendMessage(text);
+      const reply = await onSendMessage({ text });
       setTranscript(''); // Clear processing text
       speakResponse(reply);
     } catch (err: any) {
@@ -275,10 +301,139 @@ export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVo
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const createImagePreview = async (file: File) => {
+    const base64 = await fileToBase64(file);
+    const src = URL.createObjectURL(file);
+    return {
+      src,
+      fileName: file.name,
+      mimeType: file.type,
+      data: base64,
+    };
+  };
+
+  const handleImageFile = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setTranscript('Only image files are supported.');
+      return;
+    }
+
+    setIsAnalyzingImage(true);
+    setLiveState('processing');
+    setTranscript('Analyzing document...');
+    try {
+      const image = await createImagePreview(file);
+      setImageAttachment(image);
+      const prompt = 'Analyze this legal document image fully. Tell me what the document is, summarize the key clauses, point out any risks or missing information, and suggest next steps.';
+      const reply = await onSendMessage({
+        text: prompt,
+        attachment: {
+          inlineData: { mime_type: image.mimeType, data: image.data },
+          fileName: image.fileName,
+        },
+      });
+      setTranscript('');
+      speakResponse(reply);
+    } catch (err: any) {
+      setTranscript(err.message || 'Document analysis failed.');
+      setLiveState('idle');
+      setTimeout(startListening, 2000);
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const handleImageFile = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setTranscript('Only image files are supported.');
+      return;
+    }
+
+    setIsAnalyzingImage(true);
+    setLiveState('processing');
+    setTranscript('Analyzing document...');
+    try {
+      const image = await createImagePreview(file);
+      setImageAttachment(image);
+      const prompt = 'Analyze this legal document image fully. Tell me what the document is, summarize the key clauses, point out any risks or missing information, and suggest next steps.';
+      const reply = await onSendMessage({
+        text: prompt,
+        attachment: {
+          inlineData: { mime_type: image.mimeType, data: image.data },
+          fileName: image.fileName,
+        },
+      } as any);
+      setTranscript('');
+      speakResponse(reply);
+    } catch (err: any) {
+      setTranscript(err.message || 'Document analysis failed.');
+      setLiveState('idle');
+      setTimeout(startListening, 2000);
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const clearImageAttachment = () => {
+    if (imageAttachment?.src) {
+      URL.revokeObjectURL(imageAttachment.src);
+    }
+    setImageAttachment(null);
+  };
+
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleGalleryClick = () => {
+    galleryInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await handleImageFile(file);
+  };
+
+  function fileToBase64(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result !== 'string') {
+          reject(new Error('Could not read image file'));
+          return;
+        }
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('Could not read image file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[500] flex flex-col bg-[#050914] text-white overflow-hidden animate-in fade-in duration-500">
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1c3065]/20 via-[#050914] to-[#050914] animate-pulse" style={{ animationDuration: '8s' }} />
@@ -381,8 +536,39 @@ export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVo
         </div>
       </main>
 
+      {imageAttachment && (
+        <div className="absolute left-6 bottom-40 z-20 w-[180px] rounded-3xl border border-white/10 bg-white/5 p-3 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Document preview</span>
+            <button onClick={clearImageAttachment} className="p-1 rounded-full bg-white/5 hover:bg-white/10 transition-colors">
+              <Trash2 className="w-4 h-4 text-white/70" />
+            </button>
+          </div>
+          <img src={imageAttachment.src} alt="Document preview" className="h-36 w-full rounded-2xl object-cover border border-white/10" />
+          <p className="mt-3 text-xs text-white/60 truncate">{imageAttachment.fileName}</p>
+        </div>
+      )}
+
       {/* Bottom Controls */}
-      <footer className="relative z-10 p-8 pb-12 flex justify-center gap-6">
+      <footer className="relative z-10 p-8 pb-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-6">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleCameraClick}
+            className="w-14 h-14 rounded-full bg-white/5 text-white hover:bg-white/10 transition-colors flex items-center justify-center"
+            title="Capture document"
+          >
+            <Camera className="w-6 h-6" />
+          </button>
+          <button
+            type="button"
+            onClick={handleGalleryClick}
+            className="w-14 h-14 rounded-full bg-white/5 text-white hover:bg-white/10 transition-colors flex items-center justify-center"
+            title="Upload document image"
+          >
+            <ImagePlus className="w-6 h-6" />
+          </button>
+        </div>
         <button
           onClick={togglePause}
           className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10"
