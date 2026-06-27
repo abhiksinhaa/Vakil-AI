@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Navbar from './Navbar';
@@ -146,7 +146,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <form onSubmit={handleSave} className="card space-y-4 mb-8">
+        <div className="card space-y-4 mb-8">
           <h2 className="font-display text-lg text-gold">
             {isIndividual ? 'User Profile' : 'Advocate Profile'}
           </h2>
@@ -233,7 +233,7 @@ export default function ProfilePage() {
           <button type="button" className="btn-primary w-full" onClick={handleSave}>
             Save Profile
           </button>
-        </form>
+        </div>
 
         <section className="card space-y-4">
           <h2 className="font-display text-lg text-gold">Referral Program</h2>
