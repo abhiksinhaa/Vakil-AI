@@ -13,6 +13,7 @@ import { readFileForChat } from '../lib/readChatFile';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { saveChatSession, fetchChatHistory, type ChatSession } from '../lib/firestore';
 import LiveVoiceMode from './LiveVoiceMode';
+import NeikxSettingsPanel from './NeikxSettingsPanel';
 
 const WELCOME_PRO = 'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
 
@@ -44,6 +45,7 @@ export default function LegalChatbot() {
   const [historyList, setHistoryList] = useState<ChatSession[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [showNeikxSettings, setShowNeikxSettings] = useState(false);
   
   const [position, setPosition] = useState<{x: number, y: number} | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -586,7 +588,7 @@ export default function LegalChatbot() {
           </div>
           
           <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-            {!showHistoryPanel ? (
+            {!showHistoryPanel && !showNeikxSettings ? (
               <>
                 <button onClick={resetChat} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
                   <MessageSquare className="w-5 h-5 text-white/70" />
@@ -605,6 +607,14 @@ export default function LegalChatbot() {
                   <span className="font-medium text-sm">Legal Research</span>
                 </button>
               </>
+            ) : showNeikxSettings ? (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <button onClick={() => setShowNeikxSettings(false)} className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left border border-white/10">
+                  <ChevronDown className="w-5 h-5 rotate-90 text-white/70" />
+                  <span className="font-medium text-sm">Back</span>
+                </button>
+                <NeikxSettingsPanel onClose={() => setShowNeikxSettings(false)} />
+              </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                 <button onClick={() => setShowHistoryPanel(false)} className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left border border-white/10">
@@ -630,7 +640,7 @@ export default function LegalChatbot() {
           </div>
           
           <div className="p-4 border-t border-white/10">
-            <button onClick={() => { setSidebarOpen(false); router.push('/settings'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+            <button onClick={() => { setShowNeikxSettings(true); setShowHistoryPanel(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
               <Settings className="w-5 h-5 text-white/70" />
               <span className="font-medium text-sm">Settings</span>
             </button>
