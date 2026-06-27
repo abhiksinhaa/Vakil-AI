@@ -41,9 +41,12 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && resource.data.user_id == request.auth.uid;
     }
 
-    // New Drafts - nested under users
-    match /users/{uid}/drafts/{draftId} {
-      allow read, write: if isOwner(uid);
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+
+      match /drafts/{draftId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
     }
 
     // Chat history - nested under users

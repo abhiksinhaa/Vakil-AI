@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [userIdRef, setUserIdRef] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
 
@@ -88,30 +89,36 @@ export default function ProfilePage() {
       return;
     }
 
+    const profileData = {
+      full_name: form.full_name,
+      advocate_name: form.advocate_name,
+      bar_council_number: form.bar_council_number,
+      court_jurisdiction: form.court_jurisdiction,
+      state: form.state,
+      city: form.city,
+      pincode: form.pincode,
+    };
+
     setSaving(true);
     setError(null);
+    setMessage('');
     setSaved(false);
     try {
-      const profileData = {
-        full_name: form.full_name,
-        advocate_name: form.advocate_name,
-        bar_council_number: form.bar_council_number,
-        court_jurisdiction: form.court_jurisdiction,
-        state: form.state,
-        city: form.city,
-        pincode: form.pincode,
-      };
-      console.log('Saving profile to Firestore...', { uid: user.uid, profileData });
+      console.log('Current user:', user);
+      console.log('Saving profile data:', profileData);
       await setDoc(doc(db, 'users', user.uid), {
         ...profileData,
         updatedAt: serverTimestamp(),
       }, { merge: true });
+      console.log('Profile saved successfully!');
       setSaved(true);
+      setMessage('Profile saved!');
       setTimeout(() => setSaved(false), 2000);
-    } catch (err: any) {
-      console.error('Profile save failed:', err);
-      setError(err?.message || 'Save failed');
-      try { window.alert('Profile save failed: ' + (err?.message || 'Unknown error')); } catch {}
+    } catch (error: any) {
+      console.error('Profile save error:', error);
+      setError(error?.message || 'Save failed');
+      setMessage('Error: ' + (error?.message || 'Save failed'));
+      try { window.alert('Profile save failed: ' + (error?.message || 'Unknown error')); } catch {}
     } finally {
       setSaving(false);
     }
@@ -233,9 +240,9 @@ export default function ProfilePage() {
               {error}
             </p>
           )}
-          {saved && !saving && (
-            <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">
-              Profile saved!
+          {message && (
+            <p className={`text-sm ${message.startsWith('Error') ? 'text-red-400 bg-red-400/10 border border-red-400/20' : 'text-green-400 bg-green-400/10 border border-green-400/20'} rounded-lg px-3 py-2`}>
+              {message}
             </p>
           )}
           <button type="submit" className="btn-primary w-full" disabled={saving}>
