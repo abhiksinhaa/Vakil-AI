@@ -19,7 +19,7 @@ const WELCOME_PRO = 'Welcome! Pro Legal Assistant — unlimited messages, docume
 
 export default function LegalChatbot() {
   const router = useRouter();
-  const { refreshAccount, profile } = useApp();
+  const { refreshAccount, profile, session } = useApp();
   
   const [isOpen, setIsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -174,10 +174,15 @@ export default function LegalChatbot() {
   const loadHistory = async () => {
     setHistoryLoading(true);
     try {
+      if (!session?.user?.id) {
+        console.error('Cannot load chat history: not authenticated');
+        setHistoryList([]);
+        return;
+      }
       const hist = await fetchChatHistory();
       setHistoryList(hist);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load chat history:', err);
     } finally {
       setHistoryLoading(false);
     }

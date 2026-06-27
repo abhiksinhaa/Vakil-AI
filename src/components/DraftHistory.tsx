@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Navbar from './Navbar';
 import { fetchAllDrafts } from '../lib/firestore';
+import { useApp } from '../context/AppContext';
 import { stripMarkdown } from '../lib/stripMarkdown';
 
 function formatDate(iso) {
@@ -59,17 +60,28 @@ function ViewModal({ draft, onClose }) {
 }
 
 export default function DraftHistory() {
+  const { session } = useApp();
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [viewDraft, setViewDraft] = useState(null);
 
   useEffect(() => {
+    setLoading(true);
+    if (!session?.user?.id) {
+      setDrafts([]);
+      setLoading(false);
+      return;
+    }
+
     fetchAllDrafts()
       .then(setDrafts)
-      .catch(console.error)
+      .catch((err) => {
+        console.error('Failed to fetch drafts:', err);
+        setDrafts([]);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [session]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

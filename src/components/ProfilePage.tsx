@@ -53,6 +53,11 @@ export default function ProfilePage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!session?.user?.id) {
+      setError('Not signed in. Please sign in and try again.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -60,8 +65,12 @@ export default function ProfilePage() {
       await updateProfile(form);
       await refreshAccount();
       setSaved(true);
-    } catch (err) {
-      setError(err.message || 'Save failed');
+      // temporary success toast behaviour: clear after 2s
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      console.error('Profile save failed:', err);
+      setError(err?.message || 'Save failed');
+      try { window.alert('Profile save failed: ' + (err?.message || 'Unknown error')); } catch {}
     } finally {
       setSaving(false);
     }
