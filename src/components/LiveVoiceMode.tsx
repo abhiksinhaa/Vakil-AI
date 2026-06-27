@@ -332,38 +332,6 @@ export default function LiveVoiceMode({ isOpen, onClose, onSendMessage }: LiveVo
           inlineData: { mime_type: image.mimeType, data: image.data },
           fileName: image.fileName,
         },
-      });
-      setTranscript('');
-      speakResponse(reply);
-    } catch (err: any) {
-      setTranscript(err.message || 'Document analysis failed.');
-      setLiveState('idle');
-      setTimeout(startListening, 2000);
-    } finally {
-      setIsAnalyzingImage(false);
-    }
-  };
-
-  const handleImageFile = async (file: File) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setTranscript('Only image files are supported.');
-      return;
-    }
-
-    setIsAnalyzingImage(true);
-    setLiveState('processing');
-    setTranscript('Analyzing document...');
-    try {
-      const image = await createImagePreview(file);
-      setImageAttachment(image);
-      const prompt = 'Analyze this legal document image fully. Tell me what the document is, summarize the key clauses, point out any risks or missing information, and suggest next steps.';
-      const reply = await onSendMessage({
-        text: prompt,
-        attachment: {
-          inlineData: { mime_type: image.mimeType, data: image.data },
-          fileName: image.fileName,
-        },
       } as any);
       setTranscript('');
       speakResponse(reply);
