@@ -79,48 +79,33 @@ export default function ProfilePage() {
     ? `https://draftee.in/signup?ref=${userIdRef}`
     : '';
 
-  const handleSave = async (e?: FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
-    console.log('Manual save triggered');
-
-    const user = auth.currentUser;
-    if (!user) {
-      setError('Not signed in. Please sign in and try again.');
-      return;
-    }
-
-    const profileData = {
-      full_name: form.full_name,
-      advocate_name: form.advocate_name,
-      bar_council_number: form.bar_council_number,
-      court_jurisdiction: form.court_jurisdiction,
-      state: form.state,
-      city: form.city,
-      pincode: form.pincode,
-    };
-
-    setSaving(true);
-    setError(null);
-    setMessage('');
-    setSaved(false);
+  const handleSave = async () => {
     try {
-      console.log('Current user:', user);
-      console.log('Saving profile data:', profileData);
-      await setDoc(doc(db, 'users', user.uid), {
-        ...profileData,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-      console.log('Profile saved successfully!');
-      setSaved(true);
-      setMessage('Profile saved!');
-      setTimeout(() => setSaved(false), 2000);
+      const user = auth.currentUser;
+      if (!user) {
+        alert('Please login first');
+        return;
+      }
+
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          full_name: form.full_name,
+          advocate_name: form.advocate_name,
+          bar_council_number: form.bar_council_number,
+          court_jurisdiction: form.court_jurisdiction,
+          state: form.state,
+          city: form.city,
+          pincode: form.pincode,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      alert('Profile saved successfully!');
     } catch (error: any) {
-      console.error('Profile save error:', error);
-      setError(error?.message || 'Save failed');
-      setMessage('Error: ' + (error?.message || 'Save failed'));
-      try { window.alert('Profile save failed: ' + (error?.message || 'Unknown error')); } catch {}
-    } finally {
-      setSaving(false);
+      console.error('Save error:', error);
+      alert('Error saving: ' + (error?.message || 'Unknown error'));
     }
   };
 
@@ -245,8 +230,8 @@ export default function ProfilePage() {
               {message}
             </p>
           )}
-          <button type="submit" className="btn-primary w-full" disabled={saving}>
-            {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Profile'}
+          <button type="button" className="btn-primary w-full" onClick={handleSave}>
+            Save Profile
           </button>
         </form>
 
