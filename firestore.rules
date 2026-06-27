@@ -46,6 +46,11 @@ service cloud.firestore {
       allow read, write: if isOwner(uid);
     }
 
+    // Chat history - nested under users
+    match /users/{uid}/chats/{chatId} {
+      allow read, write: if isOwner(uid);
+    }
+
     // Referral code -> uid mapping. Readable by signed-in users (lookup + uniqueness);
     // a user may only create a mapping that points to themselves.
     match /referralCodes/{code} {

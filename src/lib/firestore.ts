@@ -59,7 +59,7 @@ export async function saveDraft(draft: DraftInput) {
   if (draft.dynamicFields && Object.keys(draft.dynamicFields).length > 0) {
     if (fullSituation) fullSituation += '\n\n';
     fullSituation += '--- Additional Details ---\n';
-    
+
     // Also try to extract an amount field if it exists in dynamic fields
     if (draft.dynamicFields['amount_involved']) {
       extractedAmount = draft.dynamicFields['amount_involved'];
@@ -85,28 +85,33 @@ export async function saveDraft(draft: DraftInput) {
     }
   }
 
-  const ref = await addDoc(collection(db, 'users', user.uid, 'drafts'), {
-    // New fields requested
-    documentType: draft.draftType,
-    partyName: draft.party1Name ?? '',
-    draftContent: draft.generatedDraft,
-    createdAt: serverTimestamp(),
+  try {
+    const ref = await addDoc(collection(db, 'users', user.uid, 'drafts'), {
+      // New fields requested
+      documentType: draft.draftType,
+      partyName: draft.party1Name ?? '',
+      draftContent: draft.generatedDraft,
+      createdAt: serverTimestamp(),
 
-    // Legacy/compatibility fields
-    user_id: user.uid,
-    draft_type: draft.draftType,
-    party1_name: draft.party1Name ?? '',
-    party1_address: draft.party1Address ?? '',
-    party2_name: draft.party2Name ?? '',
-    party2_address: draft.party2Address ?? '',
-    situation: fullSituation,
-    amount: extractedAmount,
-    generated_draft: draft.generatedDraft,
-    created_at: serverTimestamp(),
-  });
+      // Legacy/compatibility fields
+      user_id: user.uid,
+      draft_type: draft.draftType,
+      party1_name: draft.party1Name ?? '',
+      party1_address: draft.party1Address ?? '',
+      party2_name: draft.party2Name ?? '',
+      party2_address: draft.party2Address ?? '',
+      situation: fullSituation,
+      amount: extractedAmount,
+      generated_draft: draft.generatedDraft,
+      created_at: serverTimestamp(),
+    });
 
-  console.log('saveDraft: saved draft id=', ref.id, 'for uid=', user.uid);
-  return { id: ref.id };
+    console.log('saveDraft: saved draft id=', ref.id, 'for uid=', user.uid);
+    return { id: ref.id };
+  } catch (error) {
+    console.error('saveDraft failed', { uid: user.uid, error });
+    throw error;
+  }
 }
 
 export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
@@ -164,13 +169,18 @@ export async function saveChatSession(sessionId: string, messages: any[]) {
   const firstUserMessage = cleanMessages.find(m => m.role === 'user');
   const preview = firstUserMessage ? firstUserMessage.content.substring(0, 60) + '...' : 'New Chat';
 
-  const ref = doc(db, 'users', user.uid, 'chats', sessionId);
-  await setDoc(ref, {
-    preview,
-    updatedAt: serverTimestamp(),
-    messages: cleanMessages
-  }, { merge: true });
-  console.log('saveChatSession: saved session', sessionId, 'for uid=', user.uid);
+  try {
+    const ref = doc(db, 'users', user.uid, 'chats', sessionId);
+    await setDoc(ref, {
+      preview,
+      updatedAt: serverTimestamp(),
+      messages: cleanMessages
+    }, { merge: true });
+    console.log('saveChatSession: saved session', sessionId, 'for uid=', user.uid);
+  } catch (error) {
+    console.error('saveChatSession failed', { uid: user.uid, sessionId, error });
+    throw error;
+  }
 }
 
 export async function fetchChatHistory(): Promise<ChatSession[]> {
@@ -178,21 +188,26 @@ export async function fetchChatHistory(): Promise<ChatSession[]> {
   if (!user) return [];
   console.log('fetchChatHistory: current user uid=', user.uid);
 
-  const q = query(
-    collection(db, 'users', user.uid, 'chats'),
-    orderBy('updatedAt', 'desc'),
-    fbLimit(30)
-  );
+  try {
+    const q = query(
+      collection(db, 'users', user.uid, 'chats'),
+      orderBy('updatedAt', 'desc'),
+      fbLimit(30)
+    );
 
-  const snap = await getDocs(q);
-  console.log('fetchChatHistory: fetched', snap.docs.length, 'sessions for uid=', user.uid);
-  return snap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      preview: data.preview || 'Chat',
-      updatedAt: tsToIso(data.updatedAt),
-      messages: data.messages || [],
-    };
-  });
+    const snap = await getDocs(q);
+    console.log('fetchChatHistory: fetched', snap.docs.length, 'sessions for uid=', user.uid);
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        preview: data.preview || 'Chat',
+        updatedAt: tsToIso(data.updatedAt),
+        messages: data.messages || [],
+      };
+    });
+  } catch (error) {
+    console.error('fetchChatHistory failed', { uid: user.uid, error });
+    throw error;
+  }
 }

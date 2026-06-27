@@ -2,26 +2,6 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
-const hasConfig = Boolean(
-  process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
-);
-
-if (!hasConfig) {
-  // Surfaces misconfiguration early in the browser console instead of cryptic SDK errors.
-  // Fallbacks below keep `getAuth()` from throwing during build-time prerender when env
-  // vars are absent; real `NEXT_PUBLIC_FIREBASE_*` values are inlined at build time.
-  console.warn(
-    'Firebase config missing. Set NEXT_PUBLIC_FIREBASE_* variables in .env.local (see .env.example).'
-  );
-}
-
-if (typeof window !== 'undefined') {
-  console.log('Firebase config present?', {
-    apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    projectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  });
-}
-
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'missing-api-key',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'missing.firebaseapp.com',
@@ -30,6 +10,26 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '0',
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'missing-app-id',
 };
+
+const missingConfigKeys = Object.entries(firebaseConfig)
+  .filter(([_, value]) => typeof value === 'string' && /missing|your_|placeholder/i.test(value))
+  .map(([key]) => key);
+
+if (missingConfigKeys.length > 0) {
+  console.warn('Firebase config is incomplete. Update .env.local with real values.', {
+    missingConfigKeys,
+    projectId: firebaseConfig.projectId,
+  });
+}
+
+if (typeof window !== 'undefined') {
+  console.info('Firebase init config', {
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+    storageBucket: firebaseConfig.storageBucket,
+    appId: firebaseConfig.appId === 'missing-app-id' ? 'missing' : 'configured',
+  });
+}
 
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
