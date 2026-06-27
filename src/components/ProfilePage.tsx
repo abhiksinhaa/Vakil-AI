@@ -2,13 +2,11 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Navbar from './Navbar';
+import { auth, db } from '../lib/firebase';
 import { useApp } from '../context/AppContext';
-import {
-  fetchReferralStats,
-  isAdvocateProfileComplete,
-  updateProfile,
-} from '../lib/userAccount';
+import { fetchReferralStats, isAdvocateProfileComplete } from '../lib/userAccount';
 
 export default function ProfilePage() {
   const { profile, refreshAccount, session } = useApp();
@@ -47,10 +45,29 @@ export default function ProfilePage() {
   }, [profile]);
 
   useEffect(() => {
-    if (profile && session?.user?.id) {
-      console.log('Auto-save triggered');
-    }
-  }, [profile, session?.user?.id]);
+    if (!session?.user?.id) return;
+
+    const loadSavedProfile = async () => {
+      try {
+        const profileSnap = await getDoc(doc(db, 'users', session.user.id));
+        if (!profileSnap.exists()) return;
+        const data = profileSnap.data();
+        setForm({
+          full_name: data.full_name || '',
+          advocate_name: data.advocate_name || '',
+          bar_council_number: data.bar_council_number || '',
+          court_jurisdiction: data.court_jurisdiction || '',
+          state: data.state || '',
+          city: data.city || '',
+          pincode: data.pincode || '',
+        });
+      } catch (err) {
+        console.error('Failed to load saved profile:', err);
+      }
+    };
+
+    loadSavedProfile();
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (session?.user?.id) setUserIdRef(session.user.id.substring(0, 8));
@@ -65,7 +82,8 @@ export default function ProfilePage() {
     e?.preventDefault();
     console.log('Manual save triggered');
 
-    if (!session?.user?.id) {
+    const user = auth.currentUser;
+    if (!user) {
       setError('Not signed in. Please sign in and try again.');
       return;
     }
@@ -74,9 +92,20 @@ export default function ProfilePage() {
     setError(null);
     setSaved(false);
     try {
-      console.log('Saving profile... uid=', session.user.id, 'payload=', form);
-      await updateProfile(form);
-      await refreshAccount();
+      const profileData = {
+        full_name: form.full_name,
+        advocate_name: form.advocate_name,
+        bar_council_number: form.bar_council_number,
+        court_jurisdiction: form.court_jurisdiction,
+        state: form.state,
+        city: form.city,
+        pincode: form.pincode,
+      };
+      console.log('Saving profile to Firestore...', { uid: user.uid, profileData });
+      await setDoc(doc(db, 'users', user.uid), {
+        ...profileData,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
@@ -202,6 +231,11 @@ export default function ProfilePage() {
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
               {error}
+            </p>
+          )}
+          {saved && !saving && (
+            <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">
+              Profile saved!
             </p>
           )}
           <button type="submit" className="btn-primary w-full" disabled={saving}>

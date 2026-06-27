@@ -1,10 +1,21 @@
 'use client';
 
+import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import Navbar from './Navbar';
-import { fetchAllDrafts } from '../lib/firestore';
+import { db } from '../lib/firebase';
 import { useApp } from '../context/AppContext';
 import { stripMarkdown } from '../lib/stripMarkdown';
+
+function tsToIso(value) {
+  if (value && typeof value.toDate === 'function') {
+    return value.toDate().toISOString();
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  return new Date().toISOString();
+}
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -74,13 +85,37 @@ export default function DraftHistory() {
       return;
     }
 
-    fetchAllDrafts()
-      .then(setDrafts)
-      .catch((err) => {
-        console.error('Failed to fetch drafts:', err);
+    const draftsQuery = query(
+      collection(db, 'users', session.user.id, 'drafts'),
+      orderBy('created_at', 'desc'),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(
+      draftsQuery,
+      (snapshot) => {
+        const items = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            draft_type: data.draft_type || data.documentType || 'Draft',
+            party1_name: data.party1_name || data.partyName || '',
+            party2_name: data.party2_name || '',
+            created_at: tsToIso(data.created_at),
+            generated_draft: data.generated_draft || data.draftContent || '',
+          };
+        });
+        setDrafts(items);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Draft snapshot failed:', err);
         setDrafts([]);
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, [session]);
 
   const filtered = useMemo(() => {
@@ -151,16 +186,26 @@ export default function DraftHistory() {
                 return (
                   <div
                     key={draft.id}
-                    className="border-b border-border/50 last:border-0 hover:bg-navy/30 p-4 sm:px-6 flex items-center justify-between transition-colors"
+                    className="border-b border-border/50 last:border-0 hover:bg-navy/30 p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between transition-colors"
                   >
-                    <div>
-                      <h2 className="text-lg font-medium text-cream">{mainTitle}</h2>
-                      <p className="text-sm text-cream/60 mt-1">{subTitle}</p>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex rounded-full bg-gold/10 text-gold text-xs font-semibold uppercase tracking-[0.12em] px-2 py-1">
+                          {draft.draft_type}
+                        </span>
+                        <span className="text-cream/60 text-xs">{formatDate(draft.created_at)}</span>
+                      </div>
+                      <h2 className="text-lg font-medium text-cream">
+                        {draft.party1_name || 'Untitled Draft'}
+                      </h2>
+                      <p className="text-sm text-cream/60">
+                        {draft.party2_name ? `${draft.party1_name} vs ${draft.party2_name}` : draft.party1_name || 'No party information'}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setViewDraft(draft)}
-                      className="text-gold hover:text-gold/80 text-sm font-medium px-4 py-2 bg-gold/10 rounded-lg transition-colors border border-gold/20 hover:border-gold/40 whitespace-nowrap ml-4"
+                      className="mt-4 sm:mt-0 text-gold hover:text-gold/80 text-sm font-medium px-4 py-2 bg-gold/10 rounded-lg transition-colors border border-gold/20 hover:border-gold/40 whitespace-nowrap"
                     >
                       View
                     </button>
