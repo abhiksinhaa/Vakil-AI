@@ -87,26 +87,52 @@ export default function ProfilePage() {
   const referralLink = referralSource ? `https://draftee.in/signup?ref=${referralSource}` : '';
 
   const handleSave = async () => {
-    if (!session?.user?.id) {
-      setMessage('Please log in first.');
-      return;
-    }
-
     try {
-      await updateProfile({
-        full_name: form.full_name,
-        advocate_name: form.advocate_name,
-        bar_council_number: form.bar_council_number,
-        court_jurisdiction: form.court_jurisdiction,
-        state: form.state,
-        city: form.city,
-        pincode: form.pincode,
-      });
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Supabase session fetch failed', sessionError);
+        setMessage('Please log in first.');
+        return;
+      }
 
-      setMessage('Profile saved successfully.');
+      const session = data?.session;
+      if (!session?.user) {
+        setMessage('Please log in first.');
+        return;
+      }
+
+      console.log('Saving for user:', session.user.id);
+      console.log('Form data:', form);
+
+      const { data: saveData, error } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: session.user.id,
+            user_id: session.user.id,
+            full_name: form.full_name,
+            advocate_name: form.advocate_name,
+            bar_council_number: form.bar_council_number,
+            court_jurisdiction: form.court_jurisdiction,
+            state: form.state,
+            city: form.city,
+            pincode: form.pincode,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        )
+        .select();
+
+      console.log('Save result:', saveData, 'Error:', error);
+
+      if (error) {
+        setMessage('Error: ' + error.message);
+      } else {
+        setMessage('Profile saved successfully!');
+      }
     } catch (err: any) {
-      console.error('Profile save failed', err);
-      setMessage(`Error saving profile: ${err?.message || 'Unknown error'}`);
+      console.error('Save error:', err);
+      setMessage('Error: ' + err.message);
     }
   };
 
