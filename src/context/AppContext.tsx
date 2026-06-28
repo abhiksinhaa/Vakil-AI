@@ -11,8 +11,8 @@ import {
   type ReactNode,
   type SetStateAction,
 } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   ensureUserRecords,
   fetchProfile,
@@ -27,7 +27,7 @@ const FONT_SIZE_KEY = 'draftee-font-size';
 
 interface AppContextValue {
   session: Session | null;
-  user: User | null;
+  user: SupabaseUser | null;
   authLoading: boolean;
   theme: 'dark' | 'light' | 'system';
   fontSize: 'small' | 'medium' | 'large';
@@ -46,19 +46,19 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 /** Build the session shape the UI components expect from the Firebase user. */
-function toSession(user: User | null): Session | null {
+function toSession(user: SupabaseUser | null): Session | null {
   if (!user) return null;
   return {
     user: {
-      id: user.uid,
+      id: user.id,
       email: user.email,
-      user_metadata: { full_name: user.displayName },
+      user_metadata: { full_name: user.user_metadata?.full_name ?? null },
     },
   };
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
@@ -105,17 +105,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [applyTheme, applyFontSize]);
 
-  // Subscribe to Firebase auth state.
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    const loadSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) console.error('Supabase auth session load failed', error);
+      setUser(data?.session?.user ?? null);
+      setAuthLoading(false);
+    };
+
+    loadSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
       setAuthLoading(false);
     });
-    return () => unsub();
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const refreshAccount = useCallback(async () => {
-    if (!auth.currentUser) {
+    if (!user) {
       setProfile(null);
       setSubscription(null);
       return;
@@ -147,7 +158,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleTheme = useCallback(async () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     applyTheme(next);
-    if (auth.currentUser) {
+    if (user) {
       try {
         await updateProfile({ theme: next });
         setProfile((prev) => (prev ? { ...prev, theme: next } : prev));
@@ -155,11 +166,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Theme save error:', err);
       }
     }
-  }, [theme, applyTheme]);
+  }, [theme, applyTheme, user]);
 
   const setThemeMode = useCallback(async (next: 'dark' | 'light' | 'system') => {
     applyTheme(next);
-    if (auth.currentUser) {
+    if (user) {
       try {
         await updateProfile({ theme: next });
         setProfile((prev) => (prev ? { ...prev, theme: next } : prev));
@@ -167,11 +178,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Theme save error:', err);
       }
     }
-  }, [applyTheme]);
+  }, [applyTheme, user]);
 
   const setFontSizeMode = useCallback(async (size: 'small' | 'medium' | 'large') => {
     applyFontSize(size);
-    if (auth.currentUser) {
+    if (user) {
       try {
         await updateProfile({ font_size: size });
         setProfile((prev) => (prev ? { ...prev, font_size: size } : prev));
@@ -179,7 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Font size save error:', err);
       }
     }
-  }, [applyFontSize]);
+  }, [applyFontSize, user]);
 
   const value = useMemo<AppContextValue>(
     () => ({

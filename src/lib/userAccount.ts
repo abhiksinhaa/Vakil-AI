@@ -1,17 +1,5 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getCountFromServer,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { supabase } from './supabase';
+import type { User } from '@supabase/supabase-js';
 import type { Profile, Subscription } from './types';
 
 export const FREE_DRAFT_LIMIT = 10;
@@ -32,16 +20,23 @@ function generateReferralCode() {
 }
 
 async function generateUniqueReferralCode() {
-  // Collisions are astronomically unlikely; cap the loop just in case.
   for (let i = 0; i < 5; i += 1) {
     const code = generateReferralCode();
-    const exists = await getDoc(doc(db, 'referralCodes', code));
-    if (!exists.exists()) return code;
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('referral_code', code)
+      .limit(1);
+    if (error) {
+      console.warn('Referral code uniqueness check failed', error);
+      return code;
+    }
+    if (!count) return code;
   }
   return generateReferralCode();
 }
 
-export function isAdvocateProfileComplete(profile: Partial<Profile> | null) {
+function isAdvocateProfileComplete(profile: Partial<Profile> | null) {
   return Boolean(
     profile?.advocate_name?.trim() &&
       profile?.bar_council_number?.trim() &&
@@ -49,55 +44,62 @@ export function isAdvocateProfileComplete(profile: Partial<Profile> | null) {
   );
 }
 
-async function getIdToken() {
-  const user = auth.currentUser;
-  if (!user) throw new Error('Not authenticated');
-  return user.getIdToken();
+async function getCurrentUser(): Promise<User | null> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.warn('Supabase getCurrentUser failed', error.message);
+    return null;
+  }
+  return data.user;
 }
 
-/** Creates profile + subscription + referral-code mapping on first sign-in. */
+async function getIdToken() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return data?.session?.access_token ?? null;
+}
+
+async function defaultProfileValues(user: User, userType?: 'advocate' | 'individual'): Promise<Partial<Profile>> {
+  return {
+    id: user.id,
+    user_id: user.id,
+    full_name: (user.user_metadata?.full_name as string) || '',
+    advocate_name: '',
+    bar_council_number: '',
+    court_jurisdiction: '',
+    referral_code: await generateUniqueReferralCode(),
+    referred_by: null,
+    theme: 'dark',
+    user_type: userType || 'advocate',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) return null;
-  console.log('ensureUserRecords: current user uid=', user.uid);
 
-  const profileRef = doc(db, 'profiles', user.uid);
-  let profileSnap = await getDoc(profileRef);
+  const profileRes = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  let profile = profileRes.data as Profile | null;
 
-  if (!profileSnap.exists()) {
-    try {
-      const referralCode = await generateUniqueReferralCode();
-      console.log('ensureUserRecords: creating profile for uid=', user.uid, 'referralCode=', referralCode);
-      await setDoc(profileRef, {
-        user_id: user.uid,
-        full_name: user.displayName || '',
-        advocate_name: '',
-        bar_council_number: '',
-        court_jurisdiction: '',
-        referral_code: referralCode,
-        referred_by: null,
-        theme: 'dark',
-        user_type: userType || 'advocate',
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      });
-      await setDoc(doc(db, 'referralCodes', referralCode), {
-        uid: user.uid,
-        created_at: serverTimestamp(),
-      });
-      profileSnap = await getDoc(profileRef);
-    } catch (err) {
-      console.error('ensureUserRecords: failed to create records for uid=', user.uid, err);
-      throw err;
+  if (!profile) {
+    const newProfile = await defaultProfileValues(user, userType);
+    const insertProfile = await supabase.from('profiles').insert(newProfile);
+    if (insertProfile.error) {
+      console.error('ensureUserRecords: failed to insert profile', insertProfile.error);
+      throw insertProfile.error;
     }
+    profile = { ...(newProfile as Profile) };
   }
 
-  const subRef = doc(db, 'subscriptions', user.uid);
-  let subSnap = await getDoc(subRef);
+  const subRes = await supabase.from('subscriptions').select('*').eq('id', user.id).maybeSingle();
+  let subscription = subRes.data as Subscription | null;
 
-  if (!subSnap.exists()) {
-    await setDoc(subRef, {
-      user_id: user.uid,
+  if (!subscription) {
+    const newSub: Subscription = {
+      id: user.id,
+      user_id: user.id,
       plan: 'free',
       pro_until: null,
       drafts_this_month: 0,
@@ -106,40 +108,41 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
       chat_messages_today: 0,
       chat_day_key: getDayKey(),
       paid_drafts_balance: 0,
-      updated_at: serverTimestamp(),
-    });
-    subSnap = await getDoc(subRef);
+      updated_at: new Date().toISOString(),
+    };
+    const insertSub = await supabase.from('subscriptions').insert(newSub);
+    if (insertSub.error) {
+      console.error('ensureUserRecords: failed to insert subscription', insertSub.error);
+      throw insertSub.error;
+    }
+    subscription = newSub;
   }
 
-  return {
-    profile: profileSnap.data() as Profile,
-    subscription: subSnap.data() as Subscription,
-  };
+  return { profile, subscription };
 }
 
 export async function fetchProfile(): Promise<Profile | null> {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) return null;
-  console.log('fetchProfile: current user uid=', user.uid);
   await ensureUserRecords();
-  const snap = await getDoc(doc(db, 'profiles', user.uid));
-  return snap.exists() ? (snap.data() as Profile) : null;
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (error) {
+    console.error('fetchProfile failed', error);
+    return null;
+  }
+  return data as Profile | null;
 }
 
 export async function updateProfile(updates: Partial<Profile>) {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) throw new Error('Not authenticated');
-  console.log('updateProfile: current user uid=', user.uid, 'updates=', updates);
-  const ref = doc(db, 'profiles', user.uid);
-  try {
-    await updateDoc(ref, { ...updates, updated_at: serverTimestamp() });
-    const snap = await getDoc(ref);
-    console.log('updateProfile: write successful for uid=', user.uid);
-    return snap.data() as Profile;
-  } catch (err) {
-    console.error('updateProfile: failed for uid=', user.uid, err);
-    throw err;
+  const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+  const { data, error } = await supabase.from('profiles').update(cleanUpdates).eq('id', user.id).select().maybeSingle();
+  if (error) {
+    console.error('updateProfile failed', error);
+    throw error;
   }
+  return data as Profile;
 }
 
 export async function updateTheme(theme: 'dark' | 'light') {
@@ -149,24 +152,24 @@ export async function updateTheme(theme: 'dark' | 'light') {
 async function normalizeSubscription(sub: Subscription): Promise<Subscription> {
   const monthKey = getMonthKey();
   const dayKey = getDayKey();
-  const needsMonthReset = sub.month_key !== monthKey;
-  const needsDayReset = sub.chat_day_key !== dayKey;
+  const updates: Partial<Subscription> = {};
 
-  if (needsMonthReset || needsDayReset) {
-    const updates: Record<string, unknown> = { updated_at: serverTimestamp() };
-    if (needsMonthReset) {
-      updates.month_key = monthKey;
-      // We no longer reset drafts_this_month because it's now a lifetime limit
-    }
-    if (needsDayReset) {
-      updates.chat_day_key = dayKey;
-      updates.chat_messages_today = 0;
-    }
-    const ref = doc(db, 'subscriptions', sub.user_id);
-    await updateDoc(ref, updates);
-    return { ...sub, ...updates } as Subscription;
+  if (sub.month_key !== monthKey) {
+    updates.month_key = monthKey;
   }
-  return sub;
+  if (sub.chat_day_key !== dayKey) {
+    updates.chat_day_key = dayKey;
+    updates.chat_messages_today = 0;
+  }
+  if (Object.keys(updates).length === 0) return sub;
+
+  updates.updated_at = new Date().toISOString();
+  const { data, error } = await supabase.from('subscriptions').update(updates).eq('id', sub.user_id).select().maybeSingle();
+  if (error) {
+    console.error('normalizeSubscription failed', error);
+    return sub;
+  }
+  return data as Subscription;
 }
 
 export function isProActive(sub: Subscription | null) {
@@ -178,12 +181,15 @@ export function isProActive(sub: Subscription | null) {
 }
 
 export async function fetchSubscription(): Promise<Subscription | null> {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) return null;
   await ensureUserRecords();
-  const snap = await getDoc(doc(db, 'subscriptions', user.uid));
-  if (!snap.exists()) return null;
-  return normalizeSubscription(snap.data() as Subscription);
+  const { data, error } = await supabase.from('subscriptions').select('*').eq('id', user.id).maybeSingle();
+  if (error) {
+    console.error('fetchSubscription failed', error);
+    return null;
+  }
+  return data ? normalizeSubscription(data as Subscription) : null;
 }
 
 export async function checkDraftAllowance() {
@@ -194,42 +200,42 @@ export async function checkDraftAllowance() {
   const pro = isProActive(sub);
 
   if (pro && isAdvocate) {
-    return { allowed: true, isPro: true, used: sub!.drafts_this_month, limit: null, remaining: null, userType: profile?.user_type || 'advocate' };
+    return {
+      allowed: true,
+      isPro: true,
+      used: sub!.drafts_this_month,
+      limit: null,
+      remaining: null,
+      userType: profile?.user_type || 'advocate',
+    };
   }
 
   const used = sub?.drafts_this_month ?? 0;
   const remaining = Math.max(0, limit - used);
   const paidBalance = sub?.paid_drafts_balance ?? 0;
-  
-  // Individual users can always generate
-  const allowed = isAdvocate ? (remaining > 0 || paidBalance > 0) : true;
-  
+  const allowed = isAdvocate ? remaining > 0 || paidBalance > 0 : true;
   return { allowed, isPro: false, used, limit, remaining, userType: profile?.user_type || 'advocate' };
 }
 
 export async function incrementDraftUsage() {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) return;
   const sub = await fetchSubscription();
   const profile = await fetchProfile();
   const isAdvocate = profile?.user_type !== 'individual';
-  
+
   if (isProActive(sub) && isAdvocate) return;
-  
+
   const limit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
   const used = sub?.drafts_this_month ?? 0;
   const remaining = Math.max(0, limit - used);
-  
+
   if (remaining > 0) {
-    await updateDoc(doc(db, 'subscriptions', user.uid), {
-      drafts_this_month: used + 1,
-      updated_at: serverTimestamp(),
-    });
+    const { error } = await supabase.from('subscriptions').update({ drafts_this_month: used + 1, updated_at: new Date().toISOString() }).eq('id', user.id);
+    if (error) throw error;
   } else if ((sub?.paid_drafts_balance ?? 0) > 0) {
-    await updateDoc(doc(db, 'subscriptions', user.uid), {
-      paid_drafts_balance: (sub?.paid_drafts_balance ?? 0) - 1,
-      updated_at: serverTimestamp(),
-    });
+    const { error } = await supabase.from('subscriptions').update({ paid_drafts_balance: (sub?.paid_drafts_balance ?? 0) - 1, updated_at: new Date().toISOString() }).eq('id', user.id);
+    if (error) throw error;
   }
 }
 
@@ -247,26 +253,29 @@ export async function checkChatAllowance() {
 }
 
 export async function incrementChatUsage() {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) return;
   const sub = await fetchSubscription();
   if (isProActive(sub)) return;
-  await updateDoc(doc(db, 'subscriptions', user.uid), {
-    chat_messages_today: (sub?.chat_messages_today ?? 0) + 1,
-    updated_at: serverTimestamp(),
-  });
+  const { error } = await supabase.from('subscriptions').update({ chat_messages_today: (sub?.chat_messages_today ?? 0) + 1, updated_at: new Date().toISOString() }).eq('id', user.id);
+  if (error) throw error;
 }
 
 export async function findUserByReferralCode(code: string) {
-  const snap = await getDoc(doc(db, 'referralCodes', code.trim().toUpperCase()));
-  if (!snap.exists()) return null;
-  return { user_id: snap.data().uid as string, referral_code: code.trim().toUpperCase() };
+  if (!code?.trim()) return null;
+  const { data, error } = await supabase.from('profiles').select('id, referral_code').eq('referral_code', code.trim().toUpperCase()).maybeSingle();
+  if (error) {
+    console.error('findUserByReferralCode failed', error);
+    return null;
+  }
+  if (!data) return null;
+  return { user_id: data.id as string, referral_code: data.referral_code as string };
 }
 
-/** Server-side via Admin SDK: writes the referral and grants rewards atomically. */
 export async function applyReferralOnSignup(referralCode: string) {
   if (!referralCode?.trim()) return null;
   const token = await getIdToken();
+  if (!token) return null;
   const res = await fetch('/api/referrals/apply', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -277,24 +286,20 @@ export async function applyReferralOnSignup(referralCode: string) {
 }
 
 export async function fetchReferralStats() {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) return { count: 0, rewardsEarned: 0, referralsUntilReward: 5 };
 
-  const q = query(
-    collection(db, 'referrals'),
-    where('referrer_id', '==', user.uid),
-    where('status', '==', 'completed')
-  );
-
-  let total = 0;
-  try {
-    const countSnap = await getCountFromServer(q);
-    total = countSnap.data().count;
-  } catch {
-    const snap = await getDocs(q);
-    total = snap.size;
+  const { count, error } = await supabase
+    .from('referrals')
+    .select('id', { count: 'exact', head: true })
+    .eq('referrer_id', user.id)
+    .eq('status', 'completed');
+  if (error) {
+    console.error('fetchReferralStats failed', error);
+    return { count: 0, rewardsEarned: 0, referralsUntilReward: 5 };
   }
 
+  const total = count ?? 0;
   const rewardsEarned = Math.floor(total / 5) * 2;
   const nextRewardAt = 5 - (total % 5);
   return { count: total, rewardsEarned, referralsUntilReward: nextRewardAt };
@@ -311,28 +316,29 @@ export async function submitFeedback(feedbackData: {
   description: string;
   rating: number;
 }) {
-  const user = auth.currentUser;
+  const user = await getCurrentUser();
   if (!user) throw new Error('Not authenticated');
 
-  let advocateName = '';
-  try {
-    const snap = await getDoc(doc(db, 'profiles', user.uid));
-    const p = snap.data() as Profile | undefined;
-    advocateName = p?.advocate_name || p?.full_name || '';
-  } catch {
-    /* non-fatal */
-  }
+  const { data: profile, error: profileError } = await supabase.from('profiles').select('advocate_name, full_name').eq('id', user.id).maybeSingle();
+  const advocateName = profile?.advocate_name || profile?.full_name || '';
+  if (profileError) console.warn('submitFeedback profile lookup failed', profileError);
 
-  await addDoc(collection(db, 'feedback'), {
-    user_id: user.uid,
-    user_email: user.email,
-    advocate_name: advocateName,
-    feedback_type: feedbackData.type,
-    subject: feedbackData.subject,
-    description: feedbackData.description,
-    rating: feedbackData.rating,
-    created_at: serverTimestamp(),
-  });
+  const { error } = await supabase.from('feedback').insert([
+    {
+      user_id: user.id,
+      user_email: user.email,
+      advocate_name: advocateName,
+      feedback_type: feedbackData.type,
+      subject: feedbackData.subject,
+      description: feedbackData.description,
+      rating: feedbackData.rating,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+  if (error) {
+    console.error('submitFeedback failed', error);
+    throw error;
+  }
 }
 
 export async function revokeAllSessions() {
