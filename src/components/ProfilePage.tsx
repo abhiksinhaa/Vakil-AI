@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Navbar from './Navbar';
 import { auth, db } from '../lib/firebase';
 import { useApp } from '../context/AppContext';
 import { fetchReferralStats, isAdvocateProfileComplete } from '../lib/userAccount';
 
 export default function ProfilePage() {
-  const { profile, session } = useApp();
+  const { profile } = useApp();
   const [form, setForm] = useState({
     full_name: '',
     advocate_name: '',
@@ -21,8 +22,8 @@ export default function ProfilePage() {
   });
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [referralStats, setReferralStats] = useState<{ count: number; rewardsEarned: number; referralsUntilReward: number } | null>(null);
-  const [userIdRef, setUserIdRef] = useState('');
 
   const isIndividual = profile?.user_type !== 'advocate';
   const needsAdvocateFields = !isIndividual;
@@ -42,27 +43,31 @@ export default function ProfilePage() {
   }, [profile]);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      setUserIdRef(session.user.id.substring(0, 8));
-    }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+    });
 
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
     fetchReferralStats()
       .then(setReferralStats)
       .catch((err) => console.error('Referral stats load failed', err));
-  }, [session]);
+  }, [firebaseUser]);
 
+  const userIdRef = firebaseUser?.uid?.substring(0, 8) || '';
   const referralLink = userIdRef ? `https://draftee.in/signup?ref=${userIdRef}` : '';
 
   const handleSave = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      setMessage('Please log in before saving your profile.');
+    if (!firebaseUser) {
+      setMessage('Please log in first.');
       return;
     }
 
     try {
       await setDoc(
-        doc(db, 'users', user.uid),
+        doc(db, 'users', firebaseUser.uid),
         {
           full_name: form.full_name,
           advocate_name: form.advocate_name,
