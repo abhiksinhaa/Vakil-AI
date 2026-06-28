@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import { fetchReferralStats, isAdvocateProfileComplete, updateProfile } from '../lib/userAccount';
 
 export default function ProfilePage() {
@@ -37,6 +38,43 @@ export default function ProfilePage() {
       });
     }
   }, [profile]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Profile page auth failed', authError);
+        return;
+      }
+      const user = authData?.user;
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Profile load failed', error);
+        return;
+      }
+
+      if (data) {
+        setForm({
+          full_name: data.full_name || '',
+          advocate_name: data.advocate_name || '',
+          bar_council_number: data.bar_council_number || '',
+          court_jurisdiction: data.court_jurisdiction || '',
+          state: data.state || '',
+          city: data.city || '',
+          pincode: data.pincode || '',
+        });
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     if (!session?.user?.id) return;
