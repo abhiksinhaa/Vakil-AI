@@ -18,6 +18,7 @@ export default function ProfilePage() {
     city: '',
     pincode: '',
   });
+  const [isEditing, setIsEditing] = useState(true);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [referralStats, setReferralStats] = useState<{ count: number; rewardsEarned: number; referralsUntilReward: number } | null>(null);
@@ -129,6 +130,7 @@ export default function ProfilePage() {
         setMessage('Error: ' + error.message);
       } else {
         setMessage('Profile saved successfully!');
+        setIsEditing(false);
       }
     } catch (err: any) {
       console.error('Save error:', err);
@@ -187,6 +189,7 @@ export default function ProfilePage() {
                   placeholder="Your name"
                   value={form.full_name}
                   onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                  disabled={!isEditing}
                 />
               </label>
 
@@ -198,6 +201,7 @@ export default function ProfilePage() {
                     placeholder="Adv. Rajesh Kumar"
                     value={form.advocate_name}
                     onChange={(e) => setForm((prev) => ({ ...prev, advocate_name: e.target.value }))}
+                    disabled={!isEditing}
                   />
                 </label>
               ) : (
@@ -208,6 +212,7 @@ export default function ProfilePage() {
                     placeholder="Your display name"
                     value={form.advocate_name}
                     onChange={(e) => setForm((prev) => ({ ...prev, advocate_name: e.target.value }))}
+                    disabled={!isEditing}
                   />
                 </label>
               )}
@@ -221,6 +226,7 @@ export default function ProfilePage() {
                       placeholder="D/1234/2015"
                       value={form.bar_council_number}
                       onChange={(e) => setForm((prev) => ({ ...prev, bar_council_number: e.target.value }))}
+                      disabled={!isEditing}
                     />
                   </label>
 
@@ -231,6 +237,7 @@ export default function ProfilePage() {
                       placeholder="Delhi District Court"
                       value={form.court_jurisdiction}
                       onChange={(e) => setForm((prev) => ({ ...prev, court_jurisdiction: e.target.value }))}
+                      disabled={!isEditing}
                     />
                   </label>
                 </>
@@ -243,6 +250,7 @@ export default function ProfilePage() {
                   placeholder="Maharashtra"
                   value={form.state}
                   onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
+                  disabled={!isEditing}
                 />
               </label>
 
@@ -253,6 +261,7 @@ export default function ProfilePage() {
                   placeholder="Mumbai"
                   value={form.city}
                   onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
+                  disabled={!isEditing}
                 />
               </label>
 
@@ -263,6 +272,7 @@ export default function ProfilePage() {
                   placeholder="400001"
                   value={form.pincode}
                   onChange={(e) => setForm((prev) => ({ ...prev, pincode: e.target.value }))}
+                  disabled={!isEditing}
                 />
               </label>
             </div>
@@ -276,10 +286,10 @@ export default function ProfilePage() {
 
           <button
             type="button"
-            onClick={handleSave}
+            onClick={isEditing ? handleSave : () => setIsEditing(true)}
             className="w-full rounded-2xl bg-gold px-5 py-3 text-sm font-semibold text-navy transition hover:bg-[#ffd166]"
           >
-            Save Profile
+            {isEditing ? 'Save Profile' : 'Edit Profile'}
           </button>
         </section>
 
