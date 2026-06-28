@@ -12,18 +12,18 @@ import '../styles/authScene.css';
 
 function friendlyAuthError(code, fallback) {
   switch (code) {
-    case 'auth/invalid-credential':
-    case 'auth/wrong-password':
-    case 'auth/user-not-found':
+    case 'invalid_credentials':
+    case 'invalid_grant':
+    case 'email_not_confirmed':
       return 'Invalid email or password.';
-    case 'auth/email-already-in-use':
+    case 'user_already_exists':
       return 'An account with this email already exists. Please sign in.';
-    case 'auth/weak-password':
+    case 'weak_password':
       return 'Password should be at least 6 characters.';
-    case 'auth/popup-closed-by-user':
-      return 'Google sign-in was cancelled.';
-    case 'auth/invalid-email':
-      return 'Please enter a valid email address.';
+    case 'oauth_provider_not_supported':
+      return 'Google sign-in is currently unavailable.';
+    case 'otp_expired':
+      return 'The sign-in link has expired. Please request a new one.';
     default:
       return fallback || 'Authentication failed. Please try again.';
   }
@@ -85,8 +85,9 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
         }
       }
       router.replace('/dashboard');
-    } catch (err) {
-      setError(friendlyAuthError(err?.code, err?.message));
+    } catch (err: any) {
+      console.error('Supabase auth submit error:', err);
+      setError(friendlyAuthError(err?.code || err?.status, err?.message));
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,8 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
       });
       if (error) throw error;
     } catch (err: any) {
-      setError(friendlyAuthError(err?.message || err?.code, err?.message));
+      console.error('Supabase Google auth error:', err);
+      setError(friendlyAuthError(err?.code || err?.status, err?.message));
     } finally {
       setGoogleLoading(false);
     }
