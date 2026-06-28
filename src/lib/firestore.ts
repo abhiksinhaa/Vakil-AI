@@ -31,7 +31,8 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
 }
 
 export async function saveDraft(draft: DraftInput) {
-  const { data: currentUser, error: authError } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const currentUser = authData?.user;
   if (authError || !currentUser) throw new Error('Not authenticated');
 
   let fullSituation = draft.situation || '';
@@ -93,7 +94,8 @@ export async function saveDraft(draft: DraftInput) {
 }
 
 export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
-  const { data: currentUser, error: authError } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const currentUser = authData?.user;
   if (authError || !currentUser) return [];
 
   const { data, error } = await supabase
@@ -112,7 +114,8 @@ export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
 }
 
 export async function fetchAllDrafts(): Promise<DraftRecord[]> {
-  const { data: currentUser, error: authError } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const currentUser = authData?.user;
   if (authError || !currentUser) return [];
 
   const { data, error } = await supabase
@@ -136,7 +139,8 @@ export async function saveWaitlist(entry: Record<string, string>) {
 }
 
 export async function saveChatSession(sessionId: string, messages: any[]) {
-  const { data: currentUser, error: authError } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const currentUser = authData?.user;
   if (authError || !currentUser || messages.length <= 1) return;
 
   const cleanMessages = messages.map((msg) => {
@@ -167,7 +171,8 @@ export async function saveChatSession(sessionId: string, messages: any[]) {
 }
 
 export async function fetchChatHistory(): Promise<ChatSession[]> {
-  const { data: currentUser, error: authError } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const currentUser = authData?.user;
   if (authError || !currentUser) return [];
 
   const { data, error } = await supabase

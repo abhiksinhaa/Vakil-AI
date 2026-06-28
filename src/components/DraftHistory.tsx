@@ -1,9 +1,8 @@
 'use client';
 
-import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import Navbar from './Navbar';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
 import { stripMarkdown } from '../lib/stripMarkdown';
 
@@ -85,37 +84,33 @@ export default function DraftHistory() {
       return;
     }
 
-    const draftsQuery = query(
-      collection(db, 'users', session.user.id, 'drafts'),
-      orderBy('created_at', 'desc'),
-      limit(50)
-    );
+    const loadDrafts = async () => {
+      const { data, error } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-    const unsubscribe = onSnapshot(
-      draftsQuery,
-      (snapshot) => {
-        const items = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            draft_type: data.draft_type || data.documentType || 'Draft',
-            party1_name: data.party1_name || data.partyName || '',
-            party2_name: data.party2_name || '',
-            created_at: tsToIso(data.created_at),
-            generated_draft: data.generated_draft || data.draftContent || '',
-          };
-        });
-        setDrafts(items);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Draft snapshot failed:', err);
+      if (error) {
+        console.error('Draft load failed:', error);
         setDrafts([]);
-        setLoading(false);
+      } else {
+        setDrafts(
+          (data ?? []).map((row) => ({
+            id: String((row as any).id),
+            draft_type: String((row as any).draft_type ?? (row as any).documentType ?? 'Draft'),
+            party1_name: String((row as any).party1_name ?? (row as any).partyName ?? ''),
+            party2_name: String((row as any).party2_name ?? ''),
+            created_at: tsToIso((row as any).created_at),
+            generated_draft: String((row as any).generated_draft ?? (row as any).draftContent ?? ''),
+          }))
+        );
       }
-    );
+      setLoading(false);
+    };
 
-    return () => unsubscribe();
+    loadDrafts();
   }, [session]);
 
   const filtered = useMemo(() => {

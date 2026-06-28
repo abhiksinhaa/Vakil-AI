@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
 
 function getUserInitials(session, profile) {
@@ -115,7 +114,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     closeAll();
-    await signOut(auth);
+    await supabase.auth.signOut();
     router.replace('/');
   };
 

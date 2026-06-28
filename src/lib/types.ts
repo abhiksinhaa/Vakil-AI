@@ -2,6 +2,7 @@
 // Field names use snake_case so the UI components can read them unchanged.
 
 export interface Profile {
+  id?: string;
   user_id: string;
   full_name: string;
   advocate_name: string;
@@ -54,6 +55,7 @@ export interface Profile {
 }
 
 export interface Subscription {
+  id?: string;
   user_id: string;
   plan: 'free' | 'pro';
   pro_until: string | null;

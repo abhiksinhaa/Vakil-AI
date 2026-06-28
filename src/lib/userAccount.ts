@@ -36,7 +36,7 @@ async function generateUniqueReferralCode() {
   return generateReferralCode();
 }
 
-function isAdvocateProfileComplete(profile: Partial<Profile> | null) {
+export function isAdvocateProfileComplete(profile: Partial<Profile> | null) {
   return Boolean(
     profile?.advocate_name?.trim() &&
       profile?.bar_council_number?.trim() &&

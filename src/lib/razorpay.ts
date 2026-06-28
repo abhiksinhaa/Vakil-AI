@@ -1,5 +1,5 @@
 import { PRO_PRICE_PAISE } from './userAccount';
-import { auth } from './firebase';
+import { supabase } from './supabase';
 
 function loadRazorpayScript() {
   return new Promise((resolve, reject) => {
@@ -51,12 +51,13 @@ export async function startProCheckout({ userEmail, userName, onSuccess }) {
       theme: { color: '#c9a84c' },
       handler: async (response) => {
         try {
-          const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+          const { data } = await supabase.auth.getSession();
+          const token = data.session?.access_token ?? null;
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
@@ -123,12 +124,13 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess })
       theme: { color: '#c9a84c' },
       handler: async (response) => {
         try {
-          const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+          const { data } = await supabase.auth.getSession();
+          const token = data.session?.access_token ?? null;
           const verifyRes = await fetch('/api/razorpay/verify-draft', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,

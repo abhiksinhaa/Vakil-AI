@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Navbar from './Navbar';
-import { auth, db } from '../lib/firebase';
 import { useApp } from '../context/AppContext';
-import { fetchReferralStats, isAdvocateProfileComplete } from '../lib/userAccount';
+import { fetchReferralStats, isAdvocateProfileComplete, updateProfile } from '../lib/userAccount';
 
 export default function ProfilePage() {
-  const { profile } = useApp();
+  const { profile, session } = useApp();
   const [form, setForm] = useState({
     full_name: '',
     advocate_name: '',
@@ -22,7 +19,6 @@ export default function ProfilePage() {
   });
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
-  const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [referralStats, setReferralStats] = useState<{ count: number; rewardsEarned: number; referralsUntilReward: number } | null>(null);
 
   const isIndividual = profile?.user_type !== 'advocate';
@@ -43,43 +39,31 @@ export default function ProfilePage() {
   }, [profile]);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setFirebaseUser(user);
-    });
-
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
+    if (!session?.user?.id) return;
     fetchReferralStats()
       .then(setReferralStats)
       .catch((err) => console.error('Referral stats load failed', err));
-  }, [firebaseUser]);
+  }, [session?.user?.id]);
 
-  const userIdRef = firebaseUser?.uid?.substring(0, 8) || '';
-  const referralLink = userIdRef ? `https://draftee.in/signup?ref=${userIdRef}` : '';
+  const referralSource = profile?.referral_code || session?.user?.id?.substring(0, 8) || '';
+  const referralLink = referralSource ? `https://draftee.in/signup?ref=${referralSource}` : '';
 
   const handleSave = async () => {
-    if (!firebaseUser) {
+    if (!session?.user?.id) {
       setMessage('Please log in first.');
       return;
     }
 
     try {
-      await setDoc(
-        doc(db, 'users', firebaseUser.uid),
-        {
-          full_name: form.full_name,
-          advocate_name: form.advocate_name,
-          bar_council_number: form.bar_council_number,
-          court_jurisdiction: form.court_jurisdiction,
-          state: form.state,
-          city: form.city,
-          pincode: form.pincode,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await updateProfile({
+        full_name: form.full_name,
+        advocate_name: form.advocate_name,
+        bar_council_number: form.bar_council_number,
+        court_jurisdiction: form.court_jurisdiction,
+        state: form.state,
+        city: form.city,
+        pincode: form.pincode,
+      });
 
       setMessage('Profile saved successfully.');
     } catch (err: any) {
@@ -275,7 +259,7 @@ export default function ProfilePage() {
                   {copied ? 'Copied ✓' : 'Copy link'}
                 </button>
               </div>
-              <p className="text-xs text-cream/50">Code: <span className="text-gold">{userIdRef}</span></p>
+              <p className="text-xs text-cream/50">Code: <span className="text-gold">{referralSource}</span></p>
             </div>
 
             <button

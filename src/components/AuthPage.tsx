@@ -2,13 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  updateProfile,
-} from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { applyReferralOnSignup, ensureUserRecords } from '../lib/userAccount';
 
 const REFERRAL_STORAGE_KEY = 'draftee_ref';
@@ -72,14 +66,23 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       } else {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (fullName.trim()) {
-          await updateProfile(cred.user, { displayName: fullName.trim() });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName.trim(),
+            },
+          },
+        });
+        if (error) throw error;
+        if (data?.user) {
+          await ensureUserRecords(userType);
+          await applyPendingReferral();
         }
-        await ensureUserRecords(userType);
-        await applyPendingReferral();
       }
       router.replace('/dashboard');
     } catch (err) {
@@ -93,17 +96,16 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
     setError('');
     setGoogleLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      await ensureUserRecords(userType);
-      // Newly created Google accounts get any pending referral applied.
-      const isNewUser =
-        result?.user?.metadata?.creationTime === result?.user?.metadata?.lastSignInTime;
-      if (isNewUser) {
-        await applyPendingReferral();
-      }
-      router.replace('/dashboard');
-    } catch (err) {
-      setError(friendlyAuthError(err?.code, err?.message));
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: { prompt: 'select_account' },
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setError(friendlyAuthError(err?.message || err?.code, err?.message));
     } finally {
       setGoogleLoading(false);
     }

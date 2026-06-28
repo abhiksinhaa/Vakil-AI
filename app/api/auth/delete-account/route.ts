@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
-import { adminAuth, adminDb, requireUser } from '../../../../src/lib/firebaseAdmin';
+import { adminAuth, adminDb, requireUser } from '../../../../src/lib/supabaseAdmin';
 
 export async function POST(req: Request) {
   try {
     const decoded = await requireUser(req);
-    const uid = decoded.uid;
+    const uid = decoded.id;
 
     await Promise.all([
-      adminDb().doc(`profiles/${uid}`).delete(),
-      adminDb().doc(`subscriptions/${uid}`).delete(),
+      adminDb().from('profiles').delete().eq('id', uid),
+      adminDb().from('subscriptions').delete().eq('id', uid),
     ]);
 
-    await adminAuth().deleteUser(uid);
+    const authClient = adminAuth() as any;
+    if (typeof authClient.admin?.deleteUser === 'function') {
+      await authClient.admin.deleteUser(uid);
+    }
+
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return new NextResponse(err.message || 'Unauthorized', { status: 401 });

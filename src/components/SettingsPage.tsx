@@ -3,15 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  EmailAuthProvider,
-  deleteUser,
-  reauthenticateWithCredential,
-  signOut,
-  updateEmail,
-  updatePassword,
-} from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
 import {
   fetchReferralStats,
@@ -261,7 +253,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     router.push('/login');
   };
 
@@ -270,7 +262,7 @@ export default function SettingsPage() {
     setAccountActionError(null);
     try {
       await revokeAllSessions();
-      await signOut(auth);
+      await supabase.auth.signOut();
       router.push('/login');
     } catch (err: any) {
       setAccountActionError(err?.message || 'Unable to sign out all sessions.');
@@ -292,7 +284,8 @@ export default function SettingsPage() {
   };
 
   const handleAccountAction = async () => {
-    if (!auth.currentUser) {
+    const email = session?.user?.email || '';
+    if (!email) {
       setAccountActionError('Sign in again before continuing.');
       return;
     }
@@ -305,14 +298,18 @@ export default function SettingsPage() {
         throw new Error('Current password is required.');
       }
 
-      const credential = EmailAuthProvider.credential(auth.currentUser.email || '', currentPassword);
-      await reauthenticateWithCredential(auth.currentUser, credential);
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+      if (reauthError) throw reauthError;
 
       if (modalContent === 'changeEmail') {
         if (!newEmail.trim()) {
           throw new Error('New email is required.');
         }
-        await updateEmail(auth.currentUser, newEmail);
+        const { error } = await supabase.auth.updateUser({ email: newEmail });
+        if (error) throw error;
         setAccountActionSuccess('Email updated. Please verify your new email address.');
       }
 
@@ -320,13 +317,14 @@ export default function SettingsPage() {
         if (!newPassword.trim()) {
           throw new Error('New password is required.');
         }
-        await updatePassword(auth.currentUser, newPassword);
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
         setAccountActionSuccess('Password updated successfully.');
       }
 
       if (modalContent === 'deleteAccount') {
         await deleteUserAccount();
-        await signOut(auth);
+        await supabase.auth.signOut();
         router.push('/login');
         return;
       }

@@ -9,7 +9,6 @@ import FactsTextareaWithMic from './FactsTextareaWithMic';
 import { generateLegalDraft } from '../lib/claude';
 import { saveDraft } from '../lib/firestore';
 import { useApp } from '../context/AppContext';
-import { auth } from '../lib/firebase';
 import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
   isAdvocateProfileComplete,
@@ -54,7 +53,7 @@ const INITIAL_FORM = {
 
 export default function DraftGenerator() {
   const router = useRouter();
-  const { profile, isPro, refreshAccount } = useApp();
+  const { profile, isPro, refreshAccount, session } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -259,7 +258,7 @@ export default function DraftGenerator() {
                 onClick={async () => {
                   try {
                     await startPayPerUseCheckout({
-                      userEmail: auth.currentUser?.email || '',
+                      userEmail: session?.user?.email || '',
                       userName: profile?.full_name || '',
                       onSuccess: () => {
                         setShowUpgradeModal(false);
