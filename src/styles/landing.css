@@ -261,6 +261,96 @@
   opacity: 0.6;
 }
 
+/* Demo Section */
+.landing-demo-section {
+  padding: 0 5% 6rem;
+}
+
+.landing-demo-card {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--landing-card) 92%, transparent), color-mix(in srgb, var(--landing-card) 82%, var(--landing-primary) 8%));
+  border: 1px solid var(--landing-border);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--landing-bg) 45%, transparent);
+}
+
+.landing-demo-copy {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.landing-demo-title {
+  margin-bottom: 1rem;
+}
+
+.landing-demo-subtitle {
+  margin: 0 auto;
+}
+
+.landing-demo-player {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #000;
+}
+
+.landing-demo-player iframe,
+.landing-demo-modal-player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.landing-demo-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(2, 6, 23, 0.7);
+  backdrop-filter: blur(16px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.landing-demo-modal {
+  position: relative;
+  width: min(960px, 100%);
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background: var(--landing-bg);
+  border: 1px solid var(--landing-border);
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.35);
+  animation: scaleIn 0.25s ease-out;
+}
+
+.landing-demo-modal-close {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  z-index: 2;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 9999px;
+  background: rgba(10, 15, 30, 0.75);
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.landing-demo-modal-player {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  background: #000;
+}
+
 /* Sections */
 .landing-section {
   padding: 6rem 5%;
@@ -391,6 +481,16 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 .fade-in-on-scroll {
   opacity: 0;
   transform: translateY(20px);
@@ -474,5 +574,22 @@
     margin-left: -90px;
     margin-top: -90px;
     border-width: 15px;
+  }
+
+  .landing-demo-section {
+    padding: 0 1.25rem 4rem;
+  }
+
+  .landing-demo-card {
+    padding: 1.5rem;
+  }
+
+  .landing-demo-modal-overlay {
+    padding: 1rem;
+  }
+
+  .landing-demo-modal-close {
+    right: 0.5rem;
+    top: 0.5rem;
   }
 }

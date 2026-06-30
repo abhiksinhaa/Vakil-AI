@@ -9,8 +9,10 @@ import '../styles/landing.css';
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const { session, theme, toggleTheme } = useApp();
   const router = useRouter();
+  const videoEmbedUrl = 'https://www.youtube.com/embed/9b8OuLwqtFI';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -74,7 +76,23 @@ export default function LandingPage() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsDemoModalOpen(false);
+      }
+    };
 
+    if (isDemoModalOpen) {
+      document.addEventListener('keydown', onKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isDemoModalOpen]);
 
   return (
     <div className="landing-body">
@@ -127,7 +145,7 @@ export default function LandingPage() {
                 Start Free →
               </Link>
             )}
-            <button className="landing-btn-ghost">
+            <button className="landing-btn-ghost" onClick={() => setIsDemoModalOpen(true)}>
               Watch Demo
             </button>
           </div>
@@ -159,6 +177,27 @@ export default function LandingPage() {
           </div>
         </div>
       </header>
+
+      <section className="landing-demo-section">
+        <div className="landing-demo-card fade-in-on-scroll">
+          <div className="landing-demo-copy">
+            <span className="landing-badge">See it in action</span>
+            <h2 className="landing-h2 landing-demo-title">Watch Draftee in Action</h2>
+            <p className="landing-p landing-demo-subtitle">
+              See how Draftee helps legal professionals generate court-ready legal drafts in seconds.
+            </p>
+          </div>
+          <div className="landing-demo-player">
+            <iframe
+              src={videoEmbedUrl}
+              title="Draftee demo video"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      </section>
 
       {/* Features Section */}
       <section id="features" className="landing-section">
@@ -249,6 +288,28 @@ export default function LandingPage() {
           </Link>
         )}
       </section>
+
+      {isDemoModalOpen && (
+        <div className="landing-demo-modal-overlay" onClick={() => setIsDemoModalOpen(false)}>
+          <div className="landing-demo-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="landing-demo-modal-close"
+              onClick={() => setIsDemoModalOpen(false)}
+              aria-label="Close demo video"
+            >
+              ×
+            </button>
+            <div className="landing-demo-modal-player">
+              <iframe
+                src={videoEmbedUrl}
+                title="Draftee demo video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="landing-footer">
