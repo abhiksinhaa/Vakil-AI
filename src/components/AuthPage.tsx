@@ -149,7 +149,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
                 <span className={`text-sm font-medium ${userType === 'advocate' ? 'text-gold' : 'text-cream'}`}>
                   Advocate / Lawyer
                 </span>
-                {!isLogin && <span className="text-[10px] text-cream/50 mt-1">₹99/mo unlimited drafts</span>}
+
               </button>
               <button
                 type="button"
@@ -164,7 +164,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
                 <span className={`text-sm font-medium ${userType === 'individual' ? 'text-gold' : 'text-cream'}`}>
                   Individual / General
                 </span>
-                {!isLogin && <span className="text-[10px] text-cream/50 mt-1">₹50 per draft</span>}
+
               </button>
             </div>
           </div>
