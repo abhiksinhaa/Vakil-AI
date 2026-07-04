@@ -53,7 +53,7 @@ export default function LegalResearchPage() {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: RESEARCH_PROMPT }] },
           contents: historyForApi,
-          generationConfig: { maxOutputTokens: 4096, temperature: 0.3 },
+          generationConfig: { maxOutputTokens: 8192, temperature: 0.3 },
         })
       });
 

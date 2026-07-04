@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('[api/gemini] error:', err);
     return Response.json(
-      { error: { message: 'Draft generation failed. Please try again.' } },
+      { error: { message: 'Please try again' } },
       { status: 500 }
     );
   }

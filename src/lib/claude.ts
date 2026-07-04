@@ -214,17 +214,8 @@ Generate the complete ${draftType} now:`;
       }
 
       if (!response.ok) {
-        const message =
-          data?.error?.message ||
-          'Draft generate nahi hua. Dobara try karo.';
         console.error('Gemini API error:', response.status, data);
-        
-        // Throw special error for high demand/503/429
-        if (response.status === 503 || response.status === 429 || message.toLowerCase().includes('high demand') || message.toLowerCase().includes('overloaded')) {
-            throw new Error(`HIGH_DEMAND: ${message}`);
-        }
-        
-        throw new Error(message);
+        throw new Error('Draft could not be generated. Please try again.');
       }
 
       const parts = data.candidates?.[0]?.content?.parts ?? [];
@@ -249,23 +240,16 @@ Generate the complete ${draftType} now:`;
 
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        throw new Error('Draft generation timed out after 30 seconds. Please try again.');
+        throw new Error('Draft could not be generated. Please try again.');
       }
-      
-      const isHighDemand = err.message.includes('HIGH_DEMAND') || err.message.includes('503') || err.message.includes('429');
-      
-      if (isHighDemand && attempt < maxRetries) {
+
+      if (attempt < maxRetries) {
         attempt++;
         currentModel = 'gemini-2.0-flash'; // Fallback model
-        if (onStatusChange) {
-            onStatusChange('Please wait, retrying...');
-        }
-        // Wait 5 seconds before retrying
-        await new Promise(resolve => setTimeout(resolve, 5000));
         continue;
       }
-      
-      throw err;
+
+      throw new Error('Draft could not be generated. Please try again.');
     }
   }
   
