@@ -39,9 +39,19 @@ async function generateUniqueReferralCode() {
 export function isAdvocateProfileComplete(profile: Partial<Profile> | null) {
   return Boolean(
     profile?.advocate_name?.trim() &&
-      profile?.bar_council_number?.trim() &&
       profile?.court_jurisdiction?.trim()
   );
+}
+
+export function isIndividualProfileComplete(profile: Partial<Profile> | null) {
+  const hasName = Boolean(profile?.full_name?.trim());
+  const hasLocation = Boolean(profile?.city?.trim() || profile?.state?.trim());
+  return hasName && hasLocation;
+}
+
+export function isUserProfileComplete(profile: Partial<Profile> | null) {
+  const isAdvocate = profile?.user_type !== 'individual';
+  return isAdvocate ? isAdvocateProfileComplete(profile) : isIndividualProfileComplete(profile);
 }
 
 async function getCurrentUser(): Promise<User | null> {

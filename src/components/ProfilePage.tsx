@@ -118,6 +118,7 @@ export default function ProfilePage() {
             state: form.state,
             city: form.city,
             pincode: form.pincode,
+            user_type: isIndividual ? 'individual' : 'advocate',
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'id' }
