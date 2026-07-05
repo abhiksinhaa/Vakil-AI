@@ -147,7 +147,7 @@ FACTS & SITUATION:
 ${situation}
 ${dynamicFieldsSection}
 
-LANGUAGE: ${language || 'English'}
+LANGUAGE INSTRUCTION: Generate this legal draft in ${language || 'English'}. Keep all legal terminology accurate and use formal legal language appropriate for Indian courts in that language.
 DATE: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
 
 Style: ${styleInstruction}

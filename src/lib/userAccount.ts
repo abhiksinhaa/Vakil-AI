@@ -70,6 +70,8 @@ async function defaultProfileValues(user: User, userType?: 'advocate' | 'individ
     referral_code: await generateUniqueReferralCode(),
     referred_by: null,
     theme: 'dark',
+    language: 'English',
+    preferred_draft_language: 'English',
     user_type: userType || 'advocate',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

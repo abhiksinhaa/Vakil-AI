@@ -13,6 +13,7 @@ import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
   isAdvocateProfileComplete,
   checkDraftAllowance,
+  updateProfile,
 } from '../lib/userAccount';
 import { DOCUMENT_SCHEMAS, DRAFT_TYPES } from '../lib/draftSchemas';
 
@@ -42,8 +43,8 @@ const INITIAL_FORM = {
   barCouncilNumber: '',
   advocateCity: '',
   party1Name: '',
-  party1Address: '',
   party2Name: '',
+  party1Address: '',
   party2Address: '',
   situation: '',
   language: 'English',
@@ -51,9 +52,23 @@ const INITIAL_FORM = {
   dynamicFields: {} as Record<string, string>,
 };
 
+const LANGUAGE_OPTIONS = [
+  'English',
+  'Hindi',
+  'Bengali',
+  'Tamil',
+  'Telugu',
+  'Marathi',
+  'Gujarati',
+  'Kannada',
+  'Malayalam',
+  'Odia',
+  'Assamese',
+];
+
 export default function DraftGenerator() {
   const router = useRouter();
-  const { profile, isPro, refreshAccount, session } = useApp();
+  const { profile, isPro, refreshAccount, session, setProfile } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -75,6 +90,7 @@ export default function DraftGenerator() {
         advocateName: profile.advocate_name || prev.advocateName,
         barCouncilNumber: profile.bar_council_number || prev.barCouncilNumber,
         advocateCity: profile.court_jurisdiction || prev.advocateCity,
+        language: profile.preferred_draft_language || profile.language || prev.language || 'English',
       }));
       setProfileFilled(isAdvocateProfileComplete(profile));
     }
@@ -94,6 +110,29 @@ export default function DraftGenerator() {
       },
     }));
     setSaveSuccess(false);
+  };
+
+  const persistDraftLanguage = async (nextLanguage?: string) => {
+    const normalizedLanguage = (nextLanguage || 'English').trim() || 'English';
+    setForm((prev) => ({ ...prev, language: normalizedLanguage }));
+
+    if (!profile?.user_id) return;
+
+    try {
+      const updatedProfile = await updateProfile({
+        preferred_draft_language: normalizedLanguage,
+        language: normalizedLanguage,
+      });
+      setProfile((prev) => (prev ? { ...prev, ...updatedProfile, preferred_draft_language: normalizedLanguage, language: normalizedLanguage } : prev));
+    } catch (err) {
+      console.error('Failed to save draft language preference:', err);
+    }
+  };
+
+  const handleLanguageChange = (value: string) => {
+    const normalizedLanguage = (value || 'English').trim() || 'English';
+    update('language', normalizedLanguage);
+    void persistDraftLanguage(normalizedLanguage);
   };
 
   const handleDraftTypeChange = (value: string) => {
@@ -551,23 +590,20 @@ export default function DraftGenerator() {
               </fieldset>
               
               <div>
-                <label>Language Preference</label>
-                <div className="flex gap-2 mt-2">
-                  {['English', 'Hindi', 'Hinglish'].map((lang) => (
-                    <button
-                      key={lang}
-                      type="button"
-                      onClick={() => update('language', lang)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        form.language === lang
-                          ? 'bg-gold/20 border-gold text-gold'
-                          : 'border-border text-cream/60 hover:border-gold/30'
-                      }`}
-                    >
+                <label htmlFor="draftLanguage">Draft Language</label>
+                <select
+                  id="draftLanguage"
+                  value={form.language || 'English'}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="w-full text-base py-3 mt-1"
+                >
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <option key={lang} value={lang}>
                       {lang}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
+                <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
               </div>
             </section>
 
