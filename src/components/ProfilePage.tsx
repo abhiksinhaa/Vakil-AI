@@ -122,27 +122,28 @@ export default function ProfilePage() {
       console.log('Saving for user:', session.user.id);
       console.log('Form data:', form);
 
+      const profilePayload = {
+        id: session.user.id,
+        user_id: session.user.id,
+        full_name: form.full_name || '',
+        advocate_name: form.advocate_name || '',
+        bar_council_number: form.bar_council_number || '',
+        court_jurisdiction: form.court_jurisdiction || '',
+        state: form.state || '',
+        city: form.city || '',
+        pincode: form.pincode || '',
+        user_type: isIndividual ? 'individual' : 'advocate',
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log('Profile page save payload:', profilePayload);
+
       const { data: saveData, error } = await supabase
         .from('profiles')
-        .upsert(
-          {
-            id: session.user.id,
-            user_id: session.user.id,
-            full_name: form.full_name || '',
-            advocate_name: form.advocate_name || '',
-            bar_council_number: form.bar_council_number || '',
-            court_jurisdiction: form.court_jurisdiction || '',
-            state: form.state || '',
-            city: form.city || '',
-            pincode: form.pincode || '',
-            user_type: isIndividual ? 'individual' : 'advocate',
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id' }
-        )
+        .upsert(profilePayload, { onConflict: 'user_id' })
         .select();
 
-      console.log('Save result:', saveData, 'Error:', error);
+      console.log('Profile page save result:', { saveData, error });
 
       if (error) {
         setMessage('Error: ' + error.message);

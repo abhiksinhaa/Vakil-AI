@@ -174,11 +174,15 @@ export async function updateProfile(updates: Partial<Profile>) {
     ...cleanUpdates,
   } as Partial<Profile>;
 
+  console.log('Saving profile payload:', profilePayload);
+
   const { data, error } = await supabase
     .from('profiles')
-    .upsert(profilePayload, { onConflict: 'id' })
+    .upsert(profilePayload, { onConflict: 'user_id' })
     .select()
     .maybeSingle();
+
+  console.log('Profile save response:', { data, error });
 
   if (error) {
     console.error('updateProfile failed', error);

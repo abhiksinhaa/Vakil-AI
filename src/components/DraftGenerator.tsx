@@ -216,6 +216,7 @@ export default function DraftGenerator() {
       } satisfies Partial<Profile>;
 
       const savedProfile = await updateProfile(updatedProfileData);
+      console.log('Draft modal saved profile:', savedProfile);
       const mergedProfile = { ...(profile ?? {}), ...nextProfile, ...savedProfile, ...updatedProfileData } as Profile;
 
       setProfile((prev) => (prev ? { ...prev, ...mergedProfile } : prev));

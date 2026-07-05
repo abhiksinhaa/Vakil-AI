@@ -178,6 +178,8 @@ export default function SettingsPage() {
 
       if (!profileRow) return;
 
+      console.log('Settings page loaded profile row:', profileRow);
+
       setForm((prev) => ({
         ...prev,
         full_name: profileRow.full_name || prev.full_name || '',
