@@ -50,26 +50,43 @@ export default function ProfilePage() {
       const user = authData?.user;
       if (!user) return;
 
-      const { data, error } = await supabase
+      let profileRow: any = null;
+      const { data: byUserId, error: userIdError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Profile load failed', error);
+      if (userIdError) {
+        console.error('Profile load failed', userIdError);
         return;
       }
 
-      if (data) {
+      profileRow = byUserId;
+
+      if (!profileRow) {
+        const { data: byId, error: idError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (idError) {
+          console.error('Profile load failed', idError);
+          return;
+        }
+        profileRow = byId;
+      }
+
+      if (profileRow) {
         setForm({
-          full_name: data.full_name || '',
-          advocate_name: data.advocate_name || '',
-          bar_council_number: data.bar_council_number || '',
-          court_jurisdiction: data.court_jurisdiction || '',
-          state: data.state || '',
-          city: data.city || '',
-          pincode: data.pincode || '',
+          full_name: profileRow.full_name || '',
+          advocate_name: profileRow.advocate_name || '',
+          bar_council_number: profileRow.bar_council_number || '',
+          court_jurisdiction: profileRow.court_jurisdiction || '',
+          state: profileRow.state || '',
+          city: profileRow.city || '',
+          pincode: profileRow.pincode || '',
         });
       }
     };
@@ -111,13 +128,13 @@ export default function ProfilePage() {
           {
             id: session.user.id,
             user_id: session.user.id,
-            full_name: form.full_name,
-            advocate_name: form.advocate_name,
-            bar_council_number: form.bar_council_number,
-            court_jurisdiction: form.court_jurisdiction,
-            state: form.state,
-            city: form.city,
-            pincode: form.pincode,
+            full_name: form.full_name || '',
+            advocate_name: form.advocate_name || '',
+            bar_council_number: form.bar_council_number || '',
+            court_jurisdiction: form.court_jurisdiction || '',
+            state: form.state || '',
+            city: form.city || '',
+            pincode: form.pincode || '',
             user_type: isIndividual ? 'individual' : 'advocate',
             updated_at: new Date().toISOString(),
           },

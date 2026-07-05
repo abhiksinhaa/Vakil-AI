@@ -144,8 +144,70 @@ export default function SettingsPage() {
   }, [profile, fontSize]);
 
   useEffect(() => {
+    const loadSavedProfile = async () => {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) return;
+
+      let profileRow: any = null;
+      const { data: byUserId, error: userIdError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+
+      if (userIdError) {
+        console.error('Settings profile load failed', userIdError);
+        return;
+      }
+
+      profileRow = byUserId;
+
+      if (!profileRow) {
+        const { data: byId, error: idError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+
+        if (idError) {
+          console.error('Settings profile load failed', idError);
+          return;
+        }
+        profileRow = byId;
+      }
+
+      if (!profileRow) return;
+
+      setForm((prev) => ({
+        ...prev,
+        full_name: profileRow.full_name || prev.full_name || '',
+        phone_number: profileRow.phone_number || prev.phone_number || '',
+        profile_photo_url: profileRow.profile_photo_url || prev.profile_photo_url || '',
+        language: profileRow.language || prev.language || 'English',
+        preferred_court_format: profileRow.preferred_court_format || prev.preferred_court_format || 'District Court',
+        preferred_draft_language: profileRow.preferred_draft_language || prev.preferred_draft_language || 'English',
+        default_jurisdiction: profileRow.default_jurisdiction || profileRow.court_jurisdiction || prev.default_jurisdiction || 'Delhi',
+        preferred_date_format: profileRow.preferred_date_format || prev.preferred_date_format || DATE_FORMATS[0],
+        response_style: profileRow.response_style || prev.response_style || RESPONSE_STYLES[0],
+        response_length: profileRow.response_length || prev.response_length || RESPONSE_LENGTHS[1],
+        default_export_format: profileRow.default_export_format || prev.default_export_format || EXPORT_FORMATS[0],
+        auto_download_drafts: profileRow.auto_download_drafts ?? prev.auto_download_drafts ?? false,
+        cloud_backup_enabled: profileRow.cloud_backup_enabled ?? prev.cloud_backup_enabled ?? true,
+        auto_save_drafts: profileRow.auto_save_drafts ?? prev.auto_save_drafts ?? true,
+        save_chat_history: profileRow.save_chat_history ?? prev.save_chat_history ?? true,
+        notify_product_updates: profileRow.notify_product_updates ?? prev.notify_product_updates ?? true,
+        notify_new_features: profileRow.notify_new_features ?? prev.notify_new_features ?? true,
+        notify_referrals: profileRow.notify_referrals ?? prev.notify_referrals ?? true,
+        promotional_emails: profileRow.promotional_emails ?? prev.promotional_emails ?? false,
+        two_factor_enabled: profileRow.two_factor_enabled ?? prev.two_factor_enabled ?? false,
+        theme: profileRow.theme || prev.theme || theme,
+        font_size: profileRow.font_size || prev.font_size || fontSize,
+      }));
+    };
+
+    loadSavedProfile();
     fetchReferralStats().then(setReferralStats).catch(() => {});
-  }, []);
+  }, [session?.user?.id, theme, fontSize]);
 
   useEffect(() => {
     if (saveMessage) {

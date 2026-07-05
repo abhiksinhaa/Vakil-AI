@@ -63,6 +63,30 @@ async function getCurrentUser(): Promise<User | null> {
   return data.user;
 }
 
+async function getProfileRow(userId: string): Promise<Profile | null> {
+  const { data: byUserId, error: userIdError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (userIdError) {
+    console.warn('Profile lookup by user_id failed', userIdError);
+  }
+  if (byUserId) return byUserId as Profile;
+
+  const { data: byId, error: idError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (idError) {
+    console.warn('Profile lookup by id failed', idError);
+  }
+  return byId as Profile | null;
+}
+
 async function getIdToken() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
@@ -92,8 +116,7 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const profileRes = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-  let profile = profileRes.data as Profile | null;
+  let profile = await getProfileRow(user.id);
 
   if (!profile) {
     const newProfile = await defaultProfileValues(user, userType);
@@ -137,19 +160,26 @@ export async function fetchProfile(): Promise<Profile | null> {
   const user = await getCurrentUser();
   if (!user) return null;
   await ensureUserRecords();
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-  if (error) {
-    console.error('fetchProfile failed', error);
-    return null;
-  }
-  return data as Profile | null;
+  return getProfileRow(user.id);
 }
 
 export async function updateProfile(updates: Partial<Profile>) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not authenticated');
+
   const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
-  const { data, error } = await supabase.from('profiles').update(cleanUpdates).eq('id', user.id).select().maybeSingle();
+  const profilePayload = {
+    id: user.id,
+    user_id: user.id,
+    ...cleanUpdates,
+  } as Partial<Profile>;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert(profilePayload, { onConflict: 'id' })
+    .select()
+    .maybeSingle();
+
   if (error) {
     console.error('updateProfile failed', error);
     throw error;
