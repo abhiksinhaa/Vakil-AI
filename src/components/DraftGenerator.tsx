@@ -187,30 +187,23 @@ export default function DraftGenerator() {
 
       // These can happen in the background without blocking the UI
       refreshAccount().catch(err => console.error('Failed to refresh account:', err));
-      
-      if (profile?.auto_save_drafts !== false) {
-        try {
-          const res = await saveDraft({
-            draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
-            party1Name: form.party1Name,
-            party1Address: form.party1Address,
-            party2Name: form.party2Name,
-            party2Address: form.party2Address,
-            situation: form.situation,
-            dynamicFields: form.dynamicFields,
-            schema: DOCUMENT_SCHEMAS[form.draftType],
-            generatedDraft: text,
-          });
+
+      void saveDraft({
+        draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
+        party1Name: form.party1Name,
+        party1Address: form.party1Address,
+        party2Name: form.party2Name,
+        party2Address: form.party2Address,
+        situation: form.situation,
+        dynamicFields: form.dynamicFields,
+        schema: DOCUMENT_SCHEMAS[form.draftType],
+        generatedDraft: text,
+      }).then((res) => {
+        if (res?.id) {
           setDraftId(res.id);
-          console.log('✅ Auto-saved draft successfully to users/uid/drafts');
           setSaveSuccess(true);
-        } catch (saveErr: any) {
-          console.error('❌ Failed to auto-save draft:', saveErr);
-          if (saveErr.message?.includes('offline') || saveErr.code === 'unavailable') {
-            setOfflineWarning('Draft generated but not saved to history (offline)');
-          }
         }
-      }
+      });
     } catch (err: any) {
       console.error('Draft generation error:', err);
       setError(err.message || 'Draft could not be generated. Please try again.');

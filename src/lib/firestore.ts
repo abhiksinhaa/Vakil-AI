@@ -18,14 +18,14 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
   return {
     id,
     user_id: String(data.user_id ?? ''),
-    draft_type: String(data.documentType ?? data.draft_type ?? ''),
-    party1_name: String(data.partyName ?? data.party1_name ?? ''),
+    draft_type: String(data.document_type ?? data.documentType ?? data.draft_type ?? ''),
+    party1_name: String(data.party_name ?? data.partyName ?? data.party1_name ?? ''),
     party1_address: String(data.party1_address ?? ''),
     party2_name: String(data.party2_name ?? ''),
     party2_address: String(data.party2_address ?? ''),
     situation: String(data.situation ?? ''),
     amount: (data.amount as string) ?? null,
-    generated_draft: String(data.draftContent ?? data.generated_draft ?? ''),
+    generated_draft: String(data.draft_content ?? data.draftContent ?? data.generated_draft ?? ''),
     created_at: tsToIso(data.created_at ?? data.createdAt),
   };
 }
@@ -33,7 +33,7 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
 export async function saveDraft(draft: DraftInput) {
   const { data: authData, error: authError } = await supabase.auth.getUser();
   const currentUser = authData?.user;
-  if (authError || !currentUser) throw new Error('Not authenticated');
+  if (authError || !currentUser) return null;
 
   let fullSituation = draft.situation || '';
   let extractedAmount = draft.amount || null;
@@ -69,28 +69,21 @@ export async function saveDraft(draft: DraftInput) {
   const now = new Date().toISOString();
   const draftRow = {
     user_id: currentUser.id,
-    documentType: draft.draftType,
-    partyName: draft.party1Name ?? '',
-    draftContent: draft.generatedDraft,
+    document_type: draft.draftType,
+    party_name: draft.party1Name || 'Unknown',
+    draft_content: draft.generatedDraft,
     created_at: now,
-    draft_type: draft.draftType,
-    party1_name: draft.party1Name ?? '',
-    party1_address: draft.party1Address ?? '',
-    party2_name: draft.party2Name ?? '',
-    party2_address: draft.party2Address ?? '',
     situation: fullSituation,
     amount: extractedAmount,
-    generated_draft: draft.generatedDraft,
-    updated_at: now,
   };
 
   const { data, error } = await supabase.from('drafts').insert(draftRow).select('id').single();
   if (error) {
-    console.error('saveDraft failed', error);
-    throw error;
+    console.error('Draft save error:', error);
+    return null;
   }
 
-  return { id: data.id };
+  return { id: data?.id ?? null };
 }
 
 export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
