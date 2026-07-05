@@ -50,42 +50,36 @@ export default function ProfilePage() {
       const user = authData?.user;
       if (!user) return;
 
-      let profileRow: any = null;
-      const { data: byUserId, error: userIdError } = await supabase
+      const { data: profileRow, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
-      if (userIdError) {
-        console.error('Profile load failed', userIdError);
+      console.log('Profile page fetched data:', profileRow, profileError);
+
+      if (profileError) {
+        console.error('Profile load failed', profileError);
+        setForm({
+          full_name: '',
+          advocate_name: '',
+          bar_council_number: '',
+          court_jurisdiction: '',
+          state: '',
+          city: '',
+          pincode: '',
+        });
         return;
-      }
-
-      profileRow = byUserId;
-
-      if (!profileRow) {
-        const { data: byId, error: idError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (idError) {
-          console.error('Profile load failed', idError);
-          return;
-        }
-        profileRow = byId;
       }
 
       if (profileRow) {
         setForm({
-          full_name: profileRow.full_name || '',
-          advocate_name: profileRow.advocate_name || '',
+          full_name: profileRow.full_name || profileRow.advocate_name || '',
+          advocate_name: profileRow.advocate_name || profileRow.full_name || '',
           bar_council_number: profileRow.bar_council_number || '',
-          court_jurisdiction: profileRow.court_jurisdiction || '',
+          court_jurisdiction: profileRow.city_court || profileRow.city || profileRow.court_jurisdiction || '',
           state: profileRow.state || '',
-          city: profileRow.city || '',
+          city: profileRow.city_court || profileRow.city || '',
           pincode: profileRow.pincode || '',
         });
       }
