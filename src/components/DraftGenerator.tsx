@@ -215,6 +215,8 @@ export default function DraftGenerator() {
         phone_number: !isAdvocateUserForModal ? profileCompletionForm.phoneNumber.trim() : nextProfile.phone_number || '',
       } satisfies Partial<Profile>;
 
+      console.log('Draft modal profile payload:', updatedProfileData);
+
       const savedProfile = await updateProfile(updatedProfileData);
       console.log('Draft modal saved profile:', savedProfile);
       const mergedProfile = { ...(profile ?? {}), ...nextProfile, ...savedProfile, ...updatedProfileData } as Profile;

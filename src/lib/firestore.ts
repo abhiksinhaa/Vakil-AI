@@ -69,15 +69,21 @@ export async function saveDraft(draft: DraftInput) {
   const now = new Date().toISOString();
   const draftRow = {
     user_id: currentUser.id,
-    document_type: draft.draftType,
-    party_name: draft.party1Name || 'Unknown',
-    draft_content: draft.generatedDraft,
-    created_at: now,
+    draft_type: draft.draftType,
+    party1_name: draft.party1Name || '',
+    party1_address: draft.party1Address || '',
+    party2_name: draft.party2Name || '',
+    party2_address: draft.party2Address || '',
     situation: fullSituation,
     amount: extractedAmount,
+    generated_draft: draft.generatedDraft,
+    created_at: now,
   };
 
+  console.log('Saving draft row:', draftRow);
+
   const { data, error } = await supabase.from('drafts').insert(draftRow).select('id').single();
+  console.log('Draft save response:', { data, error });
   if (error) {
     console.error('Draft save error:', error);
     return null;
