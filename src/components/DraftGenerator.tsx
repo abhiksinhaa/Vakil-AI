@@ -172,6 +172,16 @@ export default function DraftGenerator() {
     setSaveSuccess(false);
   };
 
+  const shouldSkipProfilePopup = () => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('profileComplete') === 'true';
+  };
+
+  const persistProfileCompletionState = (completed: boolean) => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('profileComplete', completed ? 'true' : 'false');
+  };
+
   const handleProfileCompletionSubmit = async () => {
     const nextProfile = { ...profile } as Partial<Profile>;
     const isAdvocateUserForModal = (nextProfile.user_type ?? 'advocate') !== 'individual';
@@ -223,6 +233,7 @@ export default function DraftGenerator() {
 
       setProfile((prev) => (prev ? { ...prev, ...mergedProfile } : prev));
       setProfileFilled(isUserProfileComplete(mergedProfile));
+      persistProfileCompletionState(true);
       setForm((prev) => ({
         ...prev,
         advocateName: mergedProfile.advocate_name || prev.advocateName,
@@ -239,11 +250,50 @@ export default function DraftGenerator() {
 
   const runGenerate = async (profileSnapshot?: Partial<Profile> | null) => {
     const profileToUse = profileSnapshot ?? profile;
-    const isCompleteProfile = isUserProfileComplete(profileToUse);
 
-    if (!isCompleteProfile) {
+    if (shouldSkipProfilePopup()) {
       setProfileCompletionError(null);
-      setShowProfileCompletionModal(true);
+      setShowProfileCompletionModal(false);
+    } else {
+      const userId = session?.user?.id;
+      if (!userId) {
+        setProfileCompletionError(null);
+        setShowProfileCompletionModal(true);
+        return;
+      }
+
+      try {
+        const { data: profileRow, error: profileError } = await import('../lib/supabase').then(({ supabase }) =>
+          supabase.from('profiles').select('*').eq('user_id', userId).single()
+        );
+
+        if (profileError) {
+          console.warn('Profile lookup failed, showing popup:', profileError);
+          setProfileCompletionError(null);
+          setShowProfileCompletionModal(true);
+          return;
+        }
+
+        const hasSavedProfile = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
+        if (hasSavedProfile) {
+          persistProfileCompletionState(true);
+          setProfileCompletionError(null);
+          setShowProfileCompletionModal(false);
+        } else {
+          setProfileCompletionError(null);
+          setShowProfileCompletionModal(true);
+          return;
+        }
+      } catch (err) {
+        console.error('Profile lookup failed:', err);
+        setProfileCompletionError(null);
+        setShowProfileCompletionModal(true);
+        return;
+      }
+    }
+
+    const isCompleteProfile = isUserProfileComplete(profileToUse);
+    if (!isCompleteProfile && !shouldSkipProfilePopup()) {
       return;
     }
 
