@@ -125,7 +125,7 @@ export default function TermsContent() {
         <ul className="list-disc pl-5 space-y-2">
           <li>Draftee collects your email, advocate profile details, and draft history to provide its services.</li>
           <li>We do not sell your personal data to third parties.</li>
-          <li>Your draft content is stored securely via Google Firebase.</li>
+          <li>Your draft content is stored securely via Supabase.</li>
           <li>By using Draftee, you consent to the collection and processing of your data as described above.</li>
           <li>For data deletion requests, contact: <a href="mailto:abhiksinha1523@gmail.com" className="text-gold hover:underline">abhiksinha1523@gmail.com</a></li>
         </ul>

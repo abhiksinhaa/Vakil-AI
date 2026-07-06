@@ -7,7 +7,7 @@ import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
 import FactsTextareaWithMic from './FactsTextareaWithMic';
 import { generateLegalDraft } from '../lib/claude';
-import { saveDraft } from '../lib/firestore';
+import { saveDraft } from '../lib/db';
 import { useApp } from '../context/AppContext';
 import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
@@ -313,7 +313,7 @@ export default function DraftGenerator() {
           return;
         }
       } catch (allowanceErr: any) {
-        // If offline or Firestore fails, we allow generation to proceed
+        // If offline or Supabase fails, we allow generation to proceed
         if (allowanceErr.message?.includes('offline') || allowanceErr.code === 'unavailable') {
           console.warn('Offline mode: Bypassing allowance check.');
         } else {
@@ -344,12 +344,19 @@ export default function DraftGenerator() {
         dynamicFields: form.dynamicFields,
         schema: DOCUMENT_SCHEMAS[form.draftType],
         generatedDraft: text,
-      }).then((res) => {
-        if (res?.id) {
-          setDraftId(res.id);
-          setSaveSuccess(true);
-        }
-      });
+      })
+        .then((res) => {
+          if (res?.id) {
+            setDraftId(res.id);
+            setSaveSuccess(true);
+          } else {
+            console.error('Draft auto-save did not return an id:', res);
+          }
+        })
+        .catch((err) => {
+          console.error('Draft auto-save failed:', err);
+          setSaveSuccess(false);
+        });
     } catch (err: any) {
       console.error('Draft generation error:', err);
       setError(err.message || 'Draft could not be generated. Please try again.');

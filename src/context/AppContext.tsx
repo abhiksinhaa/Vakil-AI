@@ -45,7 +45,7 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-/** Build the session shape the UI components expect from the Firebase user. */
+/** Build the session shape the UI components expect from the Supabase user. */
 function toSession(user: SupabaseUser | null): Session | null {
   if (!user) return null;
   return {

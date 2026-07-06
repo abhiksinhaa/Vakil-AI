@@ -1,4 +1,4 @@
-// Shared shapes for the Firestore-backed data layer.
+// Shared shapes for the Supabase-backed data layer.
 // Field names use snake_case so the UI components can read them unchanged.
 
 export interface Profile {

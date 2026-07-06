@@ -72,10 +72,10 @@ export default function PrivacyContent() {
       <section>
         <h2 className="text-xl font-display text-gold mb-3">5. Data Storage</h2>
         <ul className="list-disc pl-5 space-y-2">
-          <li>Your account data and draft history are stored securely using <strong>Google Firebase</strong> (Cloud Firestore).</li>
+          <li>Your account data and draft history are stored securely using <strong>Supabase</strong>.</li>
           <li>Data is stored on secure servers with encryption at rest and in transit.</li>
           <li>Your drafts are only accessible to you through your account — other users cannot see your drafts.</li>
-          <li>Firestore Security Rules are enabled — each user can only access their own data.</li>
+          <li>Supabase Row Level Security is enabled — each user can only access their own data.</li>
         </ul>
       </section>
 
@@ -86,7 +86,7 @@ export default function PrivacyContent() {
         <p className="mb-4">We do <strong>NOT</strong> sell your personal data to anyone.</p>
         <p className="mb-2">We may share your data only in these limited cases:</p>
         <ul className="list-disc pl-5 space-y-2">
-          <li><strong>Service Providers:</strong> Google Firebase (database &amp; authentication), Google Gemini (AI processing), Vercel (hosting) — only as necessary to provide the service</li>
+          <li><strong>Service Providers:</strong> Supabase (database &amp; authentication), Google Gemini (AI processing), Vercel (hosting) — only as necessary to provide the service</li>
           <li><strong>Legal Requirements:</strong> If required by Indian law, court order, or government authority</li>
           <li><strong>Business Transfer:</strong> In case of merger or acquisition, with appropriate notice to users</li>
           <li><strong>With Your Consent:</strong> Any other sharing only with your explicit permission</li>
@@ -140,8 +140,8 @@ export default function PrivacyContent() {
         <p className="mb-2">We take reasonable measures to protect your data including:</p>
         <ul className="list-disc pl-5 space-y-2 mb-4">
           <li>HTTPS encryption for all data in transit</li>
-          <li>Encrypted database storage via Google Firebase</li>
-          <li>Firestore Security Rules — users can only access their own data</li>
+          <li>Encrypted database storage via Supabase</li>
+          <li>Supabase Row Level Security — users can only access their own data</li>
           <li>Secure authentication via Firebase Authentication</li>
         </ul>
         <p>However, no method of transmission over the internet is 100% secure. We cannot guarantee absolute security.</p>

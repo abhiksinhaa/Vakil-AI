@@ -30,13 +30,18 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
   };
 }
 
-export async function saveDraft(draft: DraftInput) {
+async function getCurrentUser() {
   const { data: authData, error: authError } = await supabase.auth.getUser();
-  const currentUser = authData?.user;
-  if (authError || !currentUser) {
-    console.error('Supabase auth user fetch failed while saving draft:', authError);
+  if (authError) {
+    console.error('Supabase auth user fetch failed:', authError);
     return null;
   }
+  return authData?.user ?? null;
+}
+
+export async function saveDraft(draft: DraftInput) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return null;
 
   let fullSituation = draft.situation || '';
   let extractedAmount = draft.amount || null;
@@ -102,9 +107,8 @@ export async function saveDraft(draft: DraftInput) {
 }
 
 export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  const currentUser = authData?.user;
-  if (authError || !currentUser) return [];
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return [];
 
   const { data, error } = await supabase
     .from('drafts')
@@ -122,9 +126,8 @@ export async function fetchRecentDrafts(max = 5): Promise<DraftRecord[]> {
 }
 
 export async function fetchAllDrafts(): Promise<DraftRecord[]> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  const currentUser = authData?.user;
-  if (authError || !currentUser) return [];
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return [];
 
   const { data, error } = await supabase
     .from('drafts')
@@ -140,16 +143,9 @@ export async function fetchAllDrafts(): Promise<DraftRecord[]> {
   return (data || []).map((row) => mapDraft(String((row as any).id), row as Record<string, unknown>));
 }
 
-export async function saveWaitlist(entry: Record<string, string>) {
-  const now = new Date().toISOString();
-  const { error } = await supabase.from('waitlist').insert([{ ...entry, created_at: now }]);
-  return { data: error ? null : true, error };
-}
-
 export async function saveChatSession(sessionId: string, messages: any[]) {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  const currentUser = authData?.user;
-  if (authError || !currentUser || messages.length <= 1) return;
+  const currentUser = await getCurrentUser();
+  if (!currentUser || messages.length <= 1) return;
 
   const cleanMessages = messages.map((msg) => {
     const cleanMsg = { ...msg };
@@ -172,6 +168,7 @@ export async function saveChatSession(sessionId: string, messages: any[]) {
       messages: cleanMessages,
     },
   ]);
+
   if (error) {
     console.error('saveChatSession failed', error);
     throw error;
@@ -179,9 +176,8 @@ export async function saveChatSession(sessionId: string, messages: any[]) {
 }
 
 export async function fetchChatHistory(): Promise<ChatSession[]> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  const currentUser = authData?.user;
-  if (authError || !currentUser) return [];
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return [];
 
   const { data, error } = await supabase
     .from('chat_sessions')
@@ -192,7 +188,7 @@ export async function fetchChatHistory(): Promise<ChatSession[]> {
 
   if (error) {
     console.error('fetchChatHistory failed', error);
-    throw error;
+    return [];
   }
 
   return (data || []).map((row) => ({

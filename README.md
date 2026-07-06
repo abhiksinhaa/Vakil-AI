@@ -6,8 +6,7 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - Tailwind CSS
-- **Firebase** — Authentication (Email/Password + Google) & Cloud Firestore
-- **Firebase Admin SDK** — server-side Pro activation & referral rewards (Next route handlers)
+- **Supabase** — Authentication and database backend
 - Google Gemini (`gemini-2.5-flash`) via the `/api/gemini` route handler
 - Razorpay for the Pro plan (`/api/razorpay/*`)
 - Deploy on [Vercel](https://vercel.com)
@@ -20,13 +19,13 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 npm install
 ```
 
-### 2. Create a Firebase project
+### 2. Create a Supabase project
 
-1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
-2. **Authentication → Sign-in method**: enable **Email/Password** and **Google**.
-3. **Firestore Database**: create a database (production mode).
-4. **Project settings → General → Your apps**: add a Web app and copy the config values.
-5. **Project settings → Service accounts → Generate new private key**: download the JSON (used by the server for Pro activation & referral rewards).
+1. Create a project at [app.supabase.com](https://app.supabase.com).
+2. Enable **Authentication** with **Email/Password** and **Google** providers.
+3. Create the necessary tables: `profiles`, `subscriptions`, `drafts`, `chat_sessions`, `referrals`, `feedback`, `waitlist`.
+4. In **Project Settings → API**, copy the `URL` and `anon public` key.
+5. In **Project Settings → API**, copy the **Service Role** key for server-only operations.
 
 ### 3. Environment variables
 
@@ -34,25 +33,36 @@ Copy `.env.example` to `.env.local` and fill in:
 
 | Variable | Where to find it |
 | --- | --- |
-| `NEXT_PUBLIC_FIREBASE_*` | Firebase web app config (API key, auth domain, project id, etc.) |
-| `FIREBASE_SERVICE_ACCOUNT_KEY` | The service-account JSON, **minified onto one line** |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
 | `GEMINI_MODEL` | optional, default `gemini-2.5-flash` |
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` / `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Razorpay dashboard (optional — Pro plan) |
 
-> `NEXT_PUBLIC_*` values are exposed to the browser (safe for Firebase web config). Everything else stays server-only.
+> `NEXT_PUBLIC_*` values are exposed to the browser (safe for public Supabase config). Everything else stays server-only.
 
-### 4. Deploy Firestore rules & indexes
+### 4. Configure Supabase database
 
-The security rules and composite indexes live in `firestore.rules` / `firestore.indexes.json`.
+Create the required tables and RLS policies in Supabase. Example RLS setup for `drafts`:
 
-```bash
-npm i -g firebase-tools
-firebase login
-firebase deploy --only firestore:rules,firestore:indexes
+```sql
+ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can only see their own drafts" ON drafts;
+
+CREATE POLICY "Users can only see their own drafts"
+ON drafts FOR SELECT
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own drafts"
+ON drafts FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Enable read access for all users"
+ON drafts FOR SELECT
+USING (true);
 ```
-
-(Or run the local emulators with `firebase emulators:start`.)
 
 ### 5. Run locally
 
@@ -69,27 +79,26 @@ npm run build
 npm start
 ```
 
-## Data model (Firestore)
+## Data model (Supabase)
 
-| Collection | Doc id | Purpose |
+| Table | Primary key | Purpose |
 | --- | --- | --- |
-| `profiles` | uid | advocate details, theme, referral code |
-| `subscriptions` | uid | plan, Pro expiry, usage counters |
+| `profiles` | `id` / `user_id` | advocate details, theme, referral code |
+| `subscriptions` | `id` | plan, Pro expiry, usage counters |
 | `drafts` | auto | saved generated drafts |
-| `referrals` | referred uid | one referral per referred user |
-| `referralCodes` | CODE | code → uid lookup |
+| `referrals` | `id` | referral entries |
 | `payments` | auto | Razorpay payment records (server-written) |
 | `feedback` / `waitlist` | auto | user submissions |
 
-Sensitive writes — activating Pro after a verified payment and granting referral rewards — are performed **only** by the Admin SDK in server route handlers; clients cannot self-grant Pro (enforced by `firestore.rules`).
+Sensitive writes — activating Pro after a verified payment and granting referral rewards — are performed **only** by the server route handlers; clients cannot self-grant Pro (enforced by Supabase RLS and server-side checks).
 
 ## Deploy to Vercel
 
 1. Push the repo to GitHub and import it in Vercel (framework auto-detected as **Next.js**).
 2. In **Project Settings → Environment Variables**, add every variable from `.env.example`
-   (the `NEXT_PUBLIC_FIREBASE_*` set, `FIREBASE_SERVICE_ACCOUNT_KEY`, `GEMINI_API_KEY`, and the Razorpay keys).
-3. Deploy. The `/api/*` endpoints are served as Next.js route handlers automatically — no `vercel.json` needed.
-4. Add your Vercel domain to **Firebase → Authentication → Settings → Authorized domains**.
+   (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, and the Razorpay keys).
+5. Deploy. The `/api/*` endpoints are served as Next.js route handlers automatically — no `vercel.json` needed.
+6. Add your Vercel domain to your Supabase Authentication settings, if required.
 
 ---
 

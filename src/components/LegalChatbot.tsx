@@ -11,7 +11,7 @@ import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { buildChatTranscript, sendLegalChatMessage } from '../lib/legalChat';
 import { readFileForChat } from '../lib/readChatFile';
 import { stripMarkdown } from '../lib/stripMarkdown';
-import { saveChatSession, fetchChatHistory, type ChatSession } from '../lib/firestore';
+import { saveChatSession, fetchChatHistory, type ChatSession } from '../lib/db';
 import LiveVoiceMode from './LiveVoiceMode';
 import NeikxSettingsPanel from './NeikxSettingsPanel';
 
@@ -304,7 +304,7 @@ export default function LegalChatbot() {
 
   const handleFeedbackSubmit = () => {
     if (!appFeedbackRating && !appFeedbackText.trim()) return;
-    // For now we simulate saving to Firebase.
+    // For now we simulate saving to Supabase.
     console.log('Feedback submitted:', { rating: appFeedbackRating, text: appFeedbackText });
     setAppFeedbackSubmitted(true);
     setTimeout(() => {

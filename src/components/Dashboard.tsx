@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import CourtNewsCarousel from './CourtNewsCarousel';
-import { fetchRecentDrafts } from '../lib/firestore';
+import { fetchRecentDrafts } from '../lib/db';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { useApp } from '../context/AppContext';
 import { FREE_DRAFT_LIMIT } from '../lib/userAccount';

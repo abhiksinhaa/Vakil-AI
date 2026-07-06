@@ -61,7 +61,7 @@ const HELP_DATA = [
     articles: [
       {
         question: "Is my data safe",
-        answer: "Yes. All your data is encrypted and stored securely using Google Firebase. Security rules ensure only you can access your drafts. We never sell your personal data to third parties."
+        answer: "Yes. All your data is encrypted and stored securely using Supabase. Access is restricted to your account only, and we never sell your personal data to third parties."
       },
       {
         question: "What laws does Draftee follow",
