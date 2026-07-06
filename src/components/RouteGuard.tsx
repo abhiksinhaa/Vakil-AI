@@ -35,7 +35,7 @@ export function PublicOnly({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!authLoading && session) {
-      router.replace('/dashboard');
+      router.replace('/generate');
     }
   }, [authLoading, session, router]);
 

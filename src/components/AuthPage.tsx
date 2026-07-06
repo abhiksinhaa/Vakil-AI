@@ -84,7 +84,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
           await applyPendingReferral();
         }
       }
-      router.replace('/dashboard');
+      router.replace('/generate');
     } catch (err: any) {
       console.error('Supabase auth submit error:', err);
       setError(friendlyAuthError(err?.code || err?.status, err?.message));
@@ -97,10 +97,10 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
     setError('');
     setGoogleLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/generate`,
           queryParams: { prompt: 'select_account' },
         },
       });
