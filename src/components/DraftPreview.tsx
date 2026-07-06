@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
+import { fetchProfile, updateProfile } from '../lib/userAccount';
 export default function DraftPreview({
   draft,
   draftId,
@@ -25,6 +26,10 @@ export default function DraftPreview({
   const [pdfError, setPdfError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editBuffer, setEditBuffer] = useState('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', barCouncilNumber: '', cityCourt: '' });
+  const [pendingAction, setPendingAction] = useState<null | 'copy' | 'pdf' | 'whatsapp' | 'email'>(null);
 
   const displayDraft = useMemo(
     () => (draft ? stripMarkdown(draft) : ''),
@@ -50,7 +55,21 @@ export default function DraftPreview({
 
   const handleCopy = async () => {
     if (!displayDraft) return;
+    // Ensure profile present before copying
     try {
+      const profileRow = await fetchProfile();
+      const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
+      if (!hasName) {
+        setProfileForm({
+          name: profile?.advocate_name || profile?.full_name || '',
+          barCouncilNumber: profile?.bar_council_number || '',
+          cityCourt: profile?.court_jurisdiction || profile?.city || '',
+        });
+        setPendingAction('copy');
+        setShowProfileModal(true);
+        return;
+      }
+
       await navigator.clipboard.writeText(displayDraft);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -74,36 +93,204 @@ export default function DraftPreview({
   const handleDownloadPdf = async () => {
     if (!displayDraft || isPdfLoading) return;
     setPdfError(null);
-    setIsPdfLoading(true);
+    // Ensure profile exists before allowing PDF download
     try {
-      await downloadDraftPdf(displayDraft, formData);
+      const profileRow = await fetchProfile();
+      const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
+      if (!hasName) {
+        setProfileForm({
+          name: profile?.advocate_name || profile?.full_name || '',
+          barCouncilNumber: profile?.bar_council_number || '',
+          cityCourt: profile?.court_jurisdiction || profile?.city || '',
+        });
+        setPendingAction('pdf');
+        setShowProfileModal(true);
+        return;
+      }
+
+      setIsPdfLoading(true);
+      try {
+        await downloadDraftPdf(displayDraft, formData);
+      } catch (err) {
+        console.error('PDF export failed:', err);
+        setPdfError('PDF could not be downloaded. Please try again.');
+      } finally {
+        setIsPdfLoading(false);
+      }
     } catch (err) {
-      console.error('PDF export failed:', err);
-      setPdfError('PDF could not be downloaded. Please try again.');
-    } finally {
-      setIsPdfLoading(false);
+      console.error('Profile lookup failed before PDF download', err);
+      setPdfError('Could not verify profile before download. Please try again.');
     }
   };
 
   const handleWhatsApp = () => {
     if (!displayDraft) return;
-    openWhatsAppShare(displayDraft);
+    (async () => {
+      try {
+        const profileRow = await fetchProfile();
+        const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
+        if (!hasName) {
+          setProfileForm({
+            name: profile?.advocate_name || profile?.full_name || '',
+            barCouncilNumber: profile?.bar_council_number || '',
+            cityCourt: profile?.court_jurisdiction || profile?.city || '',
+          });
+          setPendingAction('whatsapp');
+          setShowProfileModal(true);
+          return;
+        }
+        openWhatsAppShare(displayDraft);
+      } catch (err) {
+        console.error('Profile lookup failed before WhatsApp share', err);
+      }
+    })();
   };
 
   const handleEmail = () => {
     if (!displayDraft) return;
-    openEmailDraft({
-      body: displayDraft,
-      draftType: formData?.draftType,
-    });
+    (async () => {
+      try {
+        const profileRow = await fetchProfile();
+        const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
+        if (!hasName) {
+          setProfileForm({
+            name: profile?.advocate_name || profile?.full_name || '',
+            barCouncilNumber: profile?.bar_council_number || '',
+            cityCourt: profile?.court_jurisdiction || profile?.city || '',
+          });
+          setPendingAction('email');
+          setShowProfileModal(true);
+          return;
+        }
+        openEmailDraft({
+          body: displayDraft,
+          draftType: formData?.draftType,
+        });
+      } catch (err) {
+        console.error('Profile lookup failed before Email share', err);
+      }
+    })();
   };
 
   const handleSaveWrapper = () => {
     onSave?.();
   };
 
+  const performPendingAction = async () => {
+    if (!pendingAction) return;
+    const text = displayDraft;
+    try {
+      if (pendingAction === 'copy') {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else if (pendingAction === 'pdf') {
+        setIsPdfLoading(true);
+        try {
+          await downloadDraftPdf(text, formData);
+        } catch (err) {
+          console.error('PDF export failed after profile save:', err);
+          setPdfError('PDF could not be downloaded. Please try again.');
+        } finally {
+          setIsPdfLoading(false);
+        }
+      } else if (pendingAction === 'whatsapp') {
+        openWhatsAppShare(text);
+      } else if (pendingAction === 'email') {
+        openEmailDraft({ body: text, draftType: formData?.draftType });
+      }
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    setProfileSaving(true);
+    try {
+      const updates: any = {
+        advocate_name: profileForm.name?.trim() || null,
+        full_name: profileForm.name?.trim() || null,
+        bar_council_number: profileForm.barCouncilNumber?.trim() || null,
+        court_jurisdiction: profileForm.cityCourt?.trim() || null,
+        city: profileForm.cityCourt?.trim() || null,
+      };
+      await updateProfile(updates);
+      setShowProfileModal(false);
+      await performPendingAction();
+    } catch (err: any) {
+      console.error('Saving profile failed:', err);
+      alert(err.message || 'Could not save profile. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   return (
     <div className="card h-full flex flex-col min-h-[400px] lg:min-h-0">
+      {showProfileModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
+          <div className="card max-w-md w-full space-y-4">
+            <div className="space-y-2 text-center">
+              <h3 className="font-display text-xl text-cream">Complete Your Profile</h3>
+              <p className="text-cream/70 text-sm">Please add your name and city/court to continue.</p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-cream/80">Name <span className="text-red-400">*</span></label>
+                <input
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-cream/80">Bar Council Number <span className="text-cream/60 text-xs">(Optional)</span></label>
+                <input
+                  value={profileForm.barCouncilNumber}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, barCouncilNumber: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-cream/80">City / Court <span className="text-red-400">*</span></label>
+                <input
+                  value={profileForm.cityCourt}
+                  onChange={(e) => setProfileForm((p) => ({ ...p, cityCourt: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!profileForm.name.trim() || !profileForm.cityCourt.trim()) {
+                    alert('Please enter Name and City / Court');
+                    return;
+                  }
+                  await handleProfileSave();
+                }}
+                disabled={profileSaving}
+                className="btn-primary flex-1"
+              >
+                {profileSaving ? 'Saving…' : 'Save & Continue'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileModal(false);
+                  setPendingAction(null);
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-border">
         <h2 className="font-display text-lg text-cream">Draft Preview</h2>
         {draft && !isGenerating && !isEditing && (
