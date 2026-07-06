@@ -49,7 +49,7 @@ const INITIAL_FORM = {
   party2Address: '',
   situation: '',
   language: 'English',
-  incidentTiming: '',
+  incidentTiming: 'after',
   dynamicFields: {} as Record<string, string>,
 };
 
@@ -81,7 +81,7 @@ export default function DraftGenerator() {
   const [profileFilled, setProfileFilled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<false | 'advocate' | 'individual'>(false);
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
-  const [showAdvocateDetails, setShowAdvocateDetails] = useState(false);
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -98,6 +98,30 @@ export default function DraftGenerator() {
 
   const update = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setSaveSuccess(false);
+  };
+
+  const getSubmissionForm = (currentForm = form) => ({
+    ...currentForm,
+    dynamicFields: {
+      ...currentForm.dynamicFields,
+      ...(currentForm.draftType === 'Affidavit'
+        ? { facts_and_statements: currentForm.situation || currentForm.dynamicFields.facts_and_statements || '' }
+        : {}),
+    },
+  });
+
+  const handleSituationChange = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      situation: value,
+      dynamicFields: prev.draftType === 'Affidavit'
+        ? {
+            ...prev.dynamicFields,
+            facts_and_statements: value,
+          }
+        : prev.dynamicFields,
+    }));
     setSaveSuccess(false);
   };
 
@@ -145,7 +169,9 @@ export default function DraftGenerator() {
       ...prev,
       draftType: value,
       partyMentionStyle: style,
-      dynamicFields: {}, // Reset dynamic fields when changing types
+      dynamicFields: value === 'Affidavit'
+        ? { facts_and_statements: prev.situation || prev.dynamicFields.facts_and_statements || '' }
+        : {},
     }));
     setSaveSuccess(false);
   };
@@ -178,9 +204,10 @@ export default function DraftGenerator() {
 
       setGeneratingStatus('Generating Document...');
 
+      const submissionForm = getSubmissionForm();
       const text = await generateLegalDraft({
-        ...form,
-        schema: DOCUMENT_SCHEMAS[form.draftType],
+        ...submissionForm,
+        schema: DOCUMENT_SCHEMAS[submissionForm.draftType],
       }, (status) => setGeneratingStatus(status));
       
       setDraft(text);
@@ -190,14 +217,14 @@ export default function DraftGenerator() {
       refreshAccount().catch(err => console.error('Failed to refresh account:', err));
 
       void saveDraft({
-        draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
-        party1Name: form.party1Name,
-        party1Address: form.party1Address,
-        party2Name: form.party2Name,
-        party2Address: form.party2Address,
-        situation: form.situation,
-        dynamicFields: form.dynamicFields,
-        schema: DOCUMENT_SCHEMAS[form.draftType],
+        draftType: submissionForm.draftType === 'Affidavit' ? `Affidavit - ${submissionForm.affidavitSubType}` : submissionForm.draftType,
+        party1Name: submissionForm.party1Name,
+        party1Address: submissionForm.party1Address,
+        party2Name: submissionForm.party2Name,
+        party2Address: submissionForm.party2Address,
+        situation: submissionForm.situation,
+        dynamicFields: submissionForm.dynamicFields,
+        schema: DOCUMENT_SCHEMAS[submissionForm.draftType],
         generatedDraft: text,
       })
         .then((res) => {
@@ -223,15 +250,16 @@ export default function DraftGenerator() {
     if (!draft) return;
     setIsSaving(true);
     try {
+      const submissionForm = getSubmissionForm();
       await saveDraft({
-        draftType: form.draftType === 'Affidavit' ? `Affidavit - ${form.affidavitSubType}` : form.draftType,
-        party1Name: form.party1Name,
-        party1Address: form.party1Address,
-        party2Name: form.party2Name,
-        party2Address: form.party2Address,
-        situation: form.situation,
-        dynamicFields: form.dynamicFields,
-        schema: DOCUMENT_SCHEMAS[form.draftType],
+        draftType: submissionForm.draftType === 'Affidavit' ? `Affidavit - ${submissionForm.affidavitSubType}` : submissionForm.draftType,
+        party1Name: submissionForm.party1Name,
+        party1Address: submissionForm.party1Address,
+        party2Name: submissionForm.party2Name,
+        party2Address: submissionForm.party2Address,
+        situation: submissionForm.situation,
+        dynamicFields: submissionForm.dynamicFields,
+        schema: DOCUMENT_SCHEMAS[submissionForm.draftType],
         generatedDraft: draft,
         // If we are in handleSave, it's manually triggered, but `runGenerate` already saved it. 
         // We'll keep default unlocked true, or fetch from state. For simplicity, since it's an auto-saved draft, it's safer to just let the backend handle it or omit if it exists.
@@ -345,8 +373,12 @@ export default function DraftGenerator() {
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:min-h-[calc(100vh-12rem)]">
           <div
-            className="lg:w-[40%] shrink-0 space-y-6 overflow-y-auto max-h-none lg:max-h-[calc(100vh-10rem)] lg:pr-2 pb-10"
+            className="lg:w-[40%] shrink-0 space-y-6 overflow-y-auto max-h-none lg:max-h-[calc(100vh-10rem)] lg:pr-2 pb-24"
           >
+            <div className="rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
+              Just 3 quick fields to generate — more details are optional.
+            </div>
+
             {/* DOCUMENT TYPE SELECTOR */}
             <section className="card space-y-4">
               <h2 className="font-display text-lg text-gold">Document Type</h2>
@@ -382,171 +414,15 @@ export default function DraftGenerator() {
                   </select>
                 </div>
               )}
-
-              {/* PARTY MENTION STYLE SELECTOR */}
-              <div className="mt-4">
-                <label htmlFor="partyMentionStyle">Include Party Details</label>
-                <select
-                  id="partyMentionStyle"
-                  value={form.partyMentionStyle}
-                  onChange={(e) => update('partyMentionStyle', e.target.value)}
-                  className="w-full text-base py-3 mt-1"
-                >
-                  <option value="include">Party 1 & Party 2 Details</option>
-                  <option value="party1_only">Party 1 Details Only</option>
-                  <option value="simple">Simple Format (No Party Details)</option>
-                </select>
-              </div>
             </section>
 
-            {/* PARTY DETAILS (Conditional) */}
-            {(form.partyMentionStyle === 'include' || form.partyMentionStyle === 'party1_only') && (
-              <section className="card space-y-4 border-l-4 border-l-gold/50">
-                <h2 className="font-display text-lg text-gold">{currentSchema.party1Label} (Party 1) <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
-                <div>
-                  <label htmlFor="party1Name">Full Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                  <input
-                    id="party1Name"
-                    value={form.party1Name}
-                    onChange={(e) => update('party1Name', e.target.value)}
-                    placeholder="Enter full name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="party1Address">Address <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                  <textarea
-                    id="party1Address"
-                    rows={2}
-                    value={form.party1Address}
-                    onChange={(e) => update('party1Address', e.target.value)}
-                    placeholder="Enter complete address"
-                  />
-                </div>
-              </section>
-            )}
-
-            {form.partyMentionStyle === 'include' && (
-              <section className="card space-y-4 border-l-4 border-l-cream/20">
-                <h2 className="font-display text-lg text-gold">{currentSchema.party2Label} (Party 2) <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
-                <div>
-                  <label htmlFor="party2Name">Full Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                  <input
-                    id="party2Name"
-                    value={form.party2Name}
-                    onChange={(e) => update('party2Name', e.target.value)}
-                    placeholder="Enter full name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="party2Address">Address <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                  <textarea
-                    id="party2Address"
-                    rows={2}
-                    value={form.party2Address}
-                    onChange={(e) => update('party2Address', e.target.value)}
-                    placeholder="Enter complete address"
-                  />
-                </div>
-              </section>
-            )}
-
-            {/* COLLAPSIBLE ADVOCATE DETAILS */}
-            <section className="card space-y-4 transition-all duration-300">
-              <button 
-                type="button" 
-                onClick={() => setShowAdvocateDetails(!showAdvocateDetails)}
-                className="w-full flex items-center justify-between"
-              >
-                <h2 className="font-display text-lg text-gold">Advocate Details <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
-                <span className={`text-gold transition-transform duration-300 ${showAdvocateDetails ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
-              </button>
-              
-              {showAdvocateDetails && (
-                <div className="pt-4 space-y-4 border-t border-border mt-4 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Link href="/profile" className="text-xs text-gold hover:underline shrink-0">
-                      Edit profile
-                    </Link>
-                  </div>
-                  <p className="text-xs text-cream/50 -mt-2">
-                    Auto-filled from your saved profile
-                  </p>
-                  <div>
-                    <label htmlFor="advocateName">Advocate Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                    <input
-                      id="advocateName"
-                      value={form.advocateName}
-                      onChange={(e) => update('advocateName', e.target.value)}
-                      placeholder="Adv. Rajesh Kumar"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="barCouncilNumber">Bar Council Number <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                    <input
-                      id="barCouncilNumber"
-                      value={form.barCouncilNumber}
-                      onChange={(e) => update('barCouncilNumber', e.target.value)}
-                      placeholder="D/1234/2015"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="advocateCity">City / Court <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                    <input
-                      id="advocateCity"
-                      value={form.advocateCity}
-                      onChange={(e) => update('advocateCity', e.target.value)}
-                      placeholder="Delhi District Court"
-                    />
-                  </div>
-                </div>
-              )}
-            </section>
-
-            {/* DYNAMIC FIELDS PER DOCUMENT TYPE */}
-            {currentSchema.fields.length > 0 && (
-              <section className="card space-y-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[40px] pointer-events-none"></div>
-                <h2 className="font-display text-lg text-gold">{currentSchema.name} Details <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
-                <div className="space-y-4">
-                  {currentSchema.fields.map(field => (
-                    <div key={field.id} className="relative z-10">
-                      <label htmlFor={field.id}>{field.label} <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                      {field.type === 'textarea' ? (
-                        <textarea
-                          id={field.id}
-                          rows={2}
-                          value={form.dynamicFields[field.id] || ''}
-                          onChange={(e) => updateDynamic(field.id, e.target.value)}
-                          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-                          className="w-full"
-                        />
-                      ) : (
-                        <input
-                          id={field.id}
-                          type={field.type}
-                          value={form.dynamicFields[field.id] || ''}
-                          onChange={(e) => updateDynamic(field.id, e.target.value)}
-                          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-                          className="w-full"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* FACTS & SITUATION (OPTIONAL) */}
             <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Facts & Situation <span className="text-sm font-sans text-cream/50">(Optional)</span></h2>
               <div>
-                <label htmlFor="situation">Situation / Facts <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                <label htmlFor="situation">Situation / Facts</label>
                 <FactsTextareaWithMic
                   id="situation"
                   value={form.situation}
-                  onChange={(text) => update('situation', text)}
+                  onChange={handleSituationChange}
                   language={form.language}
                   placeholder="What happened? Write all the facts here... (use mic)"
                   required={false}
@@ -554,65 +430,11 @@ export default function DraftGenerator() {
               </div>
             </section>
 
-            {/* GLOBALS (TIMING & LANGUAGE) */}
-            <section className="card space-y-4">
-              <h2 className="font-display text-lg text-gold">Generation Settings</h2>
-              <fieldset>
-                <legend className="text-sm text-cream/80 mb-2">
-                  When did the incident occur? (For Criminal Law citations)
-                </legend>
-                <div className="grid gap-2">
-                  {[
-                    { value: 'before', label: 'Before 1 July 2024' },
-                    { value: 'after', label: 'On or after 1 July 2024' },
-                  ].map(({ value, label }) => (
-                    <label
-                      key={value}
-                      className={`block w-full max-w-full overflow-hidden rounded-2xl border p-3 text-sm cursor-pointer transition-colors ${
-                        form.incidentTiming === value
-                          ? 'bg-gold/20 border-gold text-gold'
-                          : 'border-border text-cream/60 hover:border-gold/30'
-                      }`}
-                    >
-                      <div className="flex flex-col gap-3">
-                        <input
-                          type="radio"
-                          name="incidentTiming"
-                          value={value}
-                          checked={form.incidentTiming === value}
-                          onChange={(e) => update('incidentTiming', e.target.value)}
-                          className="accent-gold"
-                        />
-                        <span className="break-words">{label}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              
-              <div>
-                <label htmlFor="draftLanguage">Draft Language</label>
-                <select
-                  id="draftLanguage"
-                  value={form.language || 'English'}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="w-full text-base py-3 mt-1"
-                >
-                  {LANGUAGE_OPTIONS.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
-              </div>
-            </section>
-
             <button
               type="button"
               onClick={() => void runGenerate()}
               disabled={isGenerating}
-              className="btn-primary w-full py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02]"
+              className="btn-primary sticky bottom-4 z-20 w-full py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02]"
             >
               {isGenerating ? (
                 <div className="flex items-center justify-center gap-3">
@@ -623,6 +445,216 @@ export default function DraftGenerator() {
                 'Generate Draft'
               )}
             </button>
+
+            <section className="card space-y-4 transition-all duration-300">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedDetails(!showAdvancedDetails)}
+                className="w-full flex items-center justify-between"
+              >
+                <h2 className="font-display text-lg text-gold">Add More Details (Optional) — improves accuracy</h2>
+                <span className={`text-gold transition-transform duration-300 ${showAdvancedDetails ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+
+              {showAdvancedDetails && (
+                <div className="space-y-6 border-t border-border pt-4 animate-in fade-in slide-in-from-top-2">
+                  {/* PARTY MENTION STYLE SELECTOR */}
+                  <div>
+                    <label htmlFor="partyMentionStyle">Include Party Details</label>
+                    <select
+                      id="partyMentionStyle"
+                      value={form.partyMentionStyle}
+                      onChange={(e) => update('partyMentionStyle', e.target.value)}
+                      className="w-full text-base py-3 mt-1"
+                    >
+                      <option value="include">Party 1 & Party 2 Details</option>
+                      <option value="party1_only">Party 1 Details Only</option>
+                      <option value="simple">Simple Format (No Party Details)</option>
+                    </select>
+                  </div>
+
+                  {/* PARTY DETAILS (Conditional) */}
+                  {(form.partyMentionStyle === 'include' || form.partyMentionStyle === 'party1_only') && (
+                    <section className="space-y-4 border-l-4 border-l-gold/50 pl-4">
+                      <h3 className="font-display text-base text-gold">{currentSchema.party1Label} (Party 1) <span className="text-sm font-sans text-cream/50">(Optional)</span></h3>
+                      <div>
+                        <label htmlFor="party1Name">Full Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                        <input
+                          id="party1Name"
+                          value={form.party1Name}
+                          onChange={(e) => update('party1Name', e.target.value)}
+                          placeholder="Enter full name"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="party1Address">Address <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                        <textarea
+                          id="party1Address"
+                          rows={2}
+                          value={form.party1Address}
+                          onChange={(e) => update('party1Address', e.target.value)}
+                          placeholder="Enter complete address"
+                        />
+                      </div>
+                    </section>
+                  )}
+
+                  {form.partyMentionStyle === 'include' && (
+                    <section className="space-y-4 border-l-4 border-l-cream/20 pl-4">
+                      <h3 className="font-display text-base text-gold">{currentSchema.party2Label} (Party 2) <span className="text-sm font-sans text-cream/50">(Optional)</span></h3>
+                      <div>
+                        <label htmlFor="party2Name">Full Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                        <input
+                          id="party2Name"
+                          value={form.party2Name}
+                          onChange={(e) => update('party2Name', e.target.value)}
+                          placeholder="Enter full name"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="party2Address">Address <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                        <textarea
+                          id="party2Address"
+                          rows={2}
+                          value={form.party2Address}
+                          onChange={(e) => update('party2Address', e.target.value)}
+                          placeholder="Enter complete address"
+                        />
+                      </div>
+                    </section>
+                  )}
+
+                  <section className="space-y-4 rounded-2xl border border-border/70 p-4">
+                    <h3 className="font-display text-base text-gold">Advocate Details <span className="text-sm font-sans text-cream/50">(Optional)</span></h3>
+                    <div className="flex items-center justify-between gap-2">
+                      <Link href="/profile" className="text-xs text-gold hover:underline shrink-0">
+                        Edit profile
+                      </Link>
+                    </div>
+                    <p className="text-xs text-cream/50 -mt-2">
+                      Auto-filled from your saved profile
+                    </p>
+                    <div>
+                      <label htmlFor="advocateName">Advocate Name <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                      <input
+                        id="advocateName"
+                        value={form.advocateName}
+                        onChange={(e) => update('advocateName', e.target.value)}
+                        placeholder="Adv. Rajesh Kumar"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="barCouncilNumber">Bar Council Number <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                      <input
+                        id="barCouncilNumber"
+                        value={form.barCouncilNumber}
+                        onChange={(e) => update('barCouncilNumber', e.target.value)}
+                        placeholder="D/1234/2015"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="advocateCity">City / Court <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                      <input
+                        id="advocateCity"
+                        value={form.advocateCity}
+                        onChange={(e) => update('advocateCity', e.target.value)}
+                        placeholder="Delhi District Court"
+                      />
+                    </div>
+                  </section>
+
+                  {/* DYNAMIC FIELDS PER DOCUMENT TYPE */}
+                  {currentSchema.fields.length > 0 && (
+                    <section className="space-y-6 rounded-2xl border border-border/70 p-4 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[40px] pointer-events-none"></div>
+                      <h3 className="font-display text-base text-gold">{currentSchema.name} Details <span className="text-sm font-sans text-cream/50">(Optional)</span></h3>
+                      <div className="space-y-4">
+                        {currentSchema.fields.map(field => (
+                          <div key={field.id} className="relative z-10">
+                            <label htmlFor={field.id}>{field.label} <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
+                            {field.type === 'textarea' ? (
+                              <textarea
+                                id={field.id}
+                                rows={2}
+                                value={form.dynamicFields[field.id] || ''}
+                                onChange={(e) => updateDynamic(field.id, e.target.value)}
+                                placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                                className="w-full"
+                              />
+                            ) : (
+                              <input
+                                id={field.id}
+                                type={field.type}
+                                value={form.dynamicFields[field.id] || ''}
+                                onChange={(e) => updateDynamic(field.id, e.target.value)}
+                                placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                                className="w-full"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* GLOBALS (TIMING & LANGUAGE) */}
+                  <section className="space-y-4 rounded-2xl border border-border/70 p-4">
+                    <h3 className="font-display text-base text-gold">Generation Settings</h3>
+                    <fieldset>
+                      <legend className="text-sm text-cream/80 mb-2">
+                        When did the incident occur? (For Criminal Law citations)
+                      </legend>
+                      <div className="grid gap-2">
+                        {[
+                          { value: 'before', label: 'Before 1 July 2024' },
+                          { value: 'after', label: 'On or after 1 July 2024' },
+                        ].map(({ value, label }) => (
+                          <label
+                            key={value}
+                            className={`block w-full max-w-full overflow-hidden rounded-2xl border p-3 text-sm cursor-pointer transition-colors ${
+                              form.incidentTiming === value
+                                ? 'bg-gold/20 border-gold text-gold'
+                                : 'border-border text-cream/60 hover:border-gold/30'
+                            }`}
+                          >
+                            <div className="flex flex-col gap-3">
+                              <input
+                                type="radio"
+                                name="incidentTiming"
+                                value={value}
+                                checked={form.incidentTiming === value}
+                                onChange={(e) => update('incidentTiming', e.target.value)}
+                                className="accent-gold"
+                              />
+                              <span className="break-words">{label}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    <div>
+                      <label htmlFor="draftLanguage">Draft Language</label>
+                      <select
+                        id="draftLanguage"
+                        value={form.language || 'English'}
+                        onChange={(e) => handleLanguageChange(e.target.value)}
+                        className="w-full text-base py-3 mt-1"
+                      >
+                        {LANGUAGE_OPTIONS.map((lang) => (
+                          <option key={lang} value={lang}>
+                            {lang}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
+                    </div>
+                  </section>
+                </div>
+              )}
+            </section>
           </div>
 
           <div className="lg:w-[60%] flex-1 min-h-[400px] lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)]">
