@@ -80,20 +80,8 @@ export default function DraftGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [profileFilled, setProfileFilled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<false | 'advocate' | 'individual'>(false);
-  const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
-  const [profileCompletionError, setProfileCompletionError] = useState<string | null>(null);
-  const [profileCompletionForm, setProfileCompletionForm] = useState({
-    advocateName: '',
-    barCouncilNumber: '',
-    advocateCity: '',
-    fullName: '',
-    cityState: '',
-    phoneNumber: '',
-  });
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
-  
   const [showAdvocateDetails, setShowAdvocateDetails] = useState(false);
-  const isAdvocateUser = (profile?.user_type ?? 'advocate') !== 'individual';
 
   useEffect(() => {
     if (profile) {
@@ -105,16 +93,6 @@ export default function DraftGenerator() {
         language: profile.preferred_draft_language || profile.language || prev.language || 'English',
       }));
       setProfileFilled(isUserProfileComplete(profile));
-      setProfileCompletionForm((prev) => ({
-        advocateName: profile.advocate_name || prev.advocateName || '',
-        barCouncilNumber: profile.bar_council_number || prev.barCouncilNumber || '',
-        advocateCity: profile.court_jurisdiction || prev.advocateCity || '',
-        fullName: profile.full_name || prev.fullName || '',
-        cityState: profile.city || profile.state
-          ? [profile.city, profile.state].filter(Boolean).join(', ')
-          : prev.cityState || '',
-        phoneNumber: profile.phone_number || prev.phoneNumber || '',
-      }));
     }
   }, [profile]);
 
@@ -172,131 +150,8 @@ export default function DraftGenerator() {
     setSaveSuccess(false);
   };
 
-  const shouldSkipProfilePopup = () => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem('profileComplete') === 'true';
-  };
 
-  const persistProfileCompletionState = (completed: boolean) => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem('profileComplete', completed ? 'true' : 'false');
-  };
-
-  const handleProfileCompletionSubmit = async () => {
-    const nextProfile = { ...profile } as Partial<Profile>;
-    const isAdvocateUserForModal = (nextProfile.user_type ?? 'advocate') !== 'individual';
-
-    if (isAdvocateUserForModal) {
-      if (!profileCompletionForm.advocateName.trim()) {
-        setProfileCompletionError('Please enter your advocate name.');
-        return;
-      }
-      if (!profileCompletionForm.advocateCity.trim()) {
-        setProfileCompletionError('Please enter your city / court / jurisdiction.');
-        return;
-      }
-    } else {
-      if (!profileCompletionForm.fullName.trim()) {
-        setProfileCompletionError('Please enter your full name.');
-        return;
-      }
-      if (!profileCompletionForm.cityState.trim()) {
-        setProfileCompletionError('Please enter your city / state.');
-        return;
-      }
-    }
-
-    setProfileCompletionError(null);
-
-    try {
-      const locationParts = profileCompletionForm.cityState
-        .split(',')
-        .map((part) => part.trim())
-        .filter(Boolean);
-
-      const updatedProfileData = {
-        user_type: isAdvocateUserForModal ? 'advocate' : 'individual',
-        full_name: isAdvocateUserForModal ? nextProfile.full_name || '' : profileCompletionForm.fullName.trim(),
-        advocate_name: isAdvocateUserForModal ? profileCompletionForm.advocateName.trim() : nextProfile.advocate_name || '',
-        bar_council_number: isAdvocateUserForModal ? profileCompletionForm.barCouncilNumber.trim() : nextProfile.bar_council_number || '',
-        court_jurisdiction: isAdvocateUserForModal ? profileCompletionForm.advocateCity.trim() : nextProfile.court_jurisdiction || '',
-        city: isAdvocateUserForModal ? nextProfile.city || '' : locationParts[0] || '',
-        state: isAdvocateUserForModal ? nextProfile.state || '' : locationParts[1] || '',
-        phone_number: !isAdvocateUserForModal ? profileCompletionForm.phoneNumber.trim() : nextProfile.phone_number || '',
-      } satisfies Partial<Profile>;
-
-      console.log('Draft modal profile payload:', updatedProfileData);
-
-      const savedProfile = await updateProfile(updatedProfileData);
-      console.log('Draft modal saved profile:', savedProfile);
-      const mergedProfile = { ...(profile ?? {}), ...nextProfile, ...savedProfile, ...updatedProfileData } as Profile;
-
-      setProfile((prev) => (prev ? { ...prev, ...mergedProfile } : prev));
-      setProfileFilled(isUserProfileComplete(mergedProfile));
-      persistProfileCompletionState(true);
-      setForm((prev) => ({
-        ...prev,
-        advocateName: mergedProfile.advocate_name || prev.advocateName,
-        barCouncilNumber: mergedProfile.bar_council_number || prev.barCouncilNumber,
-        advocateCity: mergedProfile.court_jurisdiction || prev.advocateCity,
-      }));
-      setShowProfileCompletionModal(false);
-      await runGenerate(mergedProfile);
-    } catch (err: any) {
-      console.error('Profile completion save failed:', err);
-      setProfileCompletionError(err.message || 'Could not save your profile. Please try again.');
-    }
-  };
-
-  const runGenerate = async (profileSnapshot?: Partial<Profile> | null) => {
-    const profileToUse = profileSnapshot ?? profile;
-
-    if (shouldSkipProfilePopup()) {
-      setProfileCompletionError(null);
-      setShowProfileCompletionModal(false);
-    } else {
-      const userId = session?.user?.id;
-      if (!userId) {
-        setProfileCompletionError(null);
-        setShowProfileCompletionModal(true);
-        return;
-      }
-
-      try {
-        const { data: profileRow, error: profileError } = await import('../lib/supabase').then(({ supabase }) =>
-          supabase.from('profiles').select('*').eq('user_id', userId).single()
-        );
-
-        if (profileError) {
-          console.warn('Profile lookup failed, showing popup:', profileError);
-          setProfileCompletionError(null);
-          setShowProfileCompletionModal(true);
-          return;
-        }
-
-        const hasSavedProfile = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
-        if (hasSavedProfile) {
-          persistProfileCompletionState(true);
-          setProfileCompletionError(null);
-          setShowProfileCompletionModal(false);
-        } else {
-          setProfileCompletionError(null);
-          setShowProfileCompletionModal(true);
-          return;
-        }
-      } catch (err) {
-        console.error('Profile lookup failed:', err);
-        setProfileCompletionError(null);
-        setShowProfileCompletionModal(true);
-        return;
-      }
-    }
-
-    const isCompleteProfile = isUserProfileComplete(profileToUse);
-    if (!isCompleteProfile && !shouldSkipProfilePopup()) {
-      return;
-    }
-
+  const runGenerate = async () => {
     setIsGenerating(true);
     setGeneratingStatus('Checking allowance...');
     setError(null);
@@ -396,102 +251,6 @@ export default function DraftGenerator() {
   return (
     <div className="min-h-screen bg-navy flex flex-col">
       <Navbar />
-
-      {showProfileCompletionModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
-          <div className="card max-w-lg w-full space-y-4">
-            <div className="space-y-2 text-center">
-              <h3 className="font-display text-2xl text-cream">Complete Your Profile First</h3>
-              <p className="text-cream/70 text-sm">
-                {isAdvocateUser ? 'Add your advocate details to generate drafts.' : 'Add your details to generate drafts.'}
-              </p>
-            </div>
-
-            {profileCompletionError && (
-              <div className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                {profileCompletionError}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {isAdvocateUser ? (
-                <>
-                  <div>
-                    <label htmlFor="modalAdvocateName">Advocate Name</label>
-                    <input
-                      id="modalAdvocateName"
-                      value={profileCompletionForm.advocateName}
-                      onChange={(e) => setProfileCompletionForm((prev) => ({ ...prev, advocateName: e.target.value }))}
-                      placeholder="Adv. Rajesh Kumar"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="modalBarCouncilNumber">Bar Council Number <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                    <input
-                      id="modalBarCouncilNumber"
-                      value={profileCompletionForm.barCouncilNumber}
-                      onChange={(e) => setProfileCompletionForm((prev) => ({ ...prev, barCouncilNumber: e.target.value }))}
-                      placeholder="D/1234/2015"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="modalAdvocateCity">City / Court / Jurisdiction</label>
-                    <input
-                      id="modalAdvocateCity"
-                      value={profileCompletionForm.advocateCity}
-                      onChange={(e) => setProfileCompletionForm((prev) => ({ ...prev, advocateCity: e.target.value }))}
-                      placeholder="Delhi District Court"
-                      required
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label htmlFor="modalFullName">Full Name</label>
-                    <input
-                      id="modalFullName"
-                      value={profileCompletionForm.fullName}
-                      onChange={(e) => setProfileCompletionForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                      placeholder="Your full name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="modalCityState">City / State</label>
-                    <input
-                      id="modalCityState"
-                      value={profileCompletionForm.cityState}
-                      onChange={(e) => setProfileCompletionForm((prev) => ({ ...prev, cityState: e.target.value }))}
-                      placeholder="Mumbai, Maharashtra"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="modalPhoneNumber">Phone Number <span className="text-sm font-sans text-cream/50">(Optional)</span></label>
-                    <input
-                      id="modalPhoneNumber"
-                      type="tel"
-                      value={profileCompletionForm.phoneNumber}
-                      onChange={(e) => setProfileCompletionForm((prev) => ({ ...prev, phoneNumber: e.target.value }))}
-                      placeholder="9876543210"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => void handleProfileCompletionSubmit()}
-              className="btn-primary w-full py-3"
-            >
-              Save & Generate Draft
-            </button>
-          </div>
-        </div>
-      )}
 
       {showUpgradeModal === 'advocate' && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
