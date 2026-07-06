@@ -154,6 +154,8 @@ Style: ${styleInstruction}
 
 Generate the complete ${draftType} now:`;
 
+  const requestTraceId = (formData as any)?.draftId || (formData as any)?.sessionId || `${draftType}-${Date.now()}`;
+
   let currentModel = 'gemini-2.5-flash';
   let attempt = 0;
   const maxRetries = 3;
@@ -205,16 +207,46 @@ Generate the complete ${draftType} now:`;
         );
       }
 
-      let data;
+      let data: any;
       try {
         data = JSON.parse(raw);
-      } catch {
-        console.error('Gemini API invalid JSON:', raw.slice(0, 300));
+      } catch (parseErr: any) {
+        console.error('[GEMINI_RAW_RESPONSE]', {
+          traceId: requestTraceId,
+          draftType,
+          phase: 'parse-error',
+          errorType: 'API_RESPONSE_PARSE_ERROR',
+          status: response.status,
+          contentType,
+          message: parseErr?.message || 'Unable to parse Gemini response',
+          rawPreview: raw.slice(0, 1000),
+        });
         throw new Error('Draft could not be generated. Please try again.');
       }
 
+      console.log('[GEMINI_RAW_RESPONSE]', {
+        traceId: requestTraceId,
+        draftType,
+        status: response.status,
+        ok: response.ok,
+        candidates: data?.candidates ?? [],
+        finishReasons: (data?.candidates ?? []).map((candidate: any) => candidate?.finishReason),
+        safetyRatings: data?.candidates?.map((candidate: any) => candidate?.safetyRatings) ?? [],
+        promptFeedback: data?.promptFeedback ?? null,
+        error: data?.error ?? null,
+        rawResponse: data,
+      });
+
       if (!response.ok) {
-        console.error('Gemini API error:', response.status, data);
+        console.error('[GEMINI_RAW_RESPONSE]', {
+          traceId: requestTraceId,
+          draftType,
+          phase: 'api-error',
+          errorType: 'API_ERROR',
+          status: response.status,
+          error: data?.error ?? null,
+          message: data?.error?.message || data?.error?.status || 'Gemini API returned an error',
+        });
         throw new Error('Draft could not be generated. Please try again.');
       }
 
@@ -239,9 +271,30 @@ Generate the complete ${draftType} now:`;
       return finalDraft;
 
     } catch (err: any) {
-      if (err.name === 'AbortError') {
+      const isNetworkError =
+        err?.name === 'AbortError' ||
+        err instanceof TypeError ||
+        /fetch|network|socket|ECONNRESET|ENOTFOUND|ETIMEDOUT|aborted/i.test(err?.message || '');
+
+      if (err?.name === 'AbortError') {
+        console.error('[GEMINI_RAW_RESPONSE]', {
+          traceId: requestTraceId,
+          draftType,
+          phase: 'network-error',
+          errorType: 'NETWORK_TIMEOUT',
+          message: err?.message || 'Request timed out',
+        });
         throw new Error('Draft could not be generated. Please try again.');
       }
+
+      console.error('[GEMINI_RAW_RESPONSE]', {
+        traceId: requestTraceId,
+        draftType,
+        phase: isNetworkError ? 'network-error' : 'api-error',
+        errorType: isNetworkError ? 'NETWORK_ERROR' : 'API_ERROR',
+        message: err?.message || 'Unknown Gemini error',
+        cause: err,
+      });
 
       if (attempt < maxRetries) {
         attempt++;
