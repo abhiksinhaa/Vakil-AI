@@ -85,7 +85,7 @@ export default function DraftGenerator() {
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [draftCount, setDraftCount] = useState(0);
-  const [feedbackThreshold, setFeedbackThreshold] = useState<number>(() => (Math.random() < 0.5 ? 2 : 3));
+  const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState('');
@@ -96,6 +96,50 @@ export default function DraftGenerator() {
   const feedbackTimeoutRef = useRef<number | null>(null);
 
   const DRAFT_COUNT_KEY = 'draftee_draft_count';
+  const THRESHOLD_KEY = 'draftee_feedback_threshold';
+  const SESSION_SUBMITTED_KEY = 'draftee_feedback_submitted_session';
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedCount = Number(window.localStorage.getItem(DRAFT_COUNT_KEY)) || 0;
+      setDraftCount(storedCount);
+
+      let t = window.localStorage.getItem(THRESHOLD_KEY);
+      if (!t) {
+        t = String(Math.random() < 0.5 ? 2 : 3);
+        window.localStorage.setItem(THRESHOLD_KEY, t);
+      }
+      setFeedbackThreshold(Number(t));
+
+      const submitted = window.sessionStorage.getItem(SESSION_SUBMITTED_KEY) === 'true';
+      setFeedbackSubmittedThisSession(submitted);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (
+      draftCount > 0 &&
+      draftCount >= feedbackThreshold &&
+      !feedbackSubmittedThisSession &&
+      !isGenerating &&
+      !actionBusy
+    ) {
+      if (feedbackTimeoutRef.current) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+      }
+      console.log(`Conditions met for feedback popup (count: ${draftCount}, threshold: ${feedbackThreshold}). Waiting 2s...`);
+      feedbackTimeoutRef.current = window.setTimeout(() => {
+        console.log('Triggering feedback popup now.');
+        setFeedbackVisible(true);
+      }, 2000);
+    }
+
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, [draftCount, feedbackThreshold, feedbackSubmittedThisSession, isGenerating, actionBusy]);
 
   useEffect(() => {
     if (profile) {
@@ -184,22 +228,19 @@ export default function DraftGenerator() {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(DRAFT_COUNT_KEY, '0');
     setDraftCount(0);
-    setFeedbackThreshold(Math.random() < 0.5 ? 2 : 3);
+    const newT = Math.random() < 0.5 ? 2 : 3;
+    window.localStorage.setItem(THRESHOLD_KEY, String(newT));
+    setFeedbackThreshold(newT);
   };
 
   const incrementDraftCount = () => {
     if (typeof window === 'undefined') return;
-    const nextCount = getStoredDraftCount() + 1;
-    window.localStorage.setItem(DRAFT_COUNT_KEY, String(nextCount));
-    setDraftCount(nextCount);
-    return nextCount;
-  };
-
-  const showFeedback = () => {
-    if (feedbackSubmittedThisSession || isGenerating || actionBusy) return;
-    feedbackTimeoutRef.current = window.setTimeout(() => {
-      setFeedbackVisible(true);
-    }, 2000);
+    setDraftCount((prev) => {
+      const nextCount = prev + 1;
+      window.localStorage.setItem(DRAFT_COUNT_KEY, String(nextCount));
+      console.log('Incremented draft count:', nextCount);
+      return nextCount;
+    });
   };
 
   const dismissFeedback = () => {
@@ -211,6 +252,7 @@ export default function DraftGenerator() {
     if (!session?.user?.id || feedbackRating < 1) return;
     setFeedbackLoading(true);
     try {
+      console.log('Submitting feedback:', { rating: feedbackRating, comment: feedbackComment });
       await submitDraftFeedback({
         user_id: session.user.id,
         rating: feedbackRating,
@@ -219,6 +261,9 @@ export default function DraftGenerator() {
       });
       setFeedbackSuccess(true);
       setFeedbackSubmittedThisSession(true);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(SESSION_SUBMITTED_KEY, 'true');
+      }
       resetDraftCount();
       window.setTimeout(() => {
         setFeedbackVisible(false);
@@ -237,13 +282,11 @@ export default function DraftGenerator() {
   };
 
   const handleDraftGenerated = () => {
-    const nextCount = incrementDraftCount();
-    if (nextCount >= feedbackThreshold && !feedbackSubmittedThisSession) {
-      showFeedback();
-    }
+    incrementDraftCount();
   };
 
   const handleFeedbackSkip = () => {
+    console.log('Feedback skipped');
     dismissFeedback();
   };
 
