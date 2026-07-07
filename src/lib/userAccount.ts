@@ -393,12 +393,22 @@ export async function submitDraftFeedback(feedbackData: {
   comment: string | null;
   draft_type: string;
 }) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile, error: profileError } = await supabase.from('profiles').select('advocate_name, full_name').eq('id', user.id).maybeSingle();
+  const advocateName = profile?.advocate_name || profile?.full_name || '';
+  if (profileError) console.warn('submitDraftFeedback profile lookup failed', profileError);
+
   const { error } = await supabase.from('feedback').insert([
     {
-      user_id: feedbackData.user_id,
+      user_id: user.id,
+      user_email: user.email,
+      advocate_name: advocateName,
+      feedback_type: 'Draft Generation',
+      subject: `Draft Quality: ${feedbackData.draft_type}`,
+      description: feedbackData.comment || '',
       rating: feedbackData.rating,
-      comment: feedbackData.comment,
-      draft_type: feedbackData.draft_type,
       created_at: new Date().toISOString(),
     },
   ]);
