@@ -23,6 +23,23 @@ export default function DraftPreview({
   onRetry,
   profile,
   refreshAccount,
+  onActionBusyChange,
+}: {
+  draft: string;
+  draftId: string | null;
+  onDraftChange?: (draft: string) => void;
+  formData: any;
+  onRegenerate?: () => void;
+  onSave?: () => void;
+  isGenerating: boolean;
+  isSaving: boolean;
+  saveSuccess: boolean;
+  error: string | null;
+  offlineWarning: string | null;
+  onRetry?: () => void;
+  profile: any;
+  refreshAccount: () => void;
+  onActionBusyChange?: (busy: boolean) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
@@ -152,12 +169,15 @@ export default function DraftPreview({
     const canProceed = await ensureProfileForAction('copy');
     if (!canProceed) return;
 
+    onActionBusyChange?.(true);
     try {
       await navigator.clipboard.writeText(displayDraft);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* clipboard may be unavailable */
+    } finally {
+      onActionBusyChange?.(false);
     }
   };
 
@@ -180,6 +200,7 @@ export default function DraftPreview({
     const canProceed = await ensureProfileForAction('pdf');
     if (!canProceed) return;
 
+    onActionBusyChange?.(true);
     setIsPdfLoading(true);
     try {
       await downloadDraftPdf(displayDraft, formData);
@@ -188,6 +209,7 @@ export default function DraftPreview({
       setPdfError('PDF could not be downloaded. Please try again.');
     } finally {
       setIsPdfLoading(false);
+      onActionBusyChange?.(false);
     }
   };
 
@@ -197,7 +219,12 @@ export default function DraftPreview({
     const canProceed = await ensureProfileForAction('whatsapp');
     if (!canProceed) return;
 
-    openWhatsAppShare(displayDraft);
+    onActionBusyChange?.(true);
+    try {
+      openWhatsAppShare(displayDraft);
+    } finally {
+      onActionBusyChange?.(false);
+    }
   };
 
   const handleEmail = async () => {
@@ -206,10 +233,15 @@ export default function DraftPreview({
     const canProceed = await ensureProfileForAction('email');
     if (!canProceed) return;
 
-    openEmailDraft({
-      body: displayDraft,
-      draftType: formData?.draftType,
-    });
+    onActionBusyChange?.(true);
+    try {
+      openEmailDraft({
+        body: displayDraft,
+        draftType: formData?.draftType,
+      });
+    } finally {
+      onActionBusyChange?.(false);
+    }
   };
 
   const handleSaveWrapper = () => {

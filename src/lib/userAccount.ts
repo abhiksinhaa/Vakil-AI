@@ -387,6 +387,27 @@ export async function submitFeedback(feedbackData: {
   }
 }
 
+export async function submitDraftFeedback(feedbackData: {
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  draft_type: string;
+}) {
+  const { error } = await supabase.from('feedback').insert([
+    {
+      user_id: feedbackData.user_id,
+      rating: feedbackData.rating,
+      comment: feedbackData.comment,
+      draft_type: feedbackData.draft_type,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+  if (error) {
+    console.error('submitDraftFeedback failed', error);
+    throw error;
+  }
+}
+
 export async function revokeAllSessions() {
   const token = await getIdToken();
   const res = await fetch('/api/auth/revoke-sessions', {

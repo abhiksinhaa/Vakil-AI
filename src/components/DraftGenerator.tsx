@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
+import FeedbackPopup from './FeedbackPopup';
 import FactsTextareaWithMic from './FactsTextareaWithMic';
 import { generateLegalDraft } from '../lib/claude';
 import { saveDraft } from '../lib/db';
@@ -13,6 +14,7 @@ import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
   isUserProfileComplete,
   checkDraftAllowance,
+  submitDraftFeedback,
   updateProfile,
 } from '../lib/userAccount';
 import { DOCUMENT_SCHEMAS, DRAFT_TYPES } from '../lib/draftSchemas';
@@ -82,6 +84,18 @@ export default function DraftGenerator() {
   const [showUpgradeModal, setShowUpgradeModal] = useState<false | 'advocate' | 'individual'>(false);
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
+  const [draftCount, setDraftCount] = useState(0);
+  const [feedbackThreshold, setFeedbackThreshold] = useState<number>(() => (Math.random() < 0.5 ? 2 : 3));
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [feedbackSubmittedThisSession, setFeedbackSubmittedThisSession] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const feedbackTimeoutRef = useRef<number | null>(null);
+
+  const DRAFT_COUNT_KEY = 'draftee_draft_count';
 
   useEffect(() => {
     if (profile) {
@@ -159,6 +173,80 @@ export default function DraftGenerator() {
     void persistDraftLanguage(normalizedLanguage);
   };
 
+  const getStoredDraftCount = () => {
+    if (typeof window === 'undefined') return 0;
+    const stored = window.localStorage.getItem(DRAFT_COUNT_KEY);
+    const parsed = Number(stored);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  };
+
+  const resetDraftCount = () => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(DRAFT_COUNT_KEY, '0');
+    setDraftCount(0);
+    setFeedbackThreshold(Math.random() < 0.5 ? 2 : 3);
+  };
+
+  const incrementDraftCount = () => {
+    if (typeof window === 'undefined') return;
+    const nextCount = getStoredDraftCount() + 1;
+    window.localStorage.setItem(DRAFT_COUNT_KEY, String(nextCount));
+    setDraftCount(nextCount);
+    return nextCount;
+  };
+
+  const showFeedback = () => {
+    if (feedbackSubmittedThisSession || isGenerating || actionBusy) return;
+    feedbackTimeoutRef.current = window.setTimeout(() => {
+      setFeedbackVisible(true);
+    }, 2000);
+  };
+
+  const dismissFeedback = () => {
+    setFeedbackVisible(false);
+    resetDraftCount();
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!session?.user?.id || feedbackRating < 1) return;
+    setFeedbackLoading(true);
+    try {
+      await submitDraftFeedback({
+        user_id: session.user.id,
+        rating: feedbackRating,
+        comment: feedbackComment.trim() || null,
+        draft_type: form.draftType,
+      });
+      setFeedbackSuccess(true);
+      setFeedbackSubmittedThisSession(true);
+      resetDraftCount();
+      window.setTimeout(() => {
+        setFeedbackVisible(false);
+        setFeedbackSuccess(false);
+      }, 1500);
+    } catch (err) {
+      console.error('Feedback submit failed:', err);
+      alert('Unable to submit feedback. Please try again later.');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const handleDraftActionBusyChange = (busy: boolean) => {
+    setActionBusy(busy);
+  };
+
+  const handleDraftGenerated = () => {
+    const nextCount = incrementDraftCount();
+    if (nextCount >= feedbackThreshold && !feedbackSubmittedThisSession) {
+      showFeedback();
+    }
+  };
+
+  const handleFeedbackSkip = () => {
+    dismissFeedback();
+  };
+
   const handleDraftTypeChange = (value: string) => {
     const schema = DOCUMENT_SCHEMAS[value];
     let style = 'include';
@@ -212,6 +300,7 @@ export default function DraftGenerator() {
       
       setDraft(text);
       setIsGenerating(false); // Stop loading immediately so user sees the draft
+      handleDraftGenerated();
 
       // These can happen in the background without blocking the UI
       refreshAccount().catch(err => console.error('Failed to refresh account:', err));
@@ -673,10 +762,23 @@ export default function DraftGenerator() {
               onRetry={runGenerate}
               profile={profile}
               refreshAccount={refreshAccount}
+              onActionBusyChange={handleDraftActionBusyChange}
             />
           </div>
         </div>
       </div>
+      <FeedbackPopup
+        visible={feedbackVisible}
+        rating={feedbackRating}
+        comment={feedbackComment}
+        loading={feedbackLoading}
+        success={feedbackSuccess}
+        draftType={form.draftType}
+        onRatingChange={setFeedbackRating}
+        onCommentChange={setFeedbackComment}
+        onSubmit={handleFeedbackSubmit}
+        onSkip={handleFeedbackSkip}
+      />
     </div>
   );
 }
