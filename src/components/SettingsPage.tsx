@@ -317,6 +317,10 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('draftee_profile_complete');
+      window.localStorage.removeItem('draftee_user_id');
+    }
     await supabase.auth.signOut();
     router.push('/login');
   };
@@ -325,6 +329,10 @@ export default function SettingsPage() {
     setAccountActionBusy(true);
     setAccountActionError(null);
     try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('draftee_profile_complete');
+        window.localStorage.removeItem('draftee_user_id');
+      }
       await revokeAllSessions();
       await supabase.auth.signOut();
       router.push('/login');

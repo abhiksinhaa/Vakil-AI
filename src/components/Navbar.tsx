@@ -114,6 +114,10 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     closeAll();
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('draftee_profile_complete');
+      window.localStorage.removeItem('draftee_user_id');
+    }
     await supabase.auth.signOut();
     router.replace('/');
   };

@@ -38,25 +38,49 @@ export default function DraftPreview({
   );
 
   const getCachedProfileStatus = () => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem('hasProfile') === 'true';
+    if (typeof window === 'undefined') return { profileComplete: null, cachedUserId: null };
+    return {
+      profileComplete: window.localStorage.getItem('draftee_profile_complete'),
+      cachedUserId: window.localStorage.getItem('draftee_user_id'),
+    };
+  };
+
+  const setProfileCache = (userId?: string | null) => {
+    if (typeof window === 'undefined') return;
+    if (userId) {
+      window.localStorage.setItem('draftee_profile_complete', 'true');
+      window.localStorage.setItem('draftee_user_id', userId);
+    } else {
+      window.localStorage.removeItem('draftee_profile_complete');
+      window.localStorage.removeItem('draftee_user_id');
+    }
+  };
+
+  const clearProfileCache = () => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem('draftee_profile_complete');
+    window.localStorage.removeItem('draftee_user_id');
   };
 
   const checkProfileForAction = async () => {
-    if (getCachedProfileStatus()) {
-      return { hasProfile: true, profile: null as any };
-    }
-
     const { data: userData } = await supabase.auth.getUser();
     const user = userData?.user;
 
+    if (typeof window !== 'undefined') {
+      const { profileComplete, cachedUserId } = getCachedProfileStatus();
+      if (profileComplete === 'true' && cachedUserId && user?.id && cachedUserId === user.id) {
+        return { hasProfile: true, profile: null as any };
+      }
+    }
+
     if (!user?.id) {
+      clearProfileCache();
       return { hasProfile: false, profile: null as any };
     }
 
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('advocate_name, full_name')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -66,12 +90,10 @@ export default function DraftPreview({
     }
 
     const hasName = Boolean(profile?.advocate_name?.trim() || profile?.full_name?.trim());
-    if (typeof window !== 'undefined') {
-      if (hasName) {
-        window.localStorage.setItem('hasProfile', 'true');
-      } else {
-        window.localStorage.removeItem('hasProfile');
-      }
+    if (hasName) {
+      setProfileCache(user.id);
+    } else {
+      clearProfileCache();
     }
 
     return { hasProfile: hasName, profile };
@@ -220,9 +242,11 @@ export default function DraftPreview({
         city: profileForm.cityCourt?.trim() || null,
       };
       await updateProfile(updates);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('hasProfile', 'true');
-      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      setProfileCache(userId);
+
       setShowProfileModal(false);
       await performPendingAction();
     } catch (err: any) {
