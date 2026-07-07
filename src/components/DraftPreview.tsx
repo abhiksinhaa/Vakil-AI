@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
-import { fetchProfile, updateProfile } from '../lib/userAccount';
+import { supabase } from '../lib/supabase';
+import { updateProfile } from '../lib/userAccount';
 export default function DraftPreview({
   draft,
   draftId,
@@ -36,6 +37,63 @@ export default function DraftPreview({
     [draft]
   );
 
+  const getCachedProfileStatus = () => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('hasProfile') === 'true';
+  };
+
+  const checkProfileForAction = async () => {
+    if (getCachedProfileStatus()) {
+      return { hasProfile: true, profile: null as any };
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+
+    if (!user?.id) {
+      return { hasProfile: false, profile: null as any };
+    }
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Profile lookup failed before action:', error);
+      return { hasProfile: false, profile: null as any };
+    }
+
+    const hasName = Boolean(profile?.advocate_name?.trim() || profile?.full_name?.trim());
+    if (typeof window !== 'undefined') {
+      if (hasName) {
+        window.localStorage.setItem('hasProfile', 'true');
+      } else {
+        window.localStorage.removeItem('hasProfile');
+      }
+    }
+
+    return { hasProfile: hasName, profile };
+  };
+
+  const ensureProfileForAction = async (action: 'copy' | 'pdf' | 'whatsapp' | 'email') => {
+    const { hasProfile, profile: profileRow } = await checkProfileForAction();
+
+    if (!hasProfile) {
+      setProfileForm({
+        name: profileRow?.advocate_name || profileRow?.full_name || profile?.advocate_name || profile?.full_name || '',
+        barCouncilNumber: profileRow?.bar_council_number || profile?.bar_council_number || '',
+        cityCourt: profileRow?.court_jurisdiction || profileRow?.city || profile?.court_jurisdiction || profile?.city || '',
+      });
+      setPendingAction(action);
+      setShowProfileModal(true);
+      return false;
+    }
+
+    return true;
+  };
+
   const startEdit = () => {
     setEditBuffer(displayDraft);
     setIsEditing(true);
@@ -55,26 +113,9 @@ export default function DraftPreview({
 
   const handleCopy = async () => {
     if (!displayDraft) return;
-    // Ensure profile present before copying. If profile lookup fails, proceed (fail open).
-    let profileRow = null;
-    try {
-      profileRow = await fetchProfile();
-    } catch (err) {
-      console.warn('Profile lookup failed before copy — proceeding:', err);
-      profileRow = null;
-    }
 
-    const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
-    if (!hasName) {
-      setProfileForm({
-        name: profile?.advocate_name || profile?.full_name || '',
-        barCouncilNumber: profile?.bar_council_number || '',
-        cityCourt: profile?.court_jurisdiction || profile?.city || '',
-      });
-      setPendingAction('copy');
-      setShowProfileModal(true);
-      return;
-    }
+    const canProceed = await ensureProfileForAction('copy');
+    if (!canProceed) return;
 
     try {
       await navigator.clipboard.writeText(displayDraft);
@@ -100,26 +141,9 @@ export default function DraftPreview({
   const handleDownloadPdf = async () => {
     if (!displayDraft || isPdfLoading) return;
     setPdfError(null);
-    // Ensure profile exists before allowing PDF download. If lookup errors, proceed (fail open).
-    let profileRow = null;
-    try {
-      profileRow = await fetchProfile();
-    } catch (err) {
-      console.warn('Profile lookup failed before PDF download — proceeding:', err);
-      profileRow = null;
-    }
 
-    const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
-    if (!hasName) {
-      setProfileForm({
-        name: profile?.advocate_name || profile?.full_name || '',
-        barCouncilNumber: profile?.bar_council_number || '',
-        cityCourt: profile?.court_jurisdiction || profile?.city || '',
-      });
-      setPendingAction('pdf');
-      setShowProfileModal(true);
-      return;
-    }
+    const canProceed = await ensureProfileForAction('pdf');
+    if (!canProceed) return;
 
     setIsPdfLoading(true);
     try {
@@ -132,59 +156,25 @@ export default function DraftPreview({
     }
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     if (!displayDraft) return;
-    (async () => {
-      let profileRow = null;
-      try {
-        profileRow = await fetchProfile();
-      } catch (err) {
-        console.warn('Profile lookup failed before WhatsApp share — proceeding:', err);
-        profileRow = null;
-      }
 
-      const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
-      if (!hasName) {
-        setProfileForm({
-          name: profile?.advocate_name || profile?.full_name || '',
-          barCouncilNumber: profile?.bar_council_number || '',
-          cityCourt: profile?.court_jurisdiction || profile?.city || '',
-        });
-        setPendingAction('whatsapp');
-        setShowProfileModal(true);
-        return;
-      }
-      openWhatsAppShare(displayDraft);
-    })();
+    const canProceed = await ensureProfileForAction('whatsapp');
+    if (!canProceed) return;
+
+    openWhatsAppShare(displayDraft);
   };
 
-  const handleEmail = () => {
+  const handleEmail = async () => {
     if (!displayDraft) return;
-    (async () => {
-      let profileRow = null;
-      try {
-        profileRow = await fetchProfile();
-      } catch (err) {
-        console.warn('Profile lookup failed before Email share — proceeding:', err);
-        profileRow = null;
-      }
 
-      const hasName = Boolean(profileRow?.advocate_name?.trim() || profileRow?.full_name?.trim());
-      if (!hasName) {
-        setProfileForm({
-          name: profile?.advocate_name || profile?.full_name || '',
-          barCouncilNumber: profile?.bar_council_number || '',
-          cityCourt: profile?.court_jurisdiction || profile?.city || '',
-        });
-        setPendingAction('email');
-        setShowProfileModal(true);
-        return;
-      }
-      openEmailDraft({
-        body: displayDraft,
-        draftType: formData?.draftType,
-      });
-    })();
+    const canProceed = await ensureProfileForAction('email');
+    if (!canProceed) return;
+
+    openEmailDraft({
+      body: displayDraft,
+      draftType: formData?.draftType,
+    });
   };
 
   const handleSaveWrapper = () => {
@@ -230,6 +220,9 @@ export default function DraftPreview({
         city: profileForm.cityCourt?.trim() || null,
       };
       await updateProfile(updates);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('hasProfile', 'true');
+      }
       setShowProfileModal(false);
       await performPendingAction();
     } catch (err: any) {
