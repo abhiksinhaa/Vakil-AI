@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 import { fetchReferralStats, isAdvocateProfileComplete, updateProfile } from '../lib/userAccount';
 
 export default function ProfilePage() {
-  const { profile, session } = useApp();
+  const { profile, session, setProfile } = useApp();
   const [form, setForm] = useState({
     full_name: '',
     advocate_name: '',
@@ -144,6 +144,20 @@ export default function ProfilePage() {
       } else {
         setMessage('Profile saved successfully!');
         setIsEditing(false);
+        const updatedProfile = {
+          ...(profile ?? {}),
+          full_name: form.full_name || profile?.full_name || '',
+          advocate_name: form.advocate_name || profile?.advocate_name || '',
+          bar_council_number: form.bar_council_number || profile?.bar_council_number || '',
+          court_jurisdiction: form.court_jurisdiction || profile?.court_jurisdiction || '',
+          city: form.city || profile?.city || '',
+          state: form.state || profile?.state || '',
+          pincode: form.pincode || profile?.pincode || '',
+        };
+        setProfile(updatedProfile as any);
+        if (typeof window !== 'undefined' && (updatedProfile.full_name?.trim() || updatedProfile.advocate_name?.trim())) {
+          window.localStorage.setItem('profileComplete', 'true');
+        }
       }
     } catch (err: any) {
       console.error('Save error:', err);

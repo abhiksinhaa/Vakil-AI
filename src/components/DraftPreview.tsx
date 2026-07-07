@@ -6,6 +6,8 @@ import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
 import { supabase } from '../lib/supabase';
 import { updateProfile } from '../lib/userAccount';
+import { useApp } from '../context/AppContext';
+
 export default function DraftPreview({
   draft,
   draftId,
@@ -31,16 +33,21 @@ export default function DraftPreview({
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', barCouncilNumber: '', cityCourt: '' });
   const [pendingAction, setPendingAction] = useState<null | 'copy' | 'pdf' | 'whatsapp' | 'email'>(null);
+  const { setProfile } = useApp();
 
   const displayDraft = useMemo(
     () => (draft ? stripMarkdown(draft) : ''),
     [draft]
   );
 
+  const hasNameField = (profile: any) => Boolean(profile?.advocate_name?.trim() || profile?.full_name?.trim());
+
   const getCachedProfileStatus = () => {
     if (typeof window === 'undefined') return { profileComplete: null, cachedUserId: null };
     return {
-      profileComplete: window.localStorage.getItem('draftee_profile_complete'),
+      profileComplete:
+        window.localStorage.getItem('profileComplete') ||
+        window.localStorage.getItem('draftee_profile_complete'),
       cachedUserId: window.localStorage.getItem('draftee_user_id'),
     };
   };
@@ -48,16 +55,17 @@ export default function DraftPreview({
   const setProfileCache = (userId?: string | null) => {
     if (typeof window === 'undefined') return;
     if (userId) {
+      window.localStorage.setItem('profileComplete', 'true');
       window.localStorage.setItem('draftee_profile_complete', 'true');
       window.localStorage.setItem('draftee_user_id', userId);
     } else {
-      window.localStorage.removeItem('draftee_profile_complete');
-      window.localStorage.removeItem('draftee_user_id');
+      clearProfileCache();
     }
   };
 
   const clearProfileCache = () => {
     if (typeof window === 'undefined') return;
+    window.localStorage.removeItem('profileComplete');
     window.localStorage.removeItem('draftee_profile_complete');
     window.localStorage.removeItem('draftee_user_id');
   };
@@ -66,10 +74,15 @@ export default function DraftPreview({
     const { data: userData } = await supabase.auth.getUser();
     const user = userData?.user;
 
+    if (hasNameField(profile)) {
+      setProfileCache(user?.id);
+      return { hasProfile: true, profile };
+    }
+
     if (typeof window !== 'undefined') {
       const { profileComplete, cachedUserId } = getCachedProfileStatus();
       if (profileComplete === 'true' && cachedUserId && user?.id && cachedUserId === user.id) {
-        return { hasProfile: true, profile: null as any };
+        return { hasProfile: true, profile };
       }
     }
 
@@ -78,9 +91,9 @@ export default function DraftPreview({
       return { hasProfile: false, profile: null as any };
     }
 
-    const { data: profile, error } = await supabase
+    const { data: profileRow, error } = await supabase
       .from('profiles')
-      .select('advocate_name, full_name')
+      .select('advocate_name, full_name, bar_council_number, court_jurisdiction, city')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -89,14 +102,14 @@ export default function DraftPreview({
       return { hasProfile: false, profile: null as any };
     }
 
-    const hasName = Boolean(profile?.advocate_name?.trim() || profile?.full_name?.trim());
+    const hasName = hasNameField(profileRow);
     if (hasName) {
       setProfileCache(user.id);
     } else {
       clearProfileCache();
     }
 
-    return { hasProfile: hasName, profile };
+    return { hasProfile: hasName, profile: profileRow as any };
   };
 
   const ensureProfileForAction = async (action: 'copy' | 'pdf' | 'whatsapp' | 'email') => {
@@ -241,11 +254,14 @@ export default function DraftPreview({
         court_jurisdiction: profileForm.cityCourt?.trim() || null,
         city: profileForm.cityCourt?.trim() || null,
       };
-      await updateProfile(updates);
+      const savedProfile = await updateProfile(updates);
 
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
       setProfileCache(userId);
+      if (savedProfile) {
+        setProfile((prev) => ({ ...prev, ...savedProfile }));
+      }
 
       setShowProfileModal(false);
       await performPendingAction();
