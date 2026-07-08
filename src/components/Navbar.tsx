@@ -204,7 +204,7 @@ export default function Navbar() {
                   </DropdownItem>
                 </>
               ) : (
-                <DropdownItem to="/" onClick={closeAll}>
+                <DropdownItem to="/login" onClick={closeAll}>
                   Sign In / Sign Up
                 </DropdownItem>
               )}

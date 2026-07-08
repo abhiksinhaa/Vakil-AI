@@ -18,7 +18,8 @@ import {
   submitDraftFeedback,
   updateProfile,
 } from '../lib/userAccount';
-import { DOCUMENT_SCHEMAS, DRAFT_TYPES } from '../lib/draftSchemas';
+import { DOCUMENT_SCHEMAS } from '../lib/draftSchemas';
+import { DRAFT_TYPES as NEW_DRAFT_TYPES } from '../data/legalDraftTypes';
 import type { Profile } from '../lib/types';
 
 const AFFIDAVIT_SUB_TYPES = [
@@ -352,7 +353,20 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
         ? buildDraftPrompt(submissionForm.draftTypeLabel || submissionForm.draftType, userFactsText, submissionForm.structure, submissionForm.language, submissionForm.incidentTiming)
         : undefined;
 
-      const schemaFallback = DOCUMENT_SCHEMAS[submissionForm.draftType] || { name: submissionForm.draftTypeLabel, fields: [] };
+      const newSchema = NEW_DRAFT_TYPES[submissionForm.draftType];
+      const schemaFallback = newSchema 
+        ? {
+            name: newSchema.label,
+            party1Label: newSchema.party1Label,
+            party2Label: newSchema.party2Label || 'Party 2 Details',
+            fields: []
+          }
+        : DOCUMENT_SCHEMAS[submissionForm.draftType] || { 
+            name: submissionForm.draftTypeLabel, 
+            party1Label: 'Party 1 Details',
+            party2Label: 'Party 2 Details',
+            fields: [] 
+          };
 
       const text = await generateLegalDraft({
         ...submissionForm,
@@ -425,7 +439,20 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
     }
   };
 
-  const currentSchema = DOCUMENT_SCHEMAS[form.draftType];
+  const newSchema = NEW_DRAFT_TYPES[form.draftType];
+  const currentSchema = newSchema
+    ? {
+        name: newSchema.label,
+        party1Label: newSchema.party1Label,
+        party2Label: newSchema.party2Label || 'Party 2 Details',
+        fields: []
+      }
+    : DOCUMENT_SCHEMAS[form.draftType] || { 
+        name: form.draftTypeLabel || form.draftType, 
+        party1Label: 'Party 1 Details', 
+        party2Label: 'Party 2 Details', 
+        fields: [] 
+      };
 
   return (
     <div className="min-h-screen bg-navy flex flex-col">
