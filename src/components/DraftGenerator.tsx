@@ -7,8 +7,9 @@ import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
 import FeedbackPopup from './FeedbackPopup';
 import FactsTextareaWithMic from './FactsTextareaWithMic';
-import { generateLegalDraft } from '../lib/claude';
+import { generateLegalDraft, buildDraftPrompt } from '../lib/claude';
 import { saveDraft } from '../lib/db';
+import DraftTypeSelector from './DraftTypeSelector';
 import { useApp } from '../context/AppContext';
 import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
@@ -39,7 +40,10 @@ const AFFIDAVIT_SUB_TYPES = [
 ];
 
 const INITIAL_FORM = {
-  draftType: 'Affidavit',
+  matterId: 'civil',
+  draftType: 'plaint',
+  draftTypeLabel: 'Plaint',
+  structure: [] as string[],
   affidavitSubType: 'Court Affidavit (Evidence/Reply/Rejoinder Affidavit)',
   partyMentionStyle: 'simple',
   advocateName: '',
@@ -290,17 +294,18 @@ export default function DraftGenerator() {
     dismissFeedback();
   };
 
-  const handleDraftTypeChange = (value: string) => {
-    const schema = DOCUMENT_SCHEMAS[value];
+  const handleDraftTypeSelect = (data: { matterId: string; draftTypeId: string; structure: string[]; label: string }) => {
     let style = 'include';
-    if (schema.defaultPartyStyle === 'none') style = 'simple';
-    if (schema.defaultPartyStyle === 'party1') style = 'party1_only';
+    if (data.draftTypeId === 'affidavit') style = 'simple';
 
     setForm((prev) => ({
       ...prev,
-      draftType: value,
+      matterId: data.matterId,
+      draftType: data.draftTypeId,
+      draftTypeLabel: data.label,
+      structure: data.structure,
       partyMentionStyle: style,
-      dynamicFields: value === 'Affidavit'
+      dynamicFields: data.draftTypeId === 'affidavit'
         ? { facts_and_statements: prev.situation || prev.dynamicFields.facts_and_statements || '' }
         : {},
     }));
@@ -336,9 +341,23 @@ export default function DraftGenerator() {
       setGeneratingStatus('Generating Document...');
 
       const submissionForm = getSubmissionForm();
+
+      let userFactsText = `Advocate: ${submissionForm.advocateName || 'Not provided'}
+City/Court: ${submissionForm.advocateCity || 'Not provided'}
+Party 1: ${submissionForm.party1Name || 'Not provided'}
+Party 2: ${submissionForm.party2Name || 'Not provided'}
+Situation: ${submissionForm.situation || 'Not provided'}`;
+
+      const customPrompt = submissionForm.structure && submissionForm.structure.length > 0
+        ? buildDraftPrompt(submissionForm.draftTypeLabel || submissionForm.draftType, userFactsText, submissionForm.structure, submissionForm.language, submissionForm.incidentTiming)
+        : undefined;
+
+      const schemaFallback = DOCUMENT_SCHEMAS[submissionForm.draftType] || { name: submissionForm.draftTypeLabel, fields: [] };
+
       const text = await generateLegalDraft({
         ...submissionForm,
-        schema: DOCUMENT_SCHEMAS[submissionForm.draftType],
+        schema: schemaFallback,
+        customPrompt,
       }, (status) => setGeneratingStatus(status));
       
       setDraft(text);
@@ -356,7 +375,7 @@ export default function DraftGenerator() {
         party2Address: submissionForm.party2Address,
         situation: submissionForm.situation,
         dynamicFields: submissionForm.dynamicFields,
-        schema: DOCUMENT_SCHEMAS[submissionForm.draftType],
+        schema: schemaFallback,
         generatedDraft: text,
       })
         .then((res) => {
@@ -391,7 +410,7 @@ export default function DraftGenerator() {
         party2Address: submissionForm.party2Address,
         situation: submissionForm.situation,
         dynamicFields: submissionForm.dynamicFields,
-        schema: DOCUMENT_SCHEMAS[submissionForm.draftType],
+        schema: DOCUMENT_SCHEMAS[submissionForm.draftType] || { name: submissionForm.draftTypeLabel || submissionForm.draftType, fields: [] },
         generatedDraft: draft,
         // If we are in handleSave, it's manually triggered, but `runGenerate` already saved it. 
         // We'll keep default unlocked true, or fetch from state. For simplicity, since it's an auto-saved draft, it's safer to just let the backend handle it or omit if it exists.
@@ -514,38 +533,11 @@ export default function DraftGenerator() {
             {/* DOCUMENT TYPE SELECTOR */}
             <section className="card space-y-4">
               <h2 className="font-display text-lg text-gold">Document Type</h2>
-              <div>
-                <select
-                  id="draftType"
-                  value={form.draftType}
-                  onChange={(e) => handleDraftTypeChange(e.target.value)}
-                  className="w-full text-base py-3"
-                >
-                  {DRAFT_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {form.draftType === 'Affidavit' && (
-                <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                  <label htmlFor="affidavitSubType">Affidavit Type</label>
-                  <select
-                    id="affidavitSubType"
-                    value={form.affidavitSubType}
-                    onChange={(e) => update('affidavitSubType', e.target.value)}
-                    className="w-full text-base py-3 mt-1"
-                  >
-                    {AFFIDAVIT_SUB_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <DraftTypeSelector 
+                onSelect={handleDraftTypeSelect} 
+                defaultMatterId={form.matterId} 
+                defaultDraftTypeId={form.draftType} 
+              />
             </section>
 
             <section className="card space-y-4">
@@ -816,7 +808,7 @@ export default function DraftGenerator() {
         comment={feedbackComment}
         loading={feedbackLoading}
         success={feedbackSuccess}
-        draftType={form.draftType}
+        draftType={form.draftTypeLabel || form.draftType}
         onRatingChange={setFeedbackRating}
         onCommentChange={setFeedbackComment}
         onSubmit={handleFeedbackSubmit}

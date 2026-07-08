@@ -1,5 +1,42 @@
 import { stripMarkdown } from './stripMarkdown';
 import type { DocumentSchema } from './draftSchemas';
+import { DRAFT_TYPES } from '../data/legalDraftTypes';
+
+export function buildDraftPrompt(draftTypeId: string, userFactsText: string, structure: string[], language: string, incidentTiming: string) {
+  const structureList = structure.map((s, i) => `${i + 1}. ${s}`).join('\n');
+  const incidentLawGuide =
+    incidentTiming === 'before'
+      ? 'Incident before 1 July 2024 — cite IPC, CrPC, and Indian Evidence Act'
+      : incidentTiming === 'after'
+        ? 'Incident on or after 1 July 2024 — cite BNS, BNSS, and BSA 2023'
+        : 'Incident timing not specified — ask advocate to confirm applicable code';
+
+  const systemPrompt = `You are an expert Indian lawyer with 20+ years of experience drafting legal documents. You specialize in Indian law.
+Your task is to generate a professional, court-ready ${draftTypeId} document under Indian law.
+
+CRITICAL INSTRUCTIONS:
+1. Cover EVERY section listed in the structure provided below.
+2. Write original, legally sound content for each section.
+3. Use the provided user facts to fill in the content.
+4. DO NOT copy or reproduce any fixed template wording — generate fresh, original legal language every time.
+5. Output the complete document with headings matching the structure sections.
+6. NO placeholder brackets except for genuinely unspecified details like [Court Name].
+7. Include correct legal citations per incident timing: ${incidentLawGuide}
+8. Language: Generate the draft in ${language || 'English'}. Keep all legal terminology accurate.
+9. STRICTLY PROHIBITED: inventing or fabricating case laws.`;
+
+  const userPrompt = `Draft Type: ${draftTypeId}
+
+REQUIRED STRUCTURE:
+${structureList}
+
+USER FACTS & SITUATION:
+${userFactsText}
+
+Generate the complete document now following the required structure and facts.`;
+
+  return { systemPrompt, userPrompt };
+}
 
 export async function generateLegalDraft(formData: any, onStatusChange?: (status: string) => void) {
   const {
@@ -154,6 +191,14 @@ Style: ${styleInstruction}
 
 Generate the complete ${draftType} now:`;
 
+  let finalSystemPrompt = systemPrompt;
+  let finalUserPrompt = userPrompt;
+
+  if (formData.customPrompt) {
+    finalSystemPrompt = formData.customPrompt.systemPrompt;
+    finalUserPrompt = formData.customPrompt.userPrompt;
+  }
+
   const requestTraceId = (formData as any)?.draftId || (formData as any)?.sessionId || `${draftType}-${Date.now()}`;
 
   let currentModel = 'gemini-2.5-flash';
@@ -174,12 +219,12 @@ Generate the complete ${draftType} now:`;
         body: JSON.stringify({
           model: currentModel,
           systemInstruction: {
-            parts: [{ text: systemPrompt }],
+            parts: [{ text: finalSystemPrompt }],
           },
           contents: [
             {
               role: 'user',
-              parts: [{ text: userPrompt }],
+              parts: [{ text: finalUserPrompt }],
             },
           ],
           generationConfig: {
