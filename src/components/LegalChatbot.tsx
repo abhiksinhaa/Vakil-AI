@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Volume2, VolumeX, Copy, Check, ThumbsUp, ThumbsDown,
@@ -600,26 +601,26 @@ export default function LegalChatbot() {
           <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             {!showHistoryPanel && !showNeikxSettings ? (
               <>
-                <button onClick={resetChat} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); resetChat(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
                   <MessageSquare className="w-5 h-5 text-white/70" />
                   <span className="font-medium text-sm">New Chat</span>
                 </button>
-                <button onClick={() => { setShowHistoryPanel(true); loadHistory(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHistoryPanel(true); loadHistory(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
                   <History className="w-5 h-5 text-white/70" />
                   <span className="font-medium text-sm">Chat History</span>
                 </button>
-                <button onClick={() => { setSidebarOpen(false); setIsOpen(false); router.push('/generate'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                <Link href="/generate" onClick={() => { setSidebarOpen(false); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
                   <FileText className="w-5 h-5 text-white/70" />
                   <span className="font-medium text-sm">Draft Generator</span>
-                </button>
-                <button onClick={() => { setSidebarOpen(false); setIsOpen(false); router.push('/research'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                </Link>
+                <Link href="/research" onClick={() => { setSidebarOpen(false); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
                   <Search className="w-5 h-5 text-white/70" />
                   <span className="font-medium text-sm">Legal Research</span>
-                </button>
+                </Link>
               </>
             ) : showNeikxSettings ? (
               <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                <button onClick={() => setShowNeikxSettings(false)} className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left border border-white/10">
+                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowNeikxSettings(false); }} className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left border border-white/10">
                   <ChevronDown className="w-5 h-5 rotate-90 text-white/70" />
                   <span className="font-medium text-sm">Back</span>
                 </button>
@@ -627,7 +628,7 @@ export default function LegalChatbot() {
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                <button onClick={() => setShowHistoryPanel(false)} className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left border border-white/10">
+                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHistoryPanel(false); }} className="w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left border border-white/10">
                   <ChevronDown className="w-5 h-5 rotate-90 text-white/70" />
                   <span className="font-medium text-sm">Back</span>
                 </button>
@@ -650,7 +651,7 @@ export default function LegalChatbot() {
           </div>
           
           <div className="p-4 border-t border-white/10">
-            <button onClick={() => { setShowNeikxSettings(true); setShowHistoryPanel(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowNeikxSettings(true); setShowHistoryPanel(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
               <Settings className="w-5 h-5 text-white/70" />
               <span className="font-medium text-sm">Settings</span>
             </button>
