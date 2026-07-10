@@ -7,13 +7,7 @@ export const FREE_CHAT_DAILY_LIMIT = 5;
 export const PRO_PRICE_PAISE = 9900;
 export const PRO_PRICE_INR = 99;
 
-export function getMonthKey() {
-  return new Date().toISOString().slice(0, 7);
-}
 
-export function getDayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function generateReferralCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -137,15 +131,15 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
       plan: 'free',
       drafts_used: 0,
       created_at: new Date().toISOString(),
-      chat_day_key: getDayKey(),
+      chat_day_key: new Date().toISOString(),
       chat_count: 0,
       drafts_count: 0,
-      last_reset: getMonthKey(),
+      last_reset: new Date().toISOString(),
     };
     const insertSub = await supabase.from('subscriptions').insert(newSub);
     if (insertSub.error) {
-      console.error('ensureUserRecords: failed to insert subscription, falling back to in-memory', insertSub.error);
-      // Fallback to in-memory subscription to prevent account loading crash
+      console.error('ensureUserRecords: failed to insert subscription', insertSub.error);
+      throw insertSub.error;
     }
     subscription = newSub;
   }
@@ -193,18 +187,21 @@ export async function updateTheme(theme: 'dark' | 'light') {
 }
 
 async function normalizeSubscription(sub: Subscription): Promise<Subscription> {
-  const monthKey = getMonthKey();
-  const dayKey = getDayKey();
+  const now = new Date();
   const updates: Partial<Subscription> = {};
 
-  if (sub.last_reset !== monthKey) {
-    updates.last_reset = monthKey;
+  const lastReset = sub.last_reset ? new Date(sub.last_reset) : new Date(0);
+  if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
+    updates.last_reset = now.toISOString();
     updates.drafts_used = 0;
   }
-  if (sub.chat_day_key !== dayKey) {
-    updates.chat_day_key = dayKey;
+  
+  const lastChat = sub.chat_day_key ? new Date(sub.chat_day_key) : new Date(0);
+  if (lastChat.getDate() !== now.getDate() || lastChat.getMonth() !== now.getMonth() || lastChat.getFullYear() !== now.getFullYear()) {
+    updates.chat_day_key = now.toISOString();
     updates.chat_count = 0;
   }
+  
   if (Object.keys(updates).length === 0) return sub;
 
   const { data, error } = await supabase.from('subscriptions').update(updates).eq('id', sub.id).select().maybeSingle();
