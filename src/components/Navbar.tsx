@@ -104,17 +104,10 @@ export default function Navbar() {
         {/* Left: logo */}
         <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
           <img
-            src="/logo.png" 
-            alt="Draftee Logo" 
-            className="h-[36px] w-auto object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling.classList.remove('hidden');
-            }}
+            src="/logo.png"
+            alt="Draftee"
+            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
           />
-          <span className="hidden font-display text-xl font-semibold text-gold tracking-tight">
-            Draft<span className="text-cream">ee</span>
-          </span>
         </Link>
 
         {/* Right: theme → profile → hamburger */}
