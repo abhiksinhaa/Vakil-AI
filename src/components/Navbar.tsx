@@ -66,22 +66,26 @@ function DropdownItem({
   children: ReactNode;
   destructive?: boolean;
 }) {
+  const router = useRouter();
   const className = `block w-full text-left px-4 py-2.5 text-sm transition-colors ${
     destructive
       ? 'text-red-400/90 hover:bg-red-400/10'
       : 'text-cream/80 hover:bg-gold/10 hover:text-gold'
   }`;
 
-  if (to) {
-    return (
-      <Link href={to} role="menuitem" className={className} onClick={onClick}>
-        {children}
-      </Link>
-    );
-  }
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClick) onClick();
+    if (to) {
+      setTimeout(() => {
+        router.push(to);
+      }, 50);
+    }
+  };
 
   return (
-    <button type="button" role="menuitem" className={className} onClick={onClick}>
+    <button type="button" role="menuitem" className={className} onClick={handleClick}>
       {children}
     </button>
   );
