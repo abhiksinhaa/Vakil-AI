@@ -26,7 +26,9 @@ function NavDropdown({ open, onClose, align = 'right', children }) {
   useEffect(() => {
     if (!open) return undefined;
     const handleClick = (e) => {
+      console.log('NavDropdown global mousedown! e.target:', e.target, 'ref.current:', ref.current, 'contains:', ref.current?.contains(e.target));
       if (ref.current && !ref.current.contains(e.target)) {
+        console.log('NavDropdown closing because click was outside');
         onClose();
       }
     };
@@ -66,6 +68,7 @@ function DropdownItem({
   children: ReactNode;
   destructive?: boolean;
 }) {
+  const router = useRouter();
   const className = `block w-full text-left px-4 py-2.5 text-sm transition-colors ${
     destructive
       ? 'text-red-400/90 hover:bg-red-400/10'
@@ -73,16 +76,18 @@ function DropdownItem({
   }`;
 
   const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('DropdownItem onClick fired for:', to);
+    
+    // Close the dropdown first to make the UI feel responsive
     if (onClick) onClick();
+    
+    // Then navigate
+    if (to) {
+      router.push(to);
+    }
   };
-
-  if (to) {
-    return (
-      <Link href={to} className={className} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
 
   return (
     <button type="button" role="menuitem" className={className} onClick={handleClick}>
