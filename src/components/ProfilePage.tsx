@@ -32,9 +32,9 @@ export default function ProfilePage() {
         full_name: profile.full_name || profile.advocate_name || '',
         advocate_name: profile.advocate_name || profile.full_name || '',
         bar_council_number: profile.bar_council_number || '',
-        court_jurisdiction: profile.city_court || profile.city || profile.court_jurisdiction || '',
+        court_jurisdiction: profile.city || profile.court_jurisdiction || '',
         state: profile.state || '',
-        city: profile.city_court || profile.city || '',
+        city: profile.city || '',
         pincode: profile.pincode || '',
       });
     }
