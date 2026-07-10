@@ -25,10 +25,12 @@ function NavDropdown({ open, onClose, align = 'right', children }) {
 
   useEffect(() => {
     if (!open) return undefined;
-    const handleClick = (e) => {
-      console.log('NavDropdown global mousedown! e.target:', e.target, 'ref.current:', ref.current, 'contains:', ref.current?.contains(e.target));
-      if (ref.current && !ref.current.contains(e.target)) {
-        console.log('NavDropdown closing because click was outside');
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        const toggleBtn = ref.current.previousElementSibling;
+        if (toggleBtn && toggleBtn.contains(e.target as Node)) {
+          return; // Ignore click on the toggle button itself
+        }
         onClose();
       }
     };
@@ -245,19 +247,33 @@ export default function Navbar() {
 
             <NavDropdown open={menuOpen} onClose={() => setMenuOpen(false)}>
               <DropdownItem to="/generate" onClick={closeAll}>
-                New Draft
+                Create New Draft
               </DropdownItem>
               {session && (
+                <DropdownItem to="/history" onClick={closeAll}>
+                  Draft History
+                </DropdownItem>
+              )}
+              {session && (
+                <DropdownItem to="/profile" onClick={closeAll}>
+                  My Profile
+                </DropdownItem>
+              )}
+              <DropdownItem to="/help" onClick={closeAll}>
+                Help Center
+              </DropdownItem>
+              {session && (
+                <DropdownItem to="/refer" onClick={closeAll}>
+                  Refer & Earn
+                </DropdownItem>
+              )}
+              {session && (
+                <DropdownItem to="/pricing" onClick={closeAll}>
+                  Unlock Premium
+                </DropdownItem>
+              )}
+              {session && (
                 <>
-                  <DropdownItem to="/history" onClick={closeAll}>
-                    History
-                  </DropdownItem>
-                  <DropdownItem to="/pricing" onClick={closeAll}>
-                    Unlock Premium
-                  </DropdownItem>
-                  <DropdownItem to="/refer" onClick={closeAll}>
-                    🎁 Refer 5 Lawyers
-                  </DropdownItem>
                   <div className="my-1 border-t border-border" />
                   <DropdownItem onClick={handleLogout} destructive>
                     Logout
