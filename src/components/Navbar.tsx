@@ -207,42 +207,72 @@ export default function Navbar() {
               </svg>
             </button>
 
-            <NavDropdown open={menuOpen} onClose={() => setMenuOpen(false)}>
-              <Link href="/generate" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
-                Create New Draft
-              </Link>
-              {session && (
-                <Link href="/history" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
-                  Draft History
-                </Link>
-              )}
-              {session && (
-                <Link href="/profile" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
-                  My Profile
-                </Link>
-              )}
-              <Link href="/help" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
-                Help Center
-              </Link>
-              {session && (
-                <Link href="/refer" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
-                  Refer & Earn
-                </Link>
-              )}
-              {session && (
-                <Link href="/pricing" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
-                  Unlock Premium
-                </Link>
-              )}
-              {session && (
-                <>
-                  <div className="my-1 border-t border-border" />
-                  <button type="button" onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-red-400/90 hover:bg-red-400/10">
-                    Logout
-                  </button>
-                </>
-              )}
-            </NavDropdown>
+            {menuOpen && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  right: 0,
+                  width: '260px',
+                  height: '100vh',
+                  background: '#0a0f1e',
+                  borderLeft: '1px solid #1e2a3a',
+                  padding: '24px 20px',
+                  zIndex: 99999,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  overflowY: 'auto',
+                  boxShadow: '-4px 0 24px rgba(0,0,0,0.5)',
+                  pointerEvents: 'all',
+                }}
+              >
+                {/* Close button */}
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    alignSelf: 'flex-end',
+                    background: 'none',
+                    border: 'none',
+                    color: '#e8e0d0',
+                    fontSize: '1.4rem',
+                    cursor: 'pointer',
+                    marginBottom: '20px',
+                    padding: '4px 8px',
+                  }}
+                >
+                  ✕
+                </button>
+
+                {/* Nav links — use plain <a> tags, NOT Link component */}
+                {[
+                  { href: '/generate', label: '📝  Create New Draft' },
+                  { href: '/history',  label: '📂  Draft History' },
+                  { href: '/profile',  label: '👤  My Profile' },
+                  { href: '/help',     label: '❓  Help Center' },
+                  { href: '/refer',    label: '🎁  Refer & Earn' },
+                  { href: '/pricing',  label: '⭐  Unlock Premium' },
+                ].map(({ href, label }) => (
+                  <a
+                    key={href}
+                    href={href}
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      display: 'block',
+                      padding: '14px 16px',
+                      color: '#e8e0d0',
+                      textDecoration: 'none',
+                      borderRadius: '8px',
+                      fontSize: '0.95rem',
+                      borderBottom: '1px solid #1e2a3a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {label}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
