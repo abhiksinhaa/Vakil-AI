@@ -609,14 +609,14 @@ export default function LegalChatbot() {
                   <History className="w-5 h-5 text-white/70" />
                   <span className="font-medium text-sm">Chat History</span>
                 </button>
-                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSidebarOpen(false); setIsOpen(false); setTimeout(() => router.push('/generate'), 50); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                <Link href="/generate" onClick={() => { setSidebarOpen(false); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
                   <FileText className="w-5 h-5 text-white/70" />
                   <span className="font-medium text-sm">Draft Generator</span>
-                </button>
-                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSidebarOpen(false); setIsOpen(false); setTimeout(() => router.push('/research'), 50); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
+                </Link>
+                <Link href="/research" onClick={() => { setSidebarOpen(false); setIsOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
                   <Search className="w-5 h-5 text-white/70" />
                   <span className="font-medium text-sm">Legal Research</span>
-                </button>
+                </Link>
               </>
             ) : showNeikxSettings ? (
               <div className="animate-in fade-in slide-in-from-right-4 duration-300">
