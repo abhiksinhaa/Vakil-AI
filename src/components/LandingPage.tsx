@@ -245,38 +245,59 @@ export default function LandingPage() {
 
       {/* Testimonial Section */}
       <section id="testimonials" className="landing-section">
+        <div className="text-center mb-6 fade-in-on-scroll">
+          <span className="landing-badge mx-auto">⭐ Verified Reviews from Real Indian Advocates</span>
+        </div>
         <h2 className="landing-h2 fade-in-on-scroll">Trusted by Indian Advocates</h2>
-        <div className="landing-grid">
+        <div className="landing-testimonials-grid">
           <div className="landing-testimonial fade-in-on-scroll">
-            <p className="landing-testimonial-quote">
-              "Draftee has cut my drafting time by 80%. What used to take hours now takes minutes. It's incredibly accurate with the new laws."
+            <div className="landing-stars">★★★★★</div>
+            <p className="landing-testimonial-quote flex-grow">
+              "I have done legal drafting worth more than ₹60,000 through legal school. If I had known about Draftee earlier, I wouldn't have invested that much. Draftee has made legal drafting incredibly easy. It is truly helpful for anyone in the legal fraternity."
             </p>
-            <div className="landing-testimonial-author">
-              <div className="landing-avatar">A</div>
+            <div className="landing-testimonial-author mt-auto">
+              <div className="landing-avatar">SM</div>
               <div>
-                <div className="font-semibold text-sm">Adv. A. Sharma</div>
-                <div className="text-xs opacity-60">Delhi High Court</div>
+                <div className="font-semibold text-sm">Adv. Soniya Makwana</div>
+                <div className="text-xs opacity-60">Advocate</div>
               </div>
             </div>
           </div>
           <div className="landing-testimonial fade-in-on-scroll" style={{ transitionDelay: '0.1s' }}>
-            <p className="landing-testimonial-quote">
-              "The voice feature is a game-changer. I just dictate the facts, and it formats everything into a perfect legal notice."
+            <div className="landing-stars">★★★★★</div>
+            <p className="landing-testimonial-quote flex-grow">
+              "Really impressed with Draftee.in. The app is easy to navigate, performs smoothly, and offers a great user experience.<br /><br />Draftee.in is one of the most useful legal apps I've used. It simplifies legal drafting and is very helpful for both practicing lawyers and law students.<br /><br />It stands out because it is designed around the real needs of lawyers and law students. It is intuitive, efficient, and genuinely useful. More than just an app, it is a valuable legal companion. Wishing the team continued success."
             </p>
-            <div className="landing-testimonial-author">
-              <div className="landing-avatar">R</div>
+            <div className="landing-testimonial-author mt-auto">
+              <div className="landing-avatar">SK</div>
               <div>
-                <div className="font-semibold text-sm">Adv. R. Patel</div>
-                <div className="text-xs opacity-60">Bombay High Court</div>
+                <div className="font-semibold text-sm">Adv. Shabnam Khan</div>
+                <div className="text-xs opacity-60">Advocate</div>
+              </div>
+            </div>
+          </div>
+          <div className="landing-testimonial fade-in-on-scroll" style={{ transitionDelay: '0.2s' }}>
+            <div className="landing-stars">★★★★★</div>
+            <p className="landing-testimonial-quote flex-grow">
+              "Great! Now it's perfect."
+            </p>
+            <div className="landing-testimonial-author mt-auto">
+              <div className="landing-avatar">SS</div>
+              <div>
+                <div className="font-semibold text-sm">Adv. Shakshi Dhari Singh</div>
+                <div className="text-xs opacity-60">Advocate</div>
               </div>
             </div>
           </div>
         </div>
+        <p className="landing-p mx-auto text-center mt-12 fade-in-on-scroll">
+          Built with continuous feedback from practicing advocates across India.
+        </p>
       </section>
 
       {/* CTA Section */}
       <section className="landing-cta">
-        <h2 className="landing-h2 mb-4">Ready to draft smarter?</h2>
+        <h2 className="landing-h2 mb-4">Ready to draft legal documents in minutes?</h2>
         <p className="landing-p mx-auto mb-8">Join thousands of Indian lawyers using Draftee.</p>
         {session ? (
           <Link href="/dashboard" className="landing-btn-gold text-lg px-8 py-4">
@@ -284,7 +305,7 @@ export default function LandingPage() {
           </Link>
         ) : (
           <Link href="/signup" className="landing-btn-gold text-lg px-8 py-4">
-            Get Started Free →
+            Start Free →
           </Link>
         )}
       </section>
