@@ -562,7 +562,7 @@ export default function SettingsPage() {
                 <div className="rounded-3xl border border-border bg-navy/60 p-4">
                   <p className="text-cream/70 text-sm">Plan</p>
                   <p className="mt-2 font-medium text-cream">{subscription?.plan === 'pro' ? 'Pro Annual' : 'Free'}</p>
-                  {isProActive(subscription) ? (
+                  {isPro ? (
                     <p className="text-cream/50 text-sm mt-1">Status: Active</p>
                   ) : null}
                 </div>
