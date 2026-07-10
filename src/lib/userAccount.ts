@@ -134,16 +134,13 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
   if (!subscription) {
     const newSub: Subscription = {
       id: user.id,
-      user_id: user.id,
       plan: 'free',
-      pro_until: null,
-      drafts_this_month: 0,
-      month_key: getMonthKey(),
-      referral_rewards_granted: 0,
-      chat_messages_today: 0,
+      drafts_used: 0,
+      created_at: new Date().toISOString(),
       chat_day_key: getDayKey(),
-      paid_drafts_balance: 0,
-      updated_at: new Date().toISOString(),
+      chat_count: 0,
+      drafts_count: 0,
+      last_reset: getMonthKey(),
     };
     const insertSub = await supabase.from('subscriptions').insert(newSub);
     if (insertSub.error) {
@@ -200,17 +197,17 @@ async function normalizeSubscription(sub: Subscription): Promise<Subscription> {
   const dayKey = getDayKey();
   const updates: Partial<Subscription> = {};
 
-  if (sub.month_key !== monthKey) {
-    updates.month_key = monthKey;
+  if (sub.last_reset !== monthKey) {
+    updates.last_reset = monthKey;
+    updates.drafts_used = 0;
   }
   if (sub.chat_day_key !== dayKey) {
     updates.chat_day_key = dayKey;
-    updates.chat_messages_today = 0;
+    updates.chat_count = 0;
   }
   if (Object.keys(updates).length === 0) return sub;
 
-  updates.updated_at = new Date().toISOString();
-  const { data, error } = await supabase.from('subscriptions').update(updates).eq('id', sub.user_id).select().maybeSingle();
+  const { data, error } = await supabase.from('subscriptions').update(updates).eq('id', sub.id).select().maybeSingle();
   if (error) {
     console.error('normalizeSubscription failed', error);
     return sub;
@@ -220,10 +217,7 @@ async function normalizeSubscription(sub: Subscription): Promise<Subscription> {
 
 export function isProActive(sub: Subscription | null) {
   if (!sub) return false;
-  if (sub.plan === 'pro' && sub.pro_until) {
-    return new Date(sub.pro_until) > new Date();
-  }
-  return sub.plan === 'pro' && !sub.pro_until;
+  return sub.plan === 'pro';
 }
 
 export async function fetchSubscription(): Promise<Subscription | null> {
@@ -242,25 +236,26 @@ export async function checkDraftAllowance() {
   const sub = await fetchSubscription();
   const profile = await fetchProfile();
   const isAdvocate = profile?.user_type !== 'individual';
-  const limit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
+  const freeLimit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
   const pro = isProActive(sub);
 
   if (pro && isAdvocate) {
     return {
       allowed: true,
       isPro: true,
-      used: sub!.drafts_this_month,
+      used: sub!.drafts_used,
       limit: null,
       remaining: null,
       userType: profile?.user_type || 'advocate',
     };
   }
 
-  const used = sub?.drafts_this_month ?? 0;
-  const remaining = Math.max(0, limit - used);
-  const paidBalance = sub?.paid_drafts_balance ?? 0;
-  const allowed = isAdvocate ? remaining > 0 || paidBalance > 0 : true;
-  return { allowed, isPro: false, used, limit, remaining, userType: profile?.user_type || 'advocate' };
+  const used = sub?.drafts_used ?? 0;
+  const freeRemaining = Math.max(0, freeLimit - used);
+  const paidBalance = sub?.drafts_count ?? 0;
+  const totalRemaining = freeRemaining + paidBalance;
+  
+  return { allowed: totalRemaining > 0, isPro: false, used, limit: freeLimit, remaining: totalRemaining, userType: profile?.user_type || 'advocate' };
 }
 
 export async function incrementDraftUsage() {
@@ -272,15 +267,14 @@ export async function incrementDraftUsage() {
 
   if (isProActive(sub) && isAdvocate) return;
 
-  const limit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
-  const used = sub?.drafts_this_month ?? 0;
-  const remaining = Math.max(0, limit - used);
-
-  if (remaining > 0) {
-    const { error } = await supabase.from('subscriptions').update({ drafts_this_month: used + 1, updated_at: new Date().toISOString() }).eq('id', user.id);
+  const freeLimit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
+  const used = sub?.drafts_used ?? 0;
+  
+  if (used < freeLimit) {
+    const { error } = await supabase.from('subscriptions').update({ drafts_used: used + 1 }).eq('id', user.id);
     if (error) throw error;
-  } else if ((sub?.paid_drafts_balance ?? 0) > 0) {
-    const { error } = await supabase.from('subscriptions').update({ paid_drafts_balance: (sub?.paid_drafts_balance ?? 0) - 1, updated_at: new Date().toISOString() }).eq('id', user.id);
+  } else if ((sub?.drafts_count ?? 0) > 0) {
+    const { error } = await supabase.from('subscriptions').update({ drafts_count: (sub.drafts_count) - 1 }).eq('id', user.id);
     if (error) throw error;
   }
 }
@@ -290,10 +284,10 @@ export async function checkChatAllowance() {
   const pro = isProActive(sub);
 
   if (pro) {
-    return { allowed: true, isPro: true, used: sub!.chat_messages_today ?? 0, limit: null, remaining: null };
+    return { allowed: true, isPro: true, used: sub!.chat_count ?? 0, limit: null, remaining: null };
   }
 
-  const used = sub?.chat_messages_today ?? 0;
+  const used = sub?.chat_count ?? 0;
   const remaining = Math.max(0, FREE_CHAT_DAILY_LIMIT - used);
   return { allowed: remaining > 0, isPro: false, used, limit: FREE_CHAT_DAILY_LIMIT, remaining };
 }
@@ -303,7 +297,7 @@ export async function incrementChatUsage() {
   if (!user) return;
   const sub = await fetchSubscription();
   if (isProActive(sub)) return;
-  const { error } = await supabase.from('subscriptions').update({ chat_messages_today: (sub?.chat_messages_today ?? 0) + 1, updated_at: new Date().toISOString() }).eq('id', user.id);
+  const { error } = await supabase.from('subscriptions').update({ chat_count: (sub?.chat_count ?? 0) + 1 }).eq('id', user.id);
   if (error) throw error;
 }
 

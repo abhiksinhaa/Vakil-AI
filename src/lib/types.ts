@@ -56,16 +56,13 @@ export interface Profile {
 
 export interface Subscription {
   id?: string;
-  user_id: string;
   plan: 'free' | 'pro';
-  pro_until: string | null;
-  drafts_this_month: number;
-  month_key: string;
-  referral_rewards_granted: number;
-  chat_messages_today: number;
+  drafts_used: number;
+  created_at?: string;
   chat_day_key: string;
-  paid_drafts_balance?: number;
-  updated_at?: string;
+  chat_count: number;
+  drafts_count: number;
+  last_reset: string;
 }
 
 export interface DraftRecord {

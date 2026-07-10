@@ -18,42 +18,18 @@ async function grantReferralRewards(referrerId: string) {
   }
 
   const total = count ?? 0;
-  const newRewards = Math.floor(total / 5) * 2;
-  if (newRewards <= 0) return;
+  if (total >= 5) {
+    const { error: upsertError } = await db.from('subscriptions').upsert(
+      {
+        id: referrerId,
+        plan: 'pro',
+      },
+      { onConflict: 'id' }
+    );
 
-  const { data: current, error: currentError } = await db
-    .from('subscriptions')
-    .select('*')
-    .eq('id', referrerId)
-    .maybeSingle();
-
-  if (currentError) {
-    console.error('grantReferralRewards subscription fetch failed', currentError);
-    return;
-  }
-
-  const granted = Number(current?.referral_rewards_granted ?? 0);
-  if (newRewards <= granted) return;
-
-  const now = new Date();
-  const base = current?.pro_until && new Date(current.pro_until) > now ? new Date(current.pro_until) : now;
-  const proUntil = new Date(base);
-  proUntil.setMonth(proUntil.getMonth() + (newRewards - granted));
-
-  const { error: upsertError } = await db.from('subscriptions').upsert(
-    {
-      id: referrerId,
-      user_id: referrerId,
-      plan: 'pro',
-      pro_until: proUntil.toISOString(),
-      referral_rewards_granted: newRewards,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'id' }
-  );
-
-  if (upsertError) {
-    console.error('grantReferralRewards update failed', upsertError);
+    if (upsertError) {
+      console.error('grantReferralRewards update failed', upsertError);
+    }
   }
 }
 

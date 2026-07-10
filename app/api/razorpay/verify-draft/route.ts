@@ -51,20 +51,18 @@ export async function POST(req: Request) {
 
     const { data: currentSub, error: currentSubError } = await db
       .from('subscriptions')
-      .select('paid_drafts_balance')
+      .select('drafts_count')
       .eq('id', uid)
       .maybeSingle();
     if (currentSubError) {
       throw currentSubError;
     }
 
-    const paidBalance = Number(currentSub?.paid_drafts_balance ?? 0) + 1;
+    const paidBalance = Number(currentSub?.drafts_count ?? 0) + 1;
     const { error: updateError } = await db.from('subscriptions').upsert(
       {
         id: uid,
-        user_id: uid,
-        paid_drafts_balance: paidBalance,
-        updated_at: new Date().toISOString(),
+        drafts_count: paidBalance,
       },
       { onConflict: 'id' }
     );

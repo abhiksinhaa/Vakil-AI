@@ -49,27 +49,10 @@ export async function POST(req: Request) {
     const db = adminDb();
     const uid = decoded.id;
 
-    const { data: currentSub, error: currentSubError } = await db
-      .from('subscriptions')
-      .select('pro_until')
-      .eq('id', uid)
-      .maybeSingle();
-    if (currentSubError) {
-      throw currentSubError;
-    }
-
-    const now = new Date();
-    const base = currentSub?.pro_until && new Date(currentSub.pro_until) > now ? new Date(currentSub.pro_until) : now;
-    const proUntil = new Date(base);
-    proUntil.setMonth(proUntil.getMonth() + Number(months || 1));
-
     const { error: updateError } = await db.from('subscriptions').upsert(
       {
         id: uid,
-        user_id: uid,
         plan: 'pro',
-        pro_until: proUntil.toISOString(),
-        updated_at: new Date().toISOString(),
       },
       { onConflict: 'id' }
     );

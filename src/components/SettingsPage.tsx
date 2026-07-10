@@ -416,9 +416,9 @@ export default function SettingsPage() {
 
   const planLabel = subscription?.plan === 'pro' ? 'Pro subscriber' : 'Free plan';
   const draftLimit = profile?.user_type === 'individual' ? 2 : 10;
-  const usedDrafts = subscription?.drafts_this_month ?? 0;
+  const usedDrafts = subscription?.drafts_used ?? 0;
   const remainingDrafts = Math.max(0, draftLimit - usedDrafts);
-  const chatUsage = subscription?.chat_messages_today ?? 0;
+  const chatUsage = subscription?.chat_count ?? 0;
 
   const usageHistory = useMemo(
     () => [
@@ -562,14 +562,14 @@ export default function SettingsPage() {
                 <div className="rounded-3xl border border-border bg-navy/60 p-4">
                   <p className="text-cream/70 text-sm">Plan</p>
                   <p className="mt-2 font-medium text-cream">{subscription?.plan === 'pro' ? 'Pro Annual' : 'Free'}</p>
-                  {subscription?.pro_until ? (
-                    <p className="text-cream/50 text-sm mt-1">Renewal: {new Date(subscription.pro_until).toLocaleDateString()}</p>
+                  {isProActive(subscription) ? (
+                    <p className="text-cream/50 text-sm mt-1">Status: Active</p>
                   ) : null}
                 </div>
                 <div className="rounded-3xl border border-border bg-navy/60 p-4">
                   <p className="text-cream/70 text-sm">Usage this month</p>
                   <p className="mt-2 font-medium text-cream">{usedDrafts} drafts</p>
-                  <p className="text-cream/50 text-sm mt-1">{subscription?.chat_messages_today ?? 0} AI messages</p>
+                  <p className="text-cream/50 text-sm mt-1">{subscription?.chat_count ?? 0} AI messages</p>
                 </div>
               </div>
 
