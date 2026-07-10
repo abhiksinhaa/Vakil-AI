@@ -147,8 +147,8 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
     };
     const insertSub = await supabase.from('subscriptions').insert(newSub);
     if (insertSub.error) {
-      console.error('ensureUserRecords: failed to insert subscription', insertSub.error);
-      throw insertSub.error;
+      console.error('ensureUserRecords: failed to insert subscription, falling back to in-memory', insertSub.error);
+      // Fallback to in-memory subscription to prevent account loading crash
     }
     subscription = newSub;
   }
