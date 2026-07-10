@@ -59,46 +59,6 @@ function NavDropdown({ open, onClose, align = 'right', children }) {
   );
 }
 
-function DropdownItem({
-  to,
-  onClick,
-  children,
-  destructive = false,
-}: {
-  to?: string;
-  onClick?: () => void;
-  children: ReactNode;
-  destructive?: boolean;
-}) {
-  const className = `block w-full text-left px-4 py-2.5 text-sm transition-colors ${
-    destructive
-      ? 'text-red-400/90 hover:bg-red-400/10'
-      : 'text-cream/80 hover:bg-gold/10 hover:text-gold'
-  }`;
-
-  const handleClick = (e: React.MouseEvent) => {
-    // Delay closing the menu to allow the Next.js router transition to start without being aborted
-    if (onClick) {
-      setTimeout(() => {
-        onClick();
-      }, 150);
-    }
-  };
-
-  if (to) {
-    return (
-      <Link href={to} className={className} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
-
-  return (
-    <button type="button" role="menuitem" className={className} onClick={handleClick}>
-      {children}
-    </button>
-  );
-}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -208,17 +168,17 @@ export default function Navbar() {
             <NavDropdown open={profileOpen} onClose={() => setProfileOpen(false)}>
               {session ? (
                 <>
-                  <DropdownItem to="/profile" onClick={closeAll}>
+                  <Link href="/profile" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                     My Profile
-                  </DropdownItem>
-                  <DropdownItem to="/settings" onClick={closeAll}>
+                  </Link>
+                  <Link href="/settings" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                     Settings
-                  </DropdownItem>
+                  </Link>
                 </>
               ) : (
-                <DropdownItem to="/login" onClick={closeAll}>
+                <Link href="/login" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                   Sign In / Sign Up
-                </DropdownItem>
+                </Link>
               )}
             </NavDropdown>
           </div>
@@ -248,38 +208,38 @@ export default function Navbar() {
             </button>
 
             <NavDropdown open={menuOpen} onClose={() => setMenuOpen(false)}>
-              <DropdownItem to="/generate" onClick={closeAll}>
+              <Link href="/generate" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                 Create New Draft
-              </DropdownItem>
+              </Link>
               {session && (
-                <DropdownItem to="/history" onClick={closeAll}>
+                <Link href="/history" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                   Draft History
-                </DropdownItem>
+                </Link>
               )}
               {session && (
-                <DropdownItem to="/profile" onClick={closeAll}>
+                <Link href="/profile" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                   My Profile
-                </DropdownItem>
+                </Link>
               )}
-              <DropdownItem to="/help" onClick={closeAll}>
+              <Link href="/help" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                 Help Center
-              </DropdownItem>
+              </Link>
               {session && (
-                <DropdownItem to="/refer" onClick={closeAll}>
+                <Link href="/refer" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                   Refer & Earn
-                </DropdownItem>
+                </Link>
               )}
               {session && (
-                <DropdownItem to="/pricing" onClick={closeAll}>
+                <Link href="/pricing" onClick={closeAll} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-cream/80 hover:bg-gold/10 hover:text-gold">
                   Unlock Premium
-                </DropdownItem>
+                </Link>
               )}
               {session && (
                 <>
                   <div className="my-1 border-t border-border" />
-                  <DropdownItem onClick={handleLogout} destructive>
+                  <button type="button" onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm transition-colors text-red-400/90 hover:bg-red-400/10">
                     Logout
-                  </DropdownItem>
+                  </button>
                 </>
               )}
             </NavDropdown>

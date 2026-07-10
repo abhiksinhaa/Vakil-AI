@@ -18,7 +18,7 @@ export default function ProfilePage() {
     city: '',
     pincode: '',
   });
-  const [isEditing, setIsEditing] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [referralStats, setReferralStats] = useState<{ count: number; rewardsEarned: number; referralsUntilReward: number } | null>(null);
@@ -27,66 +27,18 @@ export default function ProfilePage() {
   const needsAdvocateFields = !isIndividual;
 
   useEffect(() => {
-    if (profile) {
+    if (profile && !isEditing) {
       setForm({
-        full_name: profile.full_name || '',
-        advocate_name: profile.advocate_name || '',
+        full_name: profile.full_name || profile.advocate_name || '',
+        advocate_name: profile.advocate_name || profile.full_name || '',
         bar_council_number: profile.bar_council_number || '',
-        court_jurisdiction: profile.court_jurisdiction || '',
+        court_jurisdiction: profile.city_court || profile.city || profile.court_jurisdiction || '',
         state: profile.state || '',
-        city: profile.city || '',
+        city: profile.city_court || profile.city || '',
         pincode: profile.pincode || '',
       });
     }
-  }, [profile]);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) {
-        console.error('Profile page auth failed', authError);
-        return;
-      }
-      const user = authData?.user;
-      if (!user) return;
-
-      const { data: profileRow, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      console.log('Profile page fetched data:', profileRow, profileError);
-
-      if (profileError) {
-        console.error('Profile load failed', profileError);
-        setForm({
-          full_name: '',
-          advocate_name: '',
-          bar_council_number: '',
-          court_jurisdiction: '',
-          state: '',
-          city: '',
-          pincode: '',
-        });
-        return;
-      }
-
-      if (profileRow) {
-        setForm({
-          full_name: profileRow.full_name || profileRow.advocate_name || '',
-          advocate_name: profileRow.advocate_name || profileRow.full_name || '',
-          bar_council_number: profileRow.bar_council_number || '',
-          court_jurisdiction: profileRow.city_court || profileRow.city || profileRow.court_jurisdiction || '',
-          state: profileRow.state || '',
-          city: profileRow.city_court || profileRow.city || '',
-          pincode: profileRow.pincode || '',
-        });
-      }
-    };
-
-    fetchProfile();
-  }, []);
+  }, [profile, isEditing]);
 
   useEffect(() => {
     if (!session?.user?.id) return;

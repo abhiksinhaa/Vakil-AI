@@ -17,7 +17,8 @@ export default function ReferAndEarn() {
     async function loadData() {
       if (!session?.user) return;
       try {
-        setReferralLink(`draftee.in/signup?ref=${session.user.id.substring(0, 8)}`);
+        const code = session.user.id.substring(0, 8);
+        setReferralLink(code);
         const data = await fetchReferralStats();
         setStats(data);
       } catch (err) {
@@ -38,7 +39,7 @@ export default function ReferAndEarn() {
 
   const handleWhatsAppShare = () => {
     if (!referralLink) return;
-    const message = `Hey! I've been using Draftee - an AI tool that generates legal drafts in seconds. Really useful for lawyers. Sign up free here: ${referralLink}`;
+    const message = `Hey! I've been using Draftee for AI legal drafting. Use my referral code ${referralLink} and sign up at draftee.in`;
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
@@ -58,15 +59,12 @@ export default function ReferAndEarn() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <h1 className="font-display text-2xl sm:text-3xl text-gold">Refer & Earn 🎁</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-gold">Refer & Earn</h1>
         </div>
 
         <section className="card space-y-4 mb-6 border-gold/30 bg-gradient-to-br from-navy to-gold/5">
           <p className="text-lg text-cream font-medium">
-            Refer 5 friends who sign up — get 2 months Premium free
-          </p>
-          <p className="text-sm text-cream/60">
-            Your referrals are being tracked now.
+            Refer 5 friends and get 2 months Premium free!
           </p>
         </section>
 
@@ -92,12 +90,12 @@ export default function ReferAndEarn() {
             </div>
 
             <section className="card space-y-6">
-              <h2 className="font-display text-lg text-gold">Your Referral Link</h2>
+              <h2 className="font-display text-lg text-gold">Your Referral Code</h2>
               
               <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 bg-navy/50 border border-border rounded-xl px-4 py-3 flex items-center overflow-hidden">
-                  <span className="text-cream/90 truncate text-sm">
-                    {referralLink || 'Loading link...'}
+                <div className="flex-1 bg-navy/50 border border-border rounded-xl px-4 py-3 flex items-center overflow-hidden justify-center">
+                  <span className="text-cream/90 font-mono tracking-widest text-lg font-semibold">
+                    {referralLink || 'LOADING...'}
                   </span>
                 </div>
                 <button
@@ -105,7 +103,7 @@ export default function ReferAndEarn() {
                   disabled={!referralLink}
                   className="btn-secondary whitespace-nowrap min-w-[120px]"
                 >
-                  {copied ? 'Copied! ✓' : 'Copy Link'}
+                  {copied ? 'Copied! ✓' : 'Copy Code'}
                 </button>
               </div>
 
