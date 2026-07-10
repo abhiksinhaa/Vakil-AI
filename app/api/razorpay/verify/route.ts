@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { adminDb, requireUser } from '@/lib/supabaseAdmin';
+import { buildSubscriptionPayload } from '@/lib/subscription';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,10 +51,7 @@ export async function POST(req: Request) {
     const uid = decoded.id;
 
     const { error: updateError } = await db.from('subscriptions').upsert(
-      {
-        id: uid,
-        plan: 'pro',
-      },
+      buildSubscriptionPayload({ id: uid, plan: 'pro' }),
       { onConflict: 'id' }
     );
     if (updateError) {

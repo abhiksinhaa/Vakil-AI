@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { adminDb, requireUser } from '@/lib/supabaseAdmin';
+import { buildSubscriptionPayload } from '@/lib/subscription';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
 
     const { data: currentSub, error: currentSubError } = await db
       .from('subscriptions')
-      .select('drafts_count')
+      .select('*')
       .eq('id', uid)
       .maybeSingle();
     if (currentSubError) {
@@ -60,10 +61,16 @@ export async function POST(req: Request) {
 
     const paidBalance = Number(currentSub?.drafts_count ?? 0) + 1;
     const { error: updateError } = await db.from('subscriptions').upsert(
-      {
+      buildSubscriptionPayload({
         id: uid,
+        plan: currentSub?.plan ?? 'free',
+        drafts_used: currentSub?.drafts_used ?? 0,
+        created_at: currentSub?.created_at ?? new Date().toISOString(),
+        chat_day_key: currentSub?.chat_day_key ?? new Date().toISOString(),
+        chat_count: currentSub?.chat_count ?? 0,
         drafts_count: paidBalance,
-      },
+        last_reset: currentSub?.last_reset ?? new Date().toISOString(),
+      }),
       { onConflict: 'id' }
     );
     if (updateError) {

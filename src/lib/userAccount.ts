@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { User } from '@supabase/supabase-js';
 import type { Profile, Subscription } from './types';
+import { buildSubscriptionPayload } from './subscription';
 
 export const FREE_DRAFT_LIMIT = 10;
 export const FREE_CHAT_DAILY_LIMIT = 5;
@@ -126,16 +127,7 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
   let subscription = subRes.data as Subscription | null;
 
   if (!subscription) {
-    const newSub: Subscription = {
-      id: user.id,
-      plan: 'free',
-      drafts_used: 0,
-      created_at: new Date().toISOString(),
-      chat_day_key: new Date().toISOString(),
-      chat_count: 0,
-      drafts_count: 0,
-      last_reset: new Date().toISOString(),
-    };
+    const newSub = buildSubscriptionPayload({ id: user.id, plan: 'free' }) as Subscription;
     const insertSub = await supabase.from('subscriptions').insert(newSub);
     if (insertSub.error) {
       console.error('ensureUserRecords: failed to insert subscription', insertSub.error);

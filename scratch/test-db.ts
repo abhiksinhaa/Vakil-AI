@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { buildSubscriptionPayload } from '../src/lib/subscription';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://bbmojmpekooflbbyuroz.supabase.co';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_02rNAgsG7O92u6K05xhgWQ_vuyaApv8';
@@ -12,15 +13,11 @@ async function check() {
   
   // Try to insert a dummy subscription for a fake UUID
   const { data, error } = await supabase.from('subscriptions').insert([
-    {
+    buildSubscriptionPayload({
       id: '00000000-0000-0000-0000-000000000000',
       plan: 'free',
-      drafts_used: 0,
       chat_day_key: '2026-07-10',
-      chat_count: 0,
-      drafts_count: 0,
-      last_reset: new Date().toISOString()
-    }
+    })
   ]);
   
   console.log("Insert response:", { data, error });
