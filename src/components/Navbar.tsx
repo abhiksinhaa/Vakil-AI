@@ -70,7 +70,6 @@ function DropdownItem({
   children: ReactNode;
   destructive?: boolean;
 }) {
-  const router = useRouter();
   const className = `block w-full text-left px-4 py-2.5 text-sm transition-colors ${
     destructive
       ? 'text-red-400/90 hover:bg-red-400/10'
@@ -78,18 +77,21 @@ function DropdownItem({
   }`;
 
   const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('DropdownItem onClick fired for:', to);
-    
-    // Close the dropdown first to make the UI feel responsive
-    if (onClick) onClick();
-    
-    // Then navigate
-    if (to) {
-      router.push(to);
+    // Delay closing the menu to allow the Next.js router transition to start without being aborted
+    if (onClick) {
+      setTimeout(() => {
+        onClick();
+      }, 150);
     }
   };
+
+  if (to) {
+    return (
+      <Link href={to} className={className} onClick={handleClick}>
+        {children}
+      </Link>
+    );
+  }
 
   return (
     <button type="button" role="menuitem" className={className} onClick={handleClick}>
