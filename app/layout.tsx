@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'Draftee — Legal Draft Generator',
   description: 'Draftee — AI-powered legal draft generator for Indian lawyers',
   applicationName: 'Draftee',
-  icons: { icon: '/logo' },
+  icons: { icon: '/logo.png' },
   openGraph: {
     title: 'Draftee — Legal Draft Generator',
     description:

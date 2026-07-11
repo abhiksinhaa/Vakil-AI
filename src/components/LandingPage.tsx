@@ -99,7 +99,7 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className={`landing-nav ${scrolled ? 'scrolled' : ''}`}>
         <Link href="/" className="landing-logo">
-          <img src="/logo" alt="Draftee" 
+          <img src="/logo.png" alt="Draftee" 
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
         </Link>
         <div className={`landing-nav-links ${mobileMenuOpen ? 'mobile-open' : ''}`}>
@@ -336,7 +336,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="landing-footer">
         <div className="landing-logo text-xl">
-          <img src="/logo" alt="Draftee" 
+          <img src="/logo.png" alt="Draftee" 
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
         </div>
         <div className="text-sm opacity-60">© 2025 Draftee. Legal Drafts in Seconds.</div>
