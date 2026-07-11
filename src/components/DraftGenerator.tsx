@@ -581,6 +581,32 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               </div>
             </section>
 
+            {/* Language Selector */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                color: '#c9a84c', 
+                fontSize: '0.9rem', 
+                fontWeight: 500,
+                display: 'block',
+                marginBottom: '8px'
+              }}>
+                Select Language
+              </label>
+              <select
+                id="draftLanguage"
+                value={form.language || 'English'}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="w-full text-base py-3 mt-1"
+              >
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
+            </div>
+
             <button
               type="button"
               onClick={() => void runGenerate()}
@@ -786,22 +812,6 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                       </div>
                     </fieldset>
 
-                    <div>
-                      <label htmlFor="draftLanguage">Draft Language</label>
-                      <select
-                        id="draftLanguage"
-                        value={form.language || 'English'}
-                        onChange={(e) => handleLanguageChange(e.target.value)}
-                        className="w-full text-base py-3 mt-1"
-                      >
-                        {LANGUAGE_OPTIONS.map((lang) => (
-                          <option key={lang} value={lang}>
-                            {lang}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
-                    </div>
                   </section>
                 </div>
               )}
