@@ -1,5 +1,5 @@
 'use client'
-import Link from 'next/link'
+
 import { usePathname } from 'next/navigation'
 
 export default function BottomNav() {
@@ -35,7 +35,6 @@ export default function BottomNav() {
           width: '44px', height: '44px', borderRadius: '50%',
           background: 'linear-gradient(135deg, #c9a84c, #e3c47e)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginTop: '-20px',
           boxShadow: '0 4px 16px rgba(201,168,76,0.5)',
         }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -71,13 +70,14 @@ export default function BottomNav() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
-        zIndex: 9998,
+        zIndex: 99999,
         paddingBottom: 'env(safe-area-inset-bottom)',
+        pointerEvents: 'all',
       }}>
         {tabs.map(({ href, icon }) => {
           const active = pathname === href
           return (
-            <Link
+            <a
               key={href}
               href={href}
               style={{
@@ -87,10 +87,13 @@ export default function BottomNav() {
                 color: active ? '#c9a84c' : '#6b7280',
                 textDecoration: 'none',
                 flex: 1,
+                height: '100%',
+                pointerEvents: 'all',
+                cursor: 'pointer',
               }}
             >
               {icon(active)}
-            </Link>
+            </a>
           )
         })}
       </nav>
