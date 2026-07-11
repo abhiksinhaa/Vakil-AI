@@ -483,57 +483,34 @@ export default function ProfilePage() {
                       : (draft.draft_type || 'Untitled Draft');
                       
                     return (
-                      <div key={draft.id} className="bg-[#0f1525] border border-[#1e2a3a] rounded-2xl p-5 hover:border-[#c9a84c]/30 transition">
-                        <div className="mb-4">
-                          <h3 className="font-bold text-[#e8e0d0]">{title}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-[#e8e0d0]/50">{formatDate(draft.created_at)}</span>
-                            {draft.status && (
-                              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1e2a3a] text-[#c9a84c]">
-                                {draft.status}
-                              </span>
-                            )}
+                      <div
+                        key={draft.id}
+                        onClick={() => router.push('/draft/' + draft.id)}
+                        style={{
+                          cursor: 'pointer',
+                          background: '#0f1525',
+                          border: '1px solid #1e2a3a',
+                          borderRadius: '12px',
+                          padding: '16px 18px',
+                          marginBottom: '12px',
+                        }}
+                        className="hover:border-[#c9a84c]/30 transition"
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: '4px', color: '#e8e0d0' }}>
+                          {title}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', opacity: 0.55, color: '#e8e0d0' }}>
+                          {formatDate(draft.created_at)}
+                        </div>
+                        {draft.status && (
+                          <div style={{ 
+                            marginTop: '8px',
+                            fontSize: '0.75rem',
+                            color: draft.status === 'completed' ? '#00d4aa' : '#c9a84c'
+                          }}>
+                            {draft.status}
                           </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => router.push(`/generate?draftId=${draft.id}`)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
-                          >
-                            ✏️ Edit
-                          </button>
-                          <button
-                            onClick={() => handleCopyDraft(draft.id, content)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
-                          >
-                            {copiedStates[draft.id] ? '✅ Copied!' : '📋 Copy'}
-                          </button>
-                          <button
-                            onClick={() => handleTxtDownload(draft)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
-                          >
-                            📄 .txt
-                          </button>
-                          <button
-                            onClick={() => handlePdfDownload(draft)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
-                          >
-                            📑 PDF
-                          </button>
-                          <button
-                            onClick={() => handleWhatsAppShare(draft)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
-                          >
-                            💬 WhatsApp
-                          </button>
-                          <button
-                            onClick={() => handleEmailShare(draft)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
-                          >
-                            📧 Email
-                          </button>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
