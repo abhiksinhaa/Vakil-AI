@@ -982,12 +982,12 @@ export default function LegalChatbot() {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          style={position ? { left: `${position.x}px`, top: `${position.y}px`, right: 'auto', bottom: 'auto' } : {}}
-          className={`fixed z-[9999] bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center touch-none transition-[background-color,transform] duration-300 bg-[#08122e] border border-white/20 text-white ${isDragging ? 'scale-110 cursor-grabbing bg-[#0c1a40]' : 'hover:scale-105 hover:bg-[#0c1a40] cursor-grab'}`}
+          style={position ? { left: `${position.x}px`, top: `${position.y}px`, right: 'auto', bottom: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '50%' } : { display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '50%' }}
+          className={`fixed z-[9999] bottom-6 right-6 w-14 h-14 shadow-lg touch-none transition-[background-color,transform] duration-300 bg-[#08122e] border border-white/20 text-white ${isDragging ? 'scale-110 cursor-grabbing bg-[#0c1a40]' : 'hover:scale-105 hover:bg-[#0c1a40] cursor-grab'}`}
           aria-label="Open Neikx AI"
           aria-expanded={isOpen}
         >
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {showBubble && !sessionStorage.getItem('neikx_shown') && (
               <div style={{
                 position: 'absolute',
@@ -1017,7 +1017,7 @@ export default function LegalChatbot() {
                 }} />
               </div>
             )}
-            <Sparkles className="w-6 h-6 pointer-events-none" />
+            <Sparkles className="pointer-events-none" style={{ width: '50%', height: '50%' }} />
           </div>
         </button>
       )}
