@@ -289,6 +289,14 @@ export default function ProfilePage() {
             </h1>
 
             <div className="space-y-4">
+              <p style={{
+                fontSize: '0.78rem',
+                color: '#c9a84c',
+                opacity: 0.8,
+                marginBottom: '16px',
+              }}>
+                (* All fields are mandatory)
+              </p>
               <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
                 <span>Full Name</span>
                 <input
