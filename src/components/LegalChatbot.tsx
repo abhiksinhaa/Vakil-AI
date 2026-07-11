@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   Volume2, VolumeX, Copy, Check, ThumbsUp, ThumbsDown,
   Menu, X, Plus, Mic, Send, MessageSquare, History, FileText, Search, Settings, FileUp, FileDown, ChevronDown, Sparkles, Star, PlusSquare
 } from 'lucide-react';
@@ -15,17 +15,19 @@ import { stripMarkdown } from '../lib/stripMarkdown';
 import { saveChatSession, fetchChatHistory, type ChatSession } from '../lib/db';
 import LiveVoiceMode from './LiveVoiceMode';
 import NeikxSettingsPanel from './NeikxSettingsPanel';
+import { supabase } from '../lib/supabase';
+import { isProfileComplete } from '../lib/isProfileComplete';
 
 const WELCOME_PRO = 'Welcome! Pro Legal Assistant — unlimited messages, document upload, draft generation, and PDF export. How can I help?';
 
 export default function LegalChatbot() {
   const router = useRouter();
   const { refreshAccount, profile, session } = useApp();
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
-  
+
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,23 +36,23 @@ export default function LegalChatbot() {
   const [activeSpeechId, setActiveSpeechId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [messageFeedback, setMessageFeedback] = useState({});
-  
+
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [appFeedbackRating, setAppFeedbackRating] = useState(0);
   const [appFeedbackText, setAppFeedbackText] = useState('');
   const [appFeedbackSubmitted, setAppFeedbackSubmitted] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isLiveModeOpen, setIsLiveModeOpen] = useState(false);
-  
+
   const [sessionId, setSessionId] = useState(`chat-${Date.now()}`);
   const [historyList, setHistoryList] = useState<ChatSession[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [showNeikxSettings, setShowNeikxSettings] = useState(false);
-  
-  const [position, setPosition] = useState<{x: number, y: number} | null>(null);
+
+  const [position, setPosition] = useState<{ x: number, y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, lastPos: null as {x: number, y: number} | null });
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, lastPos: null as { x: number, y: number } | null });
   const fabRef = useRef<HTMLButtonElement>(null);
 
   const messagesEndRef = useRef(null);
@@ -87,7 +89,7 @@ export default function LegalChatbot() {
       try {
         const parsed = JSON.parse(savedPos);
         setPosition(getBoundedPosition(parsed.x, parsed.y));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const handleResize = () => {
@@ -102,7 +104,7 @@ export default function LegalChatbot() {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(false);
-    
+
     let currentX = position?.x;
     let currentY = position?.y;
     if (currentX === undefined || currentY === undefined) {
@@ -115,7 +117,7 @@ export default function LegalChatbot() {
         currentY = window.innerHeight - 80;
       }
     }
-    
+
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -129,13 +131,13 @@ export default function LegalChatbot() {
   const handlePointerMove = (e: React.PointerEvent) => {
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
-    
+
     if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
       setIsDragging(true);
     }
-    
+
     if (!isDragging) return;
-    
+
     e.preventDefault();
     const newPos = getBoundedPosition(
       dragRef.current.initialX + dx,
@@ -217,7 +219,7 @@ export default function LegalChatbot() {
         setMessageFeedback({});
       }
     }
-    
+
     // Click outside handler for attachment menu
     const handleClickOutside = (e: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(e.target as Node)) {
@@ -349,6 +351,14 @@ export default function LegalChatbot() {
   };
 
   const copyToClipboard = async (text, msgId) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userData?.user?.id).maybeSingle();
+    
+    if (!isProfileComplete(profileRow)) {
+      alert('Please complete your profile before using this feature.');
+      router.push('/profile');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(msgId);
@@ -430,7 +440,7 @@ export default function LegalChatbot() {
     }
 
     const historyForApi = [...currentMessages.filter((m) => m.id !== 'welcome'), userMessage];
-    
+
     // Optimistic update
     setMessages([...currentMessages, userMessage]);
     setInput('');
@@ -439,20 +449,20 @@ export default function LegalChatbot() {
     setIsLoading(true);
 
     try {
-      const reply = await sendLegalChatMessage(historyForApi, { 
-        isPro: true, 
+      const reply = await sendLegalChatMessage(historyForApi, {
+        isPro: true,
         draftMode,
         signal: abortController.signal,
         profile
       });
-      
+
       if (abortController.signal.aborted) return;
-      
+
       await refreshAccount();
 
       setMessages((prev) => [
         ...prev.map(m => m.id === userMessage.id ? {
-          ...m, 
+          ...m,
           attachment: m.attachment ? { fileName: m.attachment.fileName } : null
         } : m),
         {
@@ -464,7 +474,7 @@ export default function LegalChatbot() {
       return stripMarkdown(reply);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
-      
+
       setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
       setInput(trimmed);
       setPendingAttachment(attachment);
@@ -510,6 +520,14 @@ export default function LegalChatbot() {
   };
 
   const handleExportChatPdf = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userData?.user?.id).maybeSingle();
+    
+    if (!isProfileComplete(profileRow)) {
+      alert('Please complete your profile before using this feature.');
+      router.push('/profile');
+      return;
+    }
     setAttachmentMenuOpen(false);
     const transcript = buildChatTranscript(messages);
     if (!transcript.trim()) return;
@@ -522,7 +540,7 @@ export default function LegalChatbot() {
       setError(err.message || 'PDF export failed');
     }
   };
-  
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -581,12 +599,12 @@ export default function LegalChatbot() {
       >
         {/* Sidebar Overlay */}
         {sidebarOpen && (
-           <div 
-             className="fixed inset-0 bg-black/60 z-[210] backdrop-blur-sm transition-opacity" 
-             onClick={() => setSidebarOpen(false)} 
-           />
+          <div
+            className="fixed inset-0 bg-black/60 z-[210] backdrop-blur-sm transition-opacity"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
-        
+
         {/* Sidebar */}
         <div className={`fixed inset-y-0 left-0 w-72 bg-[#121212] z-[220] transform transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-4 flex items-center justify-between border-b border-white/10">
@@ -597,7 +615,7 @@ export default function LegalChatbot() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             {!showHistoryPanel && !showNeikxSettings ? (
               <>
@@ -649,7 +667,7 @@ export default function LegalChatbot() {
               </div>
             )}
           </div>
-          
+
           <div className="p-4 border-t border-white/10">
             <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowNeikxSettings(true); setShowHistoryPanel(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white/90 text-left">
               <Settings className="w-5 h-5 text-white/70" />
@@ -710,7 +728,7 @@ export default function LegalChatbot() {
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
               <h2 className="text-3xl sm:text-4xl font-medium text-white tracking-tight mb-12">Where should we start?</h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
                 {[
                   { title: 'Draft a legal notice', desc: 'Create a formal notice for a dispute', icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#a8b8d8]" /> },
@@ -718,7 +736,7 @@ export default function LegalChatbot() {
                   { title: 'Research case laws', desc: 'Find precedents for your matter', icon: <History className="w-4 h-4 sm:w-5 sm:h-5 text-[#a8b8d8]" /> },
                   { title: 'Analyze a document', desc: 'Upload a file for summary', icon: <FileUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#a8b8d8]" /> }
                 ].map((chip, i) => (
-                  <button 
+                  <button
                     key={i}
                     onClick={() => setInput(chip.title)}
                     className="flex flex-col items-start p-3 sm:p-4 bg-[#1e1e1e]/50 hover:bg-[#1e1e1e] border border-white/5 rounded-[1rem] sm:rounded-2xl transition-all text-left group"
@@ -743,19 +761,18 @@ export default function LegalChatbot() {
                 >
                   {msg.role === 'assistant' && (
                     <div className="flex items-center gap-3 mb-3">
-                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-sm shrink-0">
-                         <Sparkles className="w-4 h-4 text-white" />
-                       </div>
-                       <span className="text-sm font-medium text-white/90">Neikx AI</span>
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-sm shrink-0">
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-white/90">Neikx AI</span>
                     </div>
                   )}
 
                   <div
-                    className={`${
-                      msg.role === 'user'
+                    className={`${msg.role === 'user'
                         ? 'max-w-[85%] sm:max-w-[75%] px-5 py-3.5 text-[15px] leading-relaxed whitespace-pre-wrap bg-[#1e1e1e] text-white rounded-3xl rounded-br-sm'
                         : 'w-full pl-11 pr-4 text-[15px] leading-relaxed whitespace-pre-wrap text-white/90'
-                    }`}
+                      }`}
                   >
                     {msg.attachment?.fileName && (
                       <div className={`flex items-center gap-2 text-xs text-white/60 bg-white/5 p-2 rounded-lg mb-2 ${msg.role === 'assistant' ? 'w-fit' : ''}`}>
@@ -783,14 +800,14 @@ export default function LegalChatbot() {
                   )}
                 </div>
               ))}
-              
+
               {isLoading && (
                 <div className="flex justify-start flex-col mb-8 animate-in fade-in duration-300">
                   <div className="flex items-center gap-3 mb-3">
-                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-sm shrink-0">
-                       <Sparkles className="w-4 h-4 text-white animate-pulse" />
-                     </div>
-                     <span className="text-sm font-medium text-white/90">Neikx AI is thinking...</span>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-sm shrink-0">
+                      <Sparkles className="w-4 h-4 text-white animate-pulse" />
+                    </div>
+                    <span className="text-sm font-medium text-white/90">Neikx AI is thinking...</span>
                   </div>
                   <div className="pl-11">
                     <div className="flex gap-1.5 items-center py-2">
@@ -801,7 +818,7 @@ export default function LegalChatbot() {
                   </div>
                 </div>
               )}
-              
+
               {error && (
                 <p className="text-red-400/90 text-sm text-center bg-red-400/10 border border-red-400/20 rounded-2xl px-4 py-3 mx-auto max-w-md">
                   {error}
@@ -864,7 +881,7 @@ export default function LegalChatbot() {
               >
                 <Plus className="w-5 h-5" />
               </button>
-              
+
               <input
                 ref={inputRef}
                 type="text"
@@ -876,7 +893,7 @@ export default function LegalChatbot() {
                 className="flex-1 bg-transparent border-none text-white placeholder:text-white/40 focus:ring-0 text-[15px] py-3 px-2 min-w-0"
                 autoComplete="off"
               />
-              
+
               <div className="flex items-center gap-1 shrink-0 pr-1">
                 {input.trim() || pendingAttachment ? (
                   <button
@@ -891,9 +908,8 @@ export default function LegalChatbot() {
                     <button
                       type="button"
                       onClick={toggleListening}
-                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-                        isListening ? 'text-red-400 bg-red-400/10 animate-pulse' : 'text-white/60 hover:text-white hover:bg-white/10'
-                      }`}
+                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${isListening ? 'text-red-400 bg-red-400/10 animate-pulse' : 'text-white/60 hover:text-white hover:bg-white/10'
+                        }`}
                       title="Voice Typing"
                     >
                       <Mic className="w-5 h-5" />

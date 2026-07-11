@@ -18,8 +18,10 @@ export interface Profile {
   user_type?: 'advocate' | 'individual';
   state?: string;
   city?: string;
-  pincode?: string;
-  
+  email?: string;
+  whatsapp_number?: string;
+  whatsapp_verified?: boolean;
+
   // AI Settings
   response_style?: string;
   response_length?: string;
@@ -32,17 +34,17 @@ export interface Profile {
   auto_download_drafts?: boolean;
   cloud_backup_enabled?: boolean;
   auto_save_drafts?: boolean;
-  
+
   // Voice Settings
   voice_mode_enabled?: boolean;
   voice_type?: string;
   voice_speed?: number;
   auto_speak?: boolean;
-  
+
   // Chat Settings
   save_chat_history?: boolean;
   auto_delete_chats?: string;
-  
+
   // Notifications
   notify_product_updates?: boolean;
   notify_new_features?: boolean;

@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
 import { supabase } from '../lib/supabase';
 import { updateProfile } from '../lib/userAccount';
 import { useApp } from '../context/AppContext';
+import { isProfileComplete } from '../lib/isProfileComplete';
 
 export default function DraftPreview({
   draft,
@@ -51,6 +53,7 @@ export default function DraftPreview({
   const [profileForm, setProfileForm] = useState({ name: '', barCouncilNumber: '', cityCourt: '' });
   const [pendingAction, setPendingAction] = useState<null | 'copy' | 'pdf' | 'whatsapp' | 'email'>(null);
   const { setProfile } = useApp();
+  const router = useRouter();
 
   const displayDraft = useMemo(
     () => (draft ? stripMarkdown(draft) : ''),
@@ -166,6 +169,15 @@ export default function DraftPreview({
   const handleCopy = async () => {
     if (!displayDraft) return;
 
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userData?.user?.id).maybeSingle();
+    
+    if (!isProfileComplete(profileRow)) {
+      alert('Please complete your profile before using this feature.');
+      router.push('/profile');
+      return;
+    }
+
     const canProceed = await ensureProfileForAction('copy');
     if (!canProceed) return;
 
@@ -181,8 +193,18 @@ export default function DraftPreview({
     }
   };
 
-  const handleDownloadTxt = () => {
+  const handleDownloadTxt = async () => {
     if (!displayDraft) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userData?.user?.id).maybeSingle();
+    
+    if (!isProfileComplete(profileRow)) {
+      alert('Please complete your profile before using this feature.');
+      router.push('/profile');
+      return;
+    }
+
     const type = formData?.draftType?.replace(/\s+/g, '_') || 'legal_draft';
     const blob = new Blob([displayDraft], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -196,6 +218,15 @@ export default function DraftPreview({
   const handleDownloadPdf = async () => {
     if (!displayDraft || isPdfLoading) return;
     setPdfError(null);
+
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userData?.user?.id).maybeSingle();
+    
+    if (!isProfileComplete(profileRow)) {
+      alert('Please complete your profile before using this feature.');
+      router.push('/profile');
+      return;
+    }
 
     const canProceed = await ensureProfileForAction('pdf');
     if (!canProceed) return;
@@ -216,6 +247,15 @@ export default function DraftPreview({
   const handleWhatsApp = async () => {
     if (!displayDraft) return;
 
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userData?.user?.id).maybeSingle();
+    
+    if (!isProfileComplete(profileRow)) {
+      alert('Please complete your profile before using this feature.');
+      router.push('/profile');
+      return;
+    }
+
     const canProceed = await ensureProfileForAction('whatsapp');
     if (!canProceed) return;
 
@@ -229,6 +269,15 @@ export default function DraftPreview({
 
   const handleEmail = async () => {
     if (!displayDraft) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userData?.user?.id).maybeSingle();
+    
+    if (!isProfileComplete(profileRow)) {
+      alert('Please complete your profile before using this feature.');
+      router.push('/profile');
+      return;
+    }
 
     const canProceed = await ensureProfileForAction('email');
     if (!canProceed) return;

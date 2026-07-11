@@ -6,6 +6,7 @@ import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
 import { fetchReferralStats, isAdvocateProfileComplete, updateProfile } from '../lib/userAccount';
+import { isProfileComplete } from '../lib/isProfileComplete';
 
 export default function ProfilePage() {
   const { profile, session, setProfile } = useApp();
@@ -16,7 +17,8 @@ export default function ProfilePage() {
     court_jurisdiction: '',
     state: '',
     city: '',
-    pincode: '',
+    email: '',
+    whatsapp_number: '',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
@@ -35,7 +37,8 @@ export default function ProfilePage() {
         court_jurisdiction: profile.city || profile.court_jurisdiction || '',
         state: profile.state || '',
         city: profile.city || '',
-        pincode: profile.pincode || '',
+        email: profile.email || '',
+        whatsapp_number: profile.whatsapp_number || '',
       });
     }
   }, [profile, isEditing]);
@@ -68,6 +71,8 @@ export default function ProfilePage() {
       console.log('Saving for user:', session.user.id);
       console.log('Form data:', form);
 
+      // TODO: Add these columns in Supabase dashboard:
+      // email (text), whatsapp_number (text)
       const profilePayload = {
         id: session.user.id,
         user_id: session.user.id,
@@ -77,7 +82,8 @@ export default function ProfilePage() {
         court_jurisdiction: form.court_jurisdiction || '',
         state: form.state || '',
         city: form.city || '',
-        pincode: form.pincode || '',
+        email: form.email || '',
+        whatsapp_number: form.whatsapp_number || '',
         user_type: isIndividual ? 'individual' : 'advocate',
         updated_at: new Date().toISOString(),
       };
@@ -104,7 +110,8 @@ export default function ProfilePage() {
           court_jurisdiction: form.court_jurisdiction || profile?.court_jurisdiction || '',
           city: form.city || profile?.city || '',
           state: form.state || profile?.state || '',
-          pincode: form.pincode || profile?.pincode || '',
+          email: form.email || profile?.email || '',
+          whatsapp_number: form.whatsapp_number || profile?.whatsapp_number || '',
         };
         setProfile(updatedProfile as any);
         if (typeof window !== 'undefined' && (updatedProfile.full_name?.trim() || updatedProfile.advocate_name?.trim())) {
@@ -135,6 +142,7 @@ export default function ProfilePage() {
   };
 
   const advocateIncomplete = needsAdvocateFields && !isAdvocateProfileComplete(form);
+  const profileIncomplete = profile ? !isProfileComplete(profile) : true;
 
   return (
     <div className="min-h-screen bg-navy flex flex-col">
@@ -147,6 +155,21 @@ export default function ProfilePage() {
             Edit your profile and save manually. Advocate fields are optional but recommended for better drafts.
           </p>
         </section>
+
+        {!isProfileComplete(profile) && (
+          <div style={{
+            border: '1px solid #c9a84c',
+            borderRadius: '10px',
+            padding: '14px 18px',
+            marginBottom: '24px',
+            background: '#0f1525',
+            color: '#e8e0d0',
+            fontSize: '0.9rem',
+          }}>
+            ⚠️ Complete your profile to unlock PDF download,
+            WhatsApp sharing and more.
+          </div>
+        )}
 
         {advocateIncomplete && (
           <div className="mb-6 rounded-2xl border border-gold/40 bg-gold/10 p-4 text-sm text-cream/90">
@@ -245,12 +268,29 @@ export default function ProfilePage() {
               </label>
 
               <label className="space-y-2 text-sm text-cream/80">
-                <span>PIN code</span>
+                <span>Email Address</span>
                 <input
+                  type="email"
                   className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
-                  placeholder="400001"
-                  value={form.pincode}
-                  onChange={(e) => setForm((prev) => ({ ...prev, pincode: e.target.value }))}
+                  placeholder="your@email.com"
+                  value={form.email}
+                  onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                  disabled={!isEditing}
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-cream/80">
+                <span>WhatsApp Number</span>
+                <input
+                  type="tel"
+                  className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
+                  placeholder="+91 98765 43210"
+                  maxLength={10}
+                  value={form.whatsapp_number}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setForm((prev) => ({ ...prev, whatsapp_number: val }));
+                  }}
                   disabled={!isEditing}
                 />
               </label>
