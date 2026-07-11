@@ -52,8 +52,10 @@ export default function LegalChatbot() {
 
   const [position, setPosition] = useState<{ x: number, y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showBubble, setShowBubble] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, lastPos: null as { x: number, y: number } | null });
   const fabRef = useRef<HTMLButtonElement>(null);
+  const moved = useRef(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -84,12 +86,15 @@ export default function LegalChatbot() {
   };
 
   useEffect(() => {
-    const savedPos = sessionStorage.getItem('neikx_fab_pos');
+    const savedPos = typeof window !== 'undefined' ? localStorage.getItem('neikx_pos') : null;
     if (savedPos) {
       try {
         const parsed = JSON.parse(savedPos);
         setPosition(getBoundedPosition(parsed.x, parsed.y));
       } catch (e) { }
+    } else if (typeof window !== 'undefined') {
+      // default: right side, vertically centered
+      setPosition(getBoundedPosition(window.innerWidth - 80, window.innerHeight / 2));
     }
 
     const handleResize = () => {
@@ -103,6 +108,7 @@ export default function LegalChatbot() {
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    moved.current = false;
     setIsDragging(false);
 
     let currentX = position?.x;
@@ -134,6 +140,7 @@ export default function LegalChatbot() {
 
     if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
       setIsDragging(true);
+      moved.current = true;
     }
 
     if (!isDragging) return;
@@ -149,11 +156,13 @@ export default function LegalChatbot() {
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (isDragging) {
+    if (moved.current) {
       e.preventDefault();
       const finalPos = dragRef.current.lastPos || position;
       if (finalPos) {
-        sessionStorage.setItem('neikx_fab_pos', JSON.stringify(finalPos));
+        try {
+          localStorage.setItem('neikx_pos', JSON.stringify(finalPos));
+        } catch (err) {}
       }
     } else {
       setIsOpen(true);
@@ -583,7 +592,27 @@ export default function LegalChatbot() {
       animation: sparkle-twinkle 2s ease-in-out infinite;
       color: #ffffff;
     }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-50%) scale(0.8); }
+      15% { opacity: 1; transform: translateY(-50%) scale(1); }
+      75% { opacity: 1; }
+      100% { opacity: 0; }
+    }
   `;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Show bubble only once per session, and only when user is authenticated (landing after auth)
+    if (!session?.user) return;
+    if (!sessionStorage.getItem('neikx_shown')) {
+      setShowBubble(true);
+      const t = setTimeout(() => {
+        setShowBubble(false);
+        try { sessionStorage.setItem('neikx_shown', 'true'); } catch (err) {}
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [session?.user]);
 
   return (
     <>
@@ -954,11 +983,42 @@ export default function LegalChatbot() {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           style={position ? { left: `${position.x}px`, top: `${position.y}px`, right: 'auto', bottom: 'auto' } : {}}
-          className={`fixed z-50 bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center touch-none transition-[background-color,transform] duration-300 bg-[#08122e] border border-white/20 text-white ${isDragging ? 'scale-110 cursor-grabbing bg-[#0c1a40]' : 'hover:scale-105 hover:bg-[#0c1a40] cursor-grab'}`}
+          className={`fixed z-[9999] bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center touch-none transition-[background-color,transform] duration-300 bg-[#08122e] border border-white/20 text-white ${isDragging ? 'scale-110 cursor-grabbing bg-[#0c1a40]' : 'hover:scale-105 hover:bg-[#0c1a40] cursor-grab'}`}
           aria-label="Open Neikx AI"
           aria-expanded={isOpen}
         >
-          <Sparkles className="w-6 h-6 pointer-events-none" />
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {showBubble && !sessionStorage.getItem('neikx_shown') && (
+              <div style={{
+                position: 'absolute',
+                right: '70px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: '#ffffff',
+                color: '#0a0f1e',
+                padding: '8px 14px',
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                animation: 'fadeInOut 4s ease forwards',
+              }}>
+                Try me!!!
+                <span style={{
+                  position: 'absolute',
+                  right: '-8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 0, height: 0,
+                  borderTop: '6px solid transparent',
+                  borderBottom: '6px solid transparent',
+                  borderLeft: '8px solid #ffffff',
+                }} />
+              </div>
+            )}
+            <Sparkles className="w-6 h-6 pointer-events-none" />
+          </div>
         </button>
       )}
 
