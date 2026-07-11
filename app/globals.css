@@ -149,3 +149,16 @@ html[data-theme='light'] .auth-page {
     @apply bg-card border border-border rounded-xl p-5;
   }
 }
+
+.bottom-nav-spacer { display: none; }
+@media (max-width: 768px) {
+  .bottom-nav-spacer { display: block; }
+}
+nav[style*="position: fixed"][style*="bottom: 0"] {
+  display: none;
+}
+@media (max-width: 768px) {
+  nav[style*="position: fixed"][style*="bottom: 0"] {
+    display: flex;
+  }
+}

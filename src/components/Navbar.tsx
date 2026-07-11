@@ -104,7 +104,7 @@ export default function Navbar() {
         {/* Left: logo */}
         <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
           <img
-            src="/logo.png"
+            src="/logo"
             alt="Draftee"
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
           />

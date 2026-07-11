@@ -2,12 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 import Providers from './providers';
+import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
   title: 'Draftee — Legal Draft Generator',
   description: 'Draftee — AI-powered legal draft generator for Indian lawyers',
   applicationName: 'Draftee',
-  icons: { icon: '/logo.png' },
+  icons: { icon: '/logo' },
   openGraph: {
     title: 'Draftee — Legal Draft Generator',
     description:
@@ -39,7 +40,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <BottomNav />
+        </Providers>
       </body>
     </html>
   );

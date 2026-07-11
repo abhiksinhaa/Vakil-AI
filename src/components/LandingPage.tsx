@@ -100,7 +100,7 @@ export default function LandingPage() {
       <nav className={`landing-nav ${scrolled ? 'scrolled' : ''}`}>
         <Link href="/" className="landing-logo">
           <img
-            src="/logo.png"
+            src="/logo"
             alt="Draftee"
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
           />
@@ -340,7 +340,7 @@ export default function LandingPage() {
       <footer className="landing-footer">
         <div className="landing-logo text-xl">
           <img
-            src="/logo.png"
+            src="/logo"
             alt="Draftee"
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
           />
