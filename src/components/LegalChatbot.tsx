@@ -602,8 +602,10 @@ export default function LegalChatbot() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Show bubble only once per session, and only when user is authenticated (landing after auth)
+    // Show bubble only when user session exists (post-auth landing)
     if (!session?.user) return;
+
+    // If not shown this session, display bubble for 4s then mark shown
     if (!sessionStorage.getItem('neikx_shown')) {
       setShowBubble(true);
       const t = setTimeout(() => {
