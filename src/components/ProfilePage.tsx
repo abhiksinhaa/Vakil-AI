@@ -1,162 +1,273 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
-import { fetchReferralStats, isAdvocateProfileComplete, updateProfile } from '../lib/userAccount';
 import { isProfileComplete } from '../lib/isProfileComplete';
 
 export default function ProfilePage() {
-  const { profile, session, setProfile } = useApp();
+  const router = useRouter();
+  const { session, setProfile: setGlobalProfile } = useApp();
+  
+  const [localProfile, setLocalProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  
   const [form, setForm] = useState({
     full_name: '',
-    advocate_name: '',
-    bar_council_number: '',
-    court_jurisdiction: '',
+    advocate_name: '', // used for display_name
     state: '',
     city: '',
     email: '',
     whatsapp_number: '',
   });
+  
+  const [bio, setBio] = useState('');
+  
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [referralStats, setReferralStats] = useState<{ count: number; rewardsEarned: number; referralsUntilReward: number } | null>(null);
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  const isIndividual = profile?.user_type !== 'advocate';
-  const needsAdvocateFields = !isIndividual;
-
-  useEffect(() => {
-    if (profile && !isEditing) {
-      setForm({
-        full_name: profile.full_name || profile.advocate_name || '',
-        advocate_name: profile.advocate_name || profile.full_name || '',
-        bar_council_number: profile.bar_council_number || '',
-        court_jurisdiction: profile.city || profile.court_jurisdiction || '',
-        state: profile.state || '',
-        city: profile.city || '',
-        email: profile.email || '',
-        whatsapp_number: profile.whatsapp_number || '',
-      });
-    }
-  }, [profile, isEditing]);
-
-  useEffect(() => {
+  // Fetch profile
+  const fetchProfile = async () => {
     if (!session?.user?.id) return;
-    fetchReferralStats()
-      .then(setReferralStats)
-      .catch((err) => console.error('Referral stats load failed', err));
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+        
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        setLocalProfile(data);
+        setForm({
+          full_name: data.full_name || '',
+          advocate_name: data.advocate_name || '',
+          state: data.state || '',
+          city: data.city || '',
+          email: data.email || '',
+          whatsapp_number: data.whatsapp_number || '',
+        });
+        setBio(data.bio || '');
+        setGlobalProfile(data); // Sync global context
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  // Fetch drafts
+  const fetchDrafts = async () => {
+    if (!session?.user?.id) return;
+    setLoadingDrafts(true);
+    try {
+      const { data, error } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+        
+      if (!error && data) {
+        setDrafts(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch drafts:', err);
+    } finally {
+      setLoadingDrafts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchProfile();
+      fetchDrafts();
+    } else {
+      setLoadingProfile(false);
+    }
   }, [session?.user?.id]);
 
-  const referralSource = profile?.referral_code || session?.user?.id?.substring(0, 8) || '';
-  const referralLink = referralSource ? `https://draftee.in/signup?ref=${referralSource}` : '';
-
-  const handleSave = async () => {
+  const handleSaveForm = async () => {
+    if (!session?.user?.id) {
+      setMessage('Please log in first.');
+      return;
+    }
     try {
-      const { data, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('Supabase session fetch failed', sessionError);
-        setMessage('Please log in first.');
-        return;
-      }
-
-      const session = data?.session;
-      if (!session?.user) {
-        setMessage('Please log in first.');
-        return;
-      }
-
-      console.log('Saving for user:', session.user.id);
-      console.log('Form data:', form);
-
-      // TODO: Add these columns in Supabase dashboard:
-      // email (text), whatsapp_number (text)
-      const profilePayload = {
+      const payload = {
         id: session.user.id,
         user_id: session.user.id,
-        full_name: form.full_name || '',
-        advocate_name: form.advocate_name || '',
-        bar_council_number: form.bar_council_number || '',
-        court_jurisdiction: form.court_jurisdiction || '',
-        state: form.state || '',
-        city: form.city || '',
-        email: form.email || '',
-        whatsapp_number: form.whatsapp_number || '',
-        user_type: isIndividual ? 'individual' : 'advocate',
+        full_name: form.full_name,
+        advocate_name: form.advocate_name,
+        state: form.state,
+        city: form.city,
+        email: form.email,
+        whatsapp_number: form.whatsapp_number,
         updated_at: new Date().toISOString(),
       };
 
-      console.log('Profile page save payload:', profilePayload);
-
-      const { data: saveData, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .upsert(profilePayload, { onConflict: 'user_id' })
-        .select();
+        .upsert(payload, { onConflict: 'user_id' });
 
-      console.log('Profile page save result:', { saveData, error });
-
-      if (error) {
-        setMessage('Error: ' + error.message);
-      } else {
-        setMessage('Profile saved successfully!');
-        setIsEditing(false);
-        const updatedProfile = {
-          ...(profile ?? {}),
-          full_name: form.full_name || profile?.full_name || '',
-          advocate_name: form.advocate_name || profile?.advocate_name || '',
-          bar_council_number: form.bar_council_number || profile?.bar_council_number || '',
-          court_jurisdiction: form.court_jurisdiction || profile?.court_jurisdiction || '',
-          city: form.city || profile?.city || '',
-          state: form.state || profile?.state || '',
-          email: form.email || profile?.email || '',
-          whatsapp_number: form.whatsapp_number || profile?.whatsapp_number || '',
-        };
-        setProfile(updatedProfile as any);
-        if (typeof window !== 'undefined' && (updatedProfile.full_name?.trim() || updatedProfile.advocate_name?.trim())) {
-          window.localStorage.setItem('profileComplete', 'true');
-        }
-      }
+      if (error) throw error;
+      
+      setMessage('Profile saved successfully!');
+      setIsEditing(false);
+      await fetchProfile(); // Refetch to update UI state B
+      
+      setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
       console.error('Save error:', err);
       setMessage('Error: ' + err.message);
     }
   };
 
-  const copyReferral = async () => {
-    if (!referralLink) return;
+  const handleSaveBio = async () => {
+    if (!session?.user?.id) return;
     try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ bio })
+        .eq('user_id', session.user.id);
+        
+      if (!error) {
+        await fetchProfile();
+      }
     } catch (err) {
-      console.error('Clipboard copy failed', err);
+      console.error('Bio save error:', err);
     }
   };
 
-  const handleWhatsAppShare = () => {
-    if (!referralLink) return;
-    const text = `Hey! I've been using Draftee - an AI tool that generates legal drafts in seconds. Sign up free here: ${referralLink}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !session?.user?.id) return;
+    
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `avatar.${fileExt}`;
+      const filePath = `${session.user.id}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+        
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', session.user.id);
+        
+      if (updateError) throw updateError;
+      
+      await fetchProfile();
+    } catch (err: any) {
+      console.error('Avatar upload failed:', err);
+      alert('Failed to upload photo: ' + err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
-  const advocateIncomplete = needsAdvocateFields && !isAdvocateProfileComplete(form);
-  const profileIncomplete = profile ? !isProfileComplete(profile) : true;
+  const formatDate = (iso: string) => {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const handleCopyDraft = async (id: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedStates({ ...copiedStates, [id]: true });
+      setTimeout(() => {
+        setCopiedStates((prev) => ({ ...prev, [id]: false }));
+      }, 2000);
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
+  };
+
+  const handleTxtDownload = (draft: any) => {
+    const content = draft.generated_draft || draft.draftContent || '';
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${draft.draft_type || 'Draft'}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const requireProfileComplete = (callback: () => void) => {
+    if (!localProfile || !isProfileComplete(localProfile)) {
+      alert("Please complete your profile to use this feature.");
+      if (!isEditing) setIsEditing(true);
+      return;
+    }
+    callback();
+  };
+
+  const handlePdfDownload = (draft: any) => {
+    requireProfileComplete(() => {
+      // For now, trigger print if no existing PDF logic
+      window.print(); 
+    });
+  };
+
+  const handleWhatsAppShare = (draft: any) => {
+    requireProfileComplete(() => {
+      const content = draft.generated_draft || draft.draftContent || '';
+      window.open(`https://wa.me/?text=${encodeURIComponent(content)}`);
+    });
+  };
+
+  const handleEmailShare = (draft: any) => {
+    requireProfileComplete(() => {
+      const content = draft.generated_draft || draft.draftContent || '';
+      window.open(`mailto:?subject=Legal Draft&body=${encodeURIComponent(content)}`);
+    });
+  };
+
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-[#0a0f1e] flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-[#c9a84c]">Loading Profile...</div>
+        </main>
+      </div>
+    );
+  }
+
+  const isComplete = localProfile ? isProfileComplete(localProfile) : false;
+  const showForm = !isComplete || isEditing;
 
   return (
-    <div className="min-h-screen bg-navy flex flex-col">
+    <div className="min-h-screen bg-[#0a0f1e] flex flex-col text-[#e8e0d0]">
       <Navbar />
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-8">
-        <section className="mb-8">
-          <h1 className="font-display text-3xl text-gold mb-2">Profile</h1>
-          <p className="text-cream/70 text-sm">
-            Edit your profile and save manually. Advocate fields are optional but recommended for better drafts.
-          </p>
-        </section>
-
-        {!isProfileComplete(profile) && (
+        
+        {/* Profile Completion Banner */}
+        {!isComplete && (
           <div style={{
             border: '1px solid #c9a84c',
             borderRadius: '10px',
@@ -166,124 +277,74 @@ export default function ProfilePage() {
             color: '#e8e0d0',
             fontSize: '0.9rem',
           }}>
-            ⚠️ Complete your profile to unlock PDF download,
-            WhatsApp sharing and more.
+            ⚠️ Complete your profile to unlock PDF download, WhatsApp sharing and more.
           </div>
         )}
 
-        {advocateIncomplete && (
-          <div className="mb-6 rounded-2xl border border-gold/40 bg-gold/10 p-4 text-sm text-cream/90">
-            Complete advocate name, Bar Council number, and court/jurisdiction for improved draft output.
-          </div>
-        )}
+        {showForm ? (
+          /* STATE A: INCOMPLETE / EDITING FORM */
+          <section className="space-y-6 mb-8 p-6 bg-[#0f1525] border border-[#1e2a3a] rounded-3xl">
+            <h1 className="font-display text-3xl text-[#c9a84c] mb-6">
+              {isEditing && isComplete ? 'Edit Profile' : 'Complete Profile'}
+            </h1>
 
-        <section className="card space-y-6 mb-8 p-6 bg-[#03111f] border border-[#445b7f] rounded-3xl">
-          <div>
-            <h2 className="font-display text-xl text-gold mb-4">
-              {isIndividual ? 'User Profile' : 'Advocate Profile'}
-            </h2>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-2 text-sm text-cream/80">
-                <span>Full name</span>
+            <div className="space-y-4">
+              <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
+                <span>Full Name</span>
                 <input
-                  className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
-                  placeholder="Your name"
+                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white placeholder:text-white/20"
+                  placeholder="Your full name"
                   value={form.full_name}
                   onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                  disabled={!isEditing}
                 />
               </label>
 
-              {needsAdvocateFields ? (
-                <label className="space-y-2 text-sm text-cream/80 md:col-span-2">
-                  <span>Advocate name</span>
-                  <input
-                    className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
-                    placeholder="Adv. Rajesh Kumar"
-                    value={form.advocate_name}
-                    onChange={(e) => setForm((prev) => ({ ...prev, advocate_name: e.target.value }))}
-                    disabled={!isEditing}
-                  />
-                </label>
-              ) : (
-                <label className="space-y-2 text-sm text-cream/80 md:col-span-2">
-                  <span>Display name</span>
-                  <input
-                    className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
-                    placeholder="Your display name"
-                    value={form.advocate_name}
-                    onChange={(e) => setForm((prev) => ({ ...prev, advocate_name: e.target.value }))}
-                    disabled={!isEditing}
-                  />
-                </label>
-              )}
+              <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
+                <span>Display Name</span>
+                <input
+                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white placeholder:text-white/20"
+                  placeholder="How you want to appear"
+                  value={form.advocate_name}
+                  onChange={(e) => setForm((prev) => ({ ...prev, advocate_name: e.target.value }))}
+                />
+              </label>
 
-              {needsAdvocateFields ? (
-                <>
-                  <label className="space-y-2 text-sm text-cream/80">
-                    <span>Bar Council number</span>
-                    <input
-                      className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
-                      placeholder="D/1234/2015"
-                      value={form.bar_council_number}
-                      onChange={(e) => setForm((prev) => ({ ...prev, bar_council_number: e.target.value }))}
-                      disabled={!isEditing}
-                    />
-                  </label>
-
-                  <label className="space-y-2 text-sm text-cream/80">
-                    <span>Court / jurisdiction</span>
-                    <input
-                      className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
-                      placeholder="Delhi District Court"
-                      value={form.court_jurisdiction}
-                      onChange={(e) => setForm((prev) => ({ ...prev, court_jurisdiction: e.target.value }))}
-                      disabled={!isEditing}
-                    />
-                  </label>
-                </>
-              ) : null}
-
-              <label className="space-y-2 text-sm text-cream/80">
+              <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
                 <span>State</span>
                 <input
-                  className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
+                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white placeholder:text-white/20"
                   placeholder="Maharashtra"
                   value={form.state}
                   onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
-                  disabled={!isEditing}
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-cream/80">
+              <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
                 <span>City</span>
                 <input
-                  className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
+                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white placeholder:text-white/20"
                   placeholder="Mumbai"
                   value={form.city}
                   onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
-                  disabled={!isEditing}
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-cream/80">
+              <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
                 <span>Email Address</span>
                 <input
                   type="email"
-                  className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
+                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white placeholder:text-white/20"
                   placeholder="your@email.com"
                   value={form.email}
                   onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-                  disabled={!isEditing}
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-cream/80">
+              <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
                 <span>WhatsApp Number</span>
                 <input
                   type="tel"
-                  className="w-full rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-white placeholder:text-cream/40"
+                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white placeholder:text-white/20"
                   placeholder="+91 98765 43210"
                   maxLength={10}
                   value={form.whatsapp_number}
@@ -291,86 +352,196 @@ export default function ProfilePage() {
                     const val = e.target.value.replace(/\D/g, '');
                     setForm((prev) => ({ ...prev, whatsapp_number: val }));
                   }}
-                  disabled={!isEditing}
                 />
               </label>
             </div>
-          </div>
 
-          {message ? (
-            <div className="rounded-2xl border px-4 py-3 text-sm text-cream/90 bg-[#091823] border-[#4f6c8a]">
-              {message}
-            </div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={isEditing ? handleSave : () => setIsEditing(true)}
-            className="w-full rounded-2xl bg-gold px-5 py-3 text-sm font-semibold text-navy transition hover:bg-[#ffd166]"
-          >
-            {isEditing ? 'Save Profile' : 'Edit Profile'}
-          </button>
-        </section>
-
-        <section className="card p-6 rounded-3xl border border-[#4f6c8a] bg-[#03111f]">
-          <h2 className="font-display text-xl text-gold mb-3">Referral Program</h2>
-          <p className="text-cream/70 text-sm mb-6">
-            Refer 5 friends who sign up and get 2 months of Premium free.
-          </p>
-
-          {referralStats ? (
-            <div className="grid gap-3 sm:grid-cols-3 mb-6">
-              <div className="rounded-2xl border border-[#1f3a5a] bg-[#071828] p-4 text-center">
-                <p className="text-2xl font-display text-gold">{referralStats.count}</p>
-                <p className="text-xs text-cream/50">Referrals</p>
+            {message && (
+              <div className="rounded-2xl border px-4 py-3 text-sm text-[#e8e0d0]/90 bg-[#0a0f1e] border-[#c9a84c]/50">
+                {message}
               </div>
-              <div className="rounded-2xl border border-[#1f3a5a] bg-[#071828] p-4 text-center">
-                <p className="text-2xl font-display text-gold">{referralStats.rewardsEarned}</p>
-                <p className="text-xs text-cream/50">Premium months</p>
-              </div>
-              <div className="rounded-2xl border border-[#1f3a5a] bg-[#071828] p-4 text-center">
-                <p className="text-2xl font-display text-gold">{referralStats.referralsUntilReward}</p>
-                <p className="text-xs text-cream/50">Until next reward</p>
-              </div>
-            </div>
-          ) : null}
+            )}
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="block text-sm text-cream/70">Referral link</label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  readOnly
-                  value={referralLink}
-                  className="flex-1 rounded-2xl border border-[#4f6c8a] bg-[#071828] px-4 py-3 text-sm text-cream"
-                />
+            <div className="flex gap-4 pt-4">
+              {isEditing && isComplete && (
                 <button
                   type="button"
-                  onClick={copyReferral}
-                  className="rounded-2xl bg-[#193d2e] px-4 py-3 text-sm font-semibold text-gold"
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 rounded-2xl border border-[#c9a84c] px-5 py-3 text-sm font-semibold text-[#c9a84c] hover:bg-[#c9a84c]/10 transition"
                 >
-                  {copied ? 'Copied ✓' : 'Copy link'}
+                  Cancel
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleSaveForm}
+                className="flex-1 rounded-2xl bg-[#c9a84c] px-5 py-3 text-sm font-semibold text-[#0a0f1e] transition hover:bg-[#ffd166]"
+              >
+                Save Profile
+              </button>
+            </div>
+          </section>
+        ) : (
+          /* STATE B: COMPLETE PROFILE VIEW */
+          <div className="space-y-8">
+            <section className="flex flex-col items-center text-center">
+              <div className="relative group mb-4">
+                {localProfile.avatar_url ? (
+                  <img 
+                    src={localProfile.avatar_url} 
+                    alt="Profile Avatar" 
+                    className="w-[90px] h-[90px] rounded-full object-cover border-2 border-[#1e2a3a]"
+                  />
+                ) : (
+                  <div className="w-[90px] h-[90px] rounded-full bg-[#c9a84c] text-[#0a0f1e] flex items-center justify-center text-3xl font-bold border-2 border-[#1e2a3a]">
+                    {(localProfile.full_name || localProfile.advocate_name || 'A').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                
+                <div 
+                  className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <span className="text-xs font-semibold text-white">
+                    {uploadingAvatar ? 'Uploading...' : 'Change'}
+                  </span>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handlePhotoUpload} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              </div>
+
+              <h1 className="text-3xl font-bold text-[#e8e0d0] mb-1">
+                {localProfile.full_name || 'User'}
+              </h1>
+              <p className="text-[#c9a84c] text-sm mb-4">
+                {localProfile.advocate_name || 'Display Name'}
+              </p>
+
+              <div className="w-full max-w-md">
+                <textarea
+                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0f1525] px-4 py-3 text-sm text-center text-white placeholder:text-white/30 resize-none outline-none focus:border-[#c9a84c]/50 transition"
+                  placeholder="Write something about yourself..."
+                  rows={2}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  onBlur={handleSaveBio}
+                />
+              </div>
+
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                background: '#0f1525', border: '1px solid #1e2a3a',
+                borderRadius: '20px', padding: '8px 18px', marginTop: '16px'
+              }}>
+                <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                  Current Plan
+                </span>
+                <span style={{ 
+                  color: '#c9a84c', fontWeight: 700, fontSize: '0.9rem' 
+                }}>
+                  Free
+                </span>
+              </div>
+
+              <div className="mt-6">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="rounded-full border border-[#c9a84c]/50 text-[#c9a84c] hover:bg-[#c9a84c]/10 px-6 py-2 text-sm font-semibold transition"
+                >
+                  Edit Profile
                 </button>
               </div>
-              <p className="text-xs text-cream/50">Code: <span className="text-gold">{referralSource}</span></p>
-            </div>
+            </section>
 
-            <button
-              type="button"
-              onClick={handleWhatsAppShare}
-              disabled={!referralLink}
-              className="w-full rounded-2xl border border-[#25d366]/30 bg-[#072c1f] px-4 py-3 text-sm font-semibold text-[#25d366] transition hover:bg-[#123f2c] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Share on WhatsApp
-            </button>
+            {/* MY DRAFTS SECTION */}
+            <section className="pt-8 border-t border-[#1e2a3a]">
+              <h2 className="text-xl font-bold text-[#e8e0d0] mb-6">My Drafts</h2>
+              
+              {loadingDrafts ? (
+                <div className="text-center py-8 text-[#e8e0d0]/50">Loading drafts...</div>
+              ) : drafts.length === 0 ? (
+                <div className="text-center py-12 bg-[#0f1525] rounded-3xl border border-[#1e2a3a]">
+                  <p className="text-[#e8e0d0]/60 mb-4">No drafts yet. Create your first draft!</p>
+                  <Link 
+                    href="/generate"
+                    className="inline-block rounded-2xl bg-[#c9a84c] px-6 py-3 text-sm font-semibold text-[#0a0f1e] transition hover:bg-[#ffd166]"
+                  >
+                    Generate Draft
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {drafts.map((draft) => {
+                    const content = draft.generated_draft || draft.draftContent || '';
+                    const title = draft.party1_name 
+                      ? (draft.party2_name ? `${draft.party1_name} vs ${draft.party2_name}` : draft.party1_name)
+                      : (draft.draft_type || 'Untitled Draft');
+                      
+                    return (
+                      <div key={draft.id} className="bg-[#0f1525] border border-[#1e2a3a] rounded-2xl p-5 hover:border-[#c9a84c]/30 transition">
+                        <div className="mb-4">
+                          <h3 className="font-bold text-[#e8e0d0]">{title}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-[#e8e0d0]/50">{formatDate(draft.created_at)}</span>
+                            {draft.status && (
+                              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1e2a3a] text-[#c9a84c]">
+                                {draft.status}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => router.push(`/generate?draftId=${draft.id}`)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleCopyDraft(draft.id, content)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
+                          >
+                            {copiedStates[draft.id] ? '✅ Copied!' : '📋 Copy'}
+                          </button>
+                          <button
+                            onClick={() => handleTxtDownload(draft)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
+                          >
+                            📄 .txt
+                          </button>
+                          <button
+                            onClick={() => handlePdfDownload(draft)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
+                          >
+                            📑 PDF
+                          </button>
+                          <button
+                            onClick={() => handleWhatsAppShare(draft)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
+                          >
+                            💬 WhatsApp
+                          </button>
+                          <button
+                            onClick={() => handleEmailShare(draft)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2a3a] text-xs font-medium text-[#e8e0d0]/80 hover:border-[#c9a84c] hover:text-[#c9a84c] transition"
+                          >
+                            📧 Email
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           </div>
-        </section>
-
-        <p className="text-center mt-8 text-sm text-cream/70">
-          <Link href="/pricing" className="text-gold hover:underline">
-            View plans & upgrade →
-          </Link>
-        </p>
+        )}
       </main>
     </div>
   );
