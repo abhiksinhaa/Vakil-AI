@@ -721,7 +721,7 @@ export default function LegalChatbot() {
         </header>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 min-h-0 relative z-[5] w-full max-w-4xl mx-auto scroll-smooth">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 min-h-0 relative z-[5] w-full max-w-4xl mx-auto scroll-smooth" style={{ paddingBottom: '80px' }}>
           {isEmptyState ? (
             <div className="h-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center shadow-[0_0_40px_rgba(28,48,101,0.5)] mb-8">
@@ -830,7 +830,20 @@ export default function LegalChatbot() {
         </div>
 
         {/* Input Bar */}
-        <div className="shrink-0 w-full max-w-4xl mx-auto px-4 sm:px-8 pb-6 pt-2 z-[20]">
+        <div
+          className="shrink-0 w-full max-w-4xl mx-auto px-4 sm:px-8 pb-6 pt-2 z-[20]"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            bottom: 'calc(64px + env(safe-area-inset-bottom))',
+            width: '100%',
+            maxWidth: '720px',
+            paddingLeft: '1rem',
+            paddingRight: '1rem',
+            zIndex: 20,
+          }}
+        >
           {pendingAttachment && (
             <div className="mb-2 px-4 py-2 bg-[#1e1e1e]/80 backdrop-blur-md rounded-2xl flex items-center justify-between gap-3 text-sm text-white/80 border border-white/5 animate-in slide-in-from-bottom-2">
               <div className="flex items-center gap-2 truncate">
