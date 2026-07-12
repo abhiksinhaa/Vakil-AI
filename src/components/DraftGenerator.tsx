@@ -11,7 +11,6 @@ import { generateLegalDraft, buildDraftPrompt } from '../lib/claude';
 import { saveDraft } from '../lib/db';
 import DraftTypeSelector from './DraftTypeSelector';
 import { useApp } from '../context/AppContext';
-import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
   isUserProfileComplete,
   checkDraftAllowance,
@@ -89,7 +88,6 @@ export default function DraftGenerator() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profileFilled, setProfileFilled] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState<false | 'advocate' | 'individual'>(false);
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [draftCount, setDraftCount] = useState(0);
@@ -354,11 +352,9 @@ export default function DraftGenerator() {
           console.log('Draft limit reached, showing the daily-limit message');
           setIsGenerating(false);
           if (allowance.reason === 'daily_limit') {
-            setShowUpgradeModal(false);
             setError(allowance.message || DAILY_DRAFT_LIMIT_MESSAGE);
           } else {
             setError(null);
-            setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
           }
           return;
         }
@@ -513,79 +509,6 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
     <div className="min-h-screen bg-navy flex flex-col">
       <Navbar />
 
-      {showUpgradeModal === 'advocate' && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
-          <div className="card max-w-md w-full text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-2">
-              <span className="text-gold text-2xl">👑</span>
-            </div>
-            <h3 className="font-display text-2xl text-cream">Draft Limit Reached</h3>
-            <p className="text-cream/80 leading-relaxed">
-              You've used your 10 free drafts! Upgrade to Pro for unlimited drafts at ₹99/month.
-            </p>
-            <div className="pt-4 flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => router.push('/pricing')}
-                className="btn-primary w-full py-3"
-              >
-                Upgrade to Pro
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowUpgradeModal(false)}
-                className="text-sm text-cream/50 hover:text-cream transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showUpgradeModal === 'individual' && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
-          <div className="card max-w-md w-full text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center mx-auto mb-2">
-              <span className="text-gold text-2xl">📝</span>
-            </div>
-            <h3 className="font-display text-2xl text-cream">Draft Limit Reached</h3>
-            <p className="text-cream/80 leading-relaxed">
-              You've used your 2 free drafts! Pay ₹50 to generate this draft.
-            </p>
-            <div className="pt-4 flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await startPayPerUseCheckout({
-                      userEmail: session?.user?.email || '',
-                      userName: profile?.full_name || '',
-                      onSuccess: () => {
-                        setShowUpgradeModal(false);
-                        runGenerate();
-                      }
-                    });
-                  } catch (err: any) {
-                    alert(err.message || 'Payment failed');
-                  }
-                }}
-                className="btn-primary w-full py-3"
-              >
-                Pay ₹50
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowUpgradeModal(false)}
-                className="text-sm text-cream/50 hover:text-cream transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-6 lg:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h1 className="font-display text-2xl sm:text-3xl text-cream">
@@ -662,17 +585,17 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
             </div>
 
-            <div className="flex items-center justify-between text-sm mb-3">
-              <span className="text-cream/70">Daily draft quota</span>
-              <span className="font-semibold text-gold">{dailyDraftUsage}/{DAILY_DRAFT_LIMIT} drafts used today</span>
-            </div>
-
-            {dailyDraftUsage >= DAILY_DRAFT_LIMIT && (
-              <div className="mb-4 rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm text-cream/90">
-                <div className="font-semibold text-gold">Daily limit reached.</div>
-                <div>Come back tomorrow for 3 more free drafts.</div>
+            <div className="mb-3 rounded-xl border border-gold/30 bg-gold/10 px-3 py-3 text-sm text-cream/90">
+              <div className="font-semibold text-gold">
+                {dailyDraftUsage >= DAILY_DRAFT_LIMIT
+                  ? 'You have reached your daily quota. Resets tomorrow.'
+                  : dailyDraftUsage === 0
+                    ? 'You have used 0 drafts today. 3 remaining. Resets tomorrow.'
+                    : dailyDraftUsage === 1
+                      ? 'You have used 1 draft today. 2 remaining. Resets tomorrow.'
+                      : 'You have used 2 drafts today. 1 remaining. Resets tomorrow.'}
               </div>
-            )}
+            </div>
 
             <button
               type="button"
