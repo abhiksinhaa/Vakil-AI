@@ -14,7 +14,9 @@ import { useApp } from '../context/AppContext';
 import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
   isUserProfileComplete,
-  consumeDraftAllowance,
+  checkDraftAllowance,
+  incrementDraftUsage,
+  DAILY_DRAFT_LIMIT,
   DAILY_DRAFT_LIMIT_MESSAGE,
   submitDraftFeedback,
   updateProfile,
@@ -91,6 +93,7 @@ export default function DraftGenerator() {
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [draftCount, setDraftCount] = useState(0);
+  const [dailyDraftUsage, setDailyDraftUsage] = useState(0);
   const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -157,8 +160,27 @@ export default function DraftGenerator() {
         language: profile.preferred_draft_language || profile.language || prev.language || 'English',
       }));
       setProfileFilled(isUserProfileComplete(profile));
+
+      const profileCount = Number(profile.daily_draft_count ?? 0);
+      if (Number.isFinite(profileCount)) {
+        setDailyDraftUsage(Math.max(0, Math.min(DAILY_DRAFT_LIMIT, profileCount)));
+      }
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const timeoutId = window.setTimeout(() => {
+      setDailyDraftUsage(0);
+      void refreshAccount();
+    }, nextMidnight.getTime() - now.getTime());
+
+    return () => window.clearTimeout(timeoutId);
+  }, [refreshAccount]);
 
   const update = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -289,6 +311,7 @@ export default function DraftGenerator() {
 
   const handleDraftGenerated = () => {
     incrementDraftCount();
+    setDailyDraftUsage((prev) => Math.min(prev + 1, DAILY_DRAFT_LIMIT));
   };
 
   const handleFeedbackSkip = () => {
@@ -326,7 +349,7 @@ export default function DraftGenerator() {
     try {
       try {
         console.log('Starting draft generation...');
-        const allowance = await consumeDraftAllowance();
+        const allowance = await checkDraftAllowance();
         if (!allowance.allowed) {
           console.log('Draft limit reached, showing the daily-limit message');
           setIsGenerating(false);
@@ -397,6 +420,12 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       setDraft(text);
       setIsGenerating(false); // Stop loading immediately so user sees the draft
       handleDraftGenerated();
+
+      try {
+        await incrementDraftUsage();
+      } catch (err) {
+        console.error('Failed to update draft usage counter:', err);
+      }
 
       // These can happen in the background without blocking the UI
       console.log('Refreshing account in background...');
@@ -633,11 +662,23 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
             </div>
 
+            <div className="flex items-center justify-between text-sm mb-3">
+              <span className="text-cream/70">Daily draft quota</span>
+              <span className="font-semibold text-gold">{dailyDraftUsage}/{DAILY_DRAFT_LIMIT} drafts used today</span>
+            </div>
+
+            {dailyDraftUsage >= DAILY_DRAFT_LIMIT && (
+              <div className="mb-4 rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm text-cream/90">
+                <div className="font-semibold text-gold">Daily limit reached.</div>
+                <div>Come back tomorrow for 3 more free drafts.</div>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => void runGenerate()}
-              disabled={isGenerating}
-              className="btn-primary sticky bottom-4 z-20 w-full py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02]"
+              disabled={isGenerating || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
+              className="btn-primary sticky bottom-4 z-20 w-full py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isGenerating ? (
                 <div className="flex items-center justify-center gap-3">
