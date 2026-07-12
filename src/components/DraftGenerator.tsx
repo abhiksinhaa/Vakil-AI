@@ -88,7 +88,6 @@ export default function DraftGenerator() {
   const [profileFilled, setProfileFilled] = useState(false);
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
-  const [draftCount, setDraftCount] = useState(0);
   const [dailyDraftUsage, setDailyDraftUsage] = useState(0);
   const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -100,15 +99,12 @@ export default function DraftGenerator() {
   const [actionBusy, setActionBusy] = useState(false);
   const feedbackTimeoutRef = useRef<number | null>(null);
 
-  const DRAFT_COUNT_KEY = 'draftee_draft_count';
+  // Feedback popup tracking (separate from rate limiting - uses localStorage)
   const THRESHOLD_KEY = 'draftee_feedback_threshold';
   const SESSION_SUBMITTED_KEY = 'draftee_feedback_submitted_session';
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedCount = Number(window.localStorage.getItem(DRAFT_COUNT_KEY)) || 0;
-      setDraftCount(storedCount);
-
       let t = window.localStorage.getItem(THRESHOLD_KEY);
       if (!t) {
         t = String(Math.random() < 0.5 ? 2 : 3);
@@ -123,8 +119,8 @@ export default function DraftGenerator() {
 
   useEffect(() => {
     if (
-      draftCount > 0 &&
-      draftCount >= feedbackThreshold &&
+      dailyDraftUsage > 0 &&
+      dailyDraftUsage >= feedbackThreshold &&
       !feedbackSubmittedThisSession &&
       !isGenerating &&
       !actionBusy
@@ -132,7 +128,7 @@ export default function DraftGenerator() {
       if (feedbackTimeoutRef.current) {
         window.clearTimeout(feedbackTimeoutRef.current);
       }
-      console.log(`Conditions met for feedback popup (count: ${draftCount}, threshold: ${feedbackThreshold}). Waiting 2s...`);
+      console.log(`Conditions met for feedback popup (count: ${dailyDraftUsage}, threshold: ${feedbackThreshold}). Waiting 2s...`);
       feedbackTimeoutRef.current = window.setTimeout(() => {
         console.log('Triggering feedback popup now.');
         setFeedbackVisible(true);
@@ -144,7 +140,7 @@ export default function DraftGenerator() {
         window.clearTimeout(feedbackTimeoutRef.current);
       }
     };
-  }, [draftCount, feedbackThreshold, feedbackSubmittedThisSession, isGenerating, actionBusy]);
+  }, [dailyDraftUsage, feedbackThreshold, feedbackSubmittedThisSession, isGenerating, actionBusy]);
 
   useEffect(() => {
     if (profile) {
@@ -241,35 +237,16 @@ export default function DraftGenerator() {
     void persistDraftLanguage(normalizedLanguage);
   };
 
-  const getStoredDraftCount = () => {
-    if (typeof window === 'undefined') return 0;
-    const stored = window.localStorage.getItem(DRAFT_COUNT_KEY);
-    const parsed = Number(stored);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-  };
-
-  const resetDraftCount = () => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(DRAFT_COUNT_KEY, '0');
-    setDraftCount(0);
+  const resetDraftCountDisplay = () => {
+    // Only reset the display counter for feedback popup
     const newT = Math.random() < 0.5 ? 2 : 3;
     window.localStorage.setItem(THRESHOLD_KEY, String(newT));
     setFeedbackThreshold(newT);
   };
 
-  const incrementDraftCount = () => {
-    if (typeof window === 'undefined') return;
-    setDraftCount((prev) => {
-      const nextCount = prev + 1;
-      window.localStorage.setItem(DRAFT_COUNT_KEY, String(nextCount));
-      console.log('Incremented draft count:', nextCount);
-      return nextCount;
-    });
-  };
-
   const dismissFeedback = () => {
     setFeedbackVisible(false);
-    resetDraftCount();
+    resetDraftCountDisplay();
   };
 
   const handleFeedbackSubmit = async () => {
@@ -288,7 +265,7 @@ export default function DraftGenerator() {
       if (typeof window !== 'undefined') {
         window.sessionStorage.setItem(SESSION_SUBMITTED_KEY, 'true');
       }
-      resetDraftCount();
+      resetDraftCountDisplay();
       window.setTimeout(() => {
         setFeedbackVisible(false);
         setFeedbackSuccess(false);
@@ -306,7 +283,8 @@ export default function DraftGenerator() {
   };
 
   const handleDraftGenerated = () => {
-    incrementDraftCount();
+    // Draft count is now automatically synced from Supabase via profile refresh
+    // Just update UI state to show the incremented count
     setDailyDraftUsage((prev) => Math.min(prev + 1, DAILY_DRAFT_LIMIT));
   };
 
@@ -370,11 +348,20 @@ export default function DraftGenerator() {
     setOfflineWarning(null);
 
     try {
+      // CRITICAL: Always check allowance fresh from database before generation
       try {
         console.log('Starting draft generation...');
+        console.log('[RATE-LIMIT] Fetching fresh draft allowance from Supabase...');
         const allowance = await checkDraftAllowance();
+        
+        // Update UI with the fresh database value
+        if (allowance.used !== undefined) {
+          console.log('[RATE-LIMIT] Updated dailyDraftUsage from database:', allowance.used);
+          setDailyDraftUsage(allowance.used);
+        }
+        
         if (!allowance.allowed) {
-          console.log('Draft limit reached, showing the daily-limit message');
+          console.log('[RATE-LIMIT] Draft limit reached, blocking generation', { used: allowance.used, limit: allowance.limit, reason: allowance.reason });
           setIsGenerating(false);
           if (allowance.reason === 'daily_limit') {
             setError(allowance.message || DAILY_DRAFT_LIMIT_MESSAGE);
@@ -383,6 +370,7 @@ export default function DraftGenerator() {
           }
           return;
         }
+        console.log('[RATE-LIMIT] Generation allowed, proceeding...', { used: allowance.used, limit: allowance.limit });
       } catch (allowanceErr: any) {
         // If offline or Supabase fails, we allow generation to proceed
         if (allowanceErr.message?.includes('offline') || allowanceErr.code === 'unavailable') {
@@ -440,16 +428,21 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       
       setDraft(text);
       setIsGenerating(false); // Stop loading immediately so user sees the draft
+      
+      // Immediately increment usage in database AFTER successful generation
+      try {
+        console.log('[RATE-LIMIT] Incrementing draft usage in Supabase...');
+        await incrementDraftUsage();
+        console.log('[RATE-LIMIT] Draft usage incremented successfully');
+      } catch (err) {
+        console.error('[RATE-LIMIT] Failed to update draft usage counter:', err);
+      }
+      
+      // Update UI to reflect new count
       handleDraftGenerated();
 
-      try {
-        await incrementDraftUsage();
-      } catch (err) {
-        console.error('Failed to update draft usage counter:', err);
-      }
-
-      // These can happen in the background without blocking the UI
-      console.log('Refreshing account in background...');
+      // Refresh account to get latest count from database
+      console.log('Refreshing account to sync draft count...');
       refreshAccount().catch(err => console.error('Failed to refresh account:', err));
 
       console.log('Auto-saving draft in background...');
