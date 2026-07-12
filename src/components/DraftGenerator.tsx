@@ -14,7 +14,8 @@ import { useApp } from '../context/AppContext';
 import { startPayPerUseCheckout } from '../lib/razorpay';
 import {
   isUserProfileComplete,
-  checkDraftAllowance,
+  consumeDraftAllowance,
+  DAILY_DRAFT_LIMIT_MESSAGE,
   submitDraftFeedback,
   updateProfile,
 } from '../lib/userAccount';
@@ -325,11 +326,17 @@ export default function DraftGenerator() {
     try {
       try {
         console.log('Starting draft generation...');
-        const allowance = await checkDraftAllowance();
+        const allowance = await consumeDraftAllowance();
         if (!allowance.allowed) {
-          console.log('Draft limit reached, showing upgrade modal');
+          console.log('Draft limit reached, showing the daily-limit message');
           setIsGenerating(false);
-          setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
+          if (allowance.reason === 'daily_limit') {
+            setShowUpgradeModal(false);
+            setError(allowance.message || DAILY_DRAFT_LIMIT_MESSAGE);
+          } else {
+            setError(null);
+            setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
+          }
           return;
         }
       } catch (allowanceErr: any) {

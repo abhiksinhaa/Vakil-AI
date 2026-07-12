@@ -16,6 +16,8 @@ export interface Profile {
   phone_number?: string;
   profile_photo_url?: string;
   user_type?: 'advocate' | 'individual';
+  daily_draft_count?: number;
+  last_draft_date?: string | null;
   state?: string;
   city?: string;
   email?: string;

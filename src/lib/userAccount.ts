@@ -5,6 +5,8 @@ import { buildSubscriptionPayload } from './subscription';
 
 export const FREE_DRAFT_LIMIT = 10;
 export const FREE_CHAT_DAILY_LIMIT = 5;
+export const DAILY_DRAFT_LIMIT = 3;
+export const DAILY_DRAFT_LIMIT_MESSAGE = 'You have reached your daily limit of 3 drafts. Come back tomorrow for more.';
 export const PRO_PRICE_PAISE = 9900;
 export const PRO_PRICE_INR = 99;
 
@@ -58,6 +60,24 @@ async function getCurrentUser(): Promise<User | null> {
   return data.user;
 }
 
+function getTodayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getDailyDraftState(profile: Partial<Profile> | null | undefined) {
+  const today = getTodayKey();
+  const lastDraftDate = profile?.last_draft_date ? String(profile.last_draft_date).slice(0, 10) : null;
+  const count = Number(profile?.daily_draft_count ?? 0);
+  const normalizedCount = Number.isFinite(count) ? count : 0;
+  const shouldReset = lastDraftDate !== today;
+  return {
+    today,
+    lastDraftDate,
+    count: shouldReset ? 0 : normalizedCount,
+    shouldReset,
+  };
+}
+
 async function getProfileRow(userId: string): Promise<Profile | null> {
   const { data: byUserId, error: userIdError } = await supabase
     .from('profiles')
@@ -102,6 +122,8 @@ async function defaultProfileValues(user: User, userType?: 'advocate' | 'individ
     language: 'English',
     preferred_draft_language: 'English',
     user_type: userType || 'advocate',
+    daily_draft_count: 0,
+    last_draft_date: getTodayKey(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -222,16 +244,53 @@ export async function fetchSubscription(): Promise<Subscription | null> {
 }
 
 export async function checkDraftAllowance() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return {
+      allowed: false,
+      isPro: false,
+      reason: 'unauthenticated',
+      message: null,
+      used: 0,
+      limit: DAILY_DRAFT_LIMIT,
+      remaining: 0,
+      userType: 'advocate',
+    };
+  }
+
   const sub = await fetchSubscription();
   const profile = await fetchProfile();
   const isAdvocate = profile?.user_type !== 'individual';
   const freeLimit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
   const pro = isProActive(sub);
+  const dailyState = getDailyDraftState(profile);
+
+  if (dailyState.shouldReset) {
+    await supabase
+      .from('profiles')
+      .update({ daily_draft_count: 0, last_draft_date: dailyState.today, updated_at: new Date().toISOString() })
+      .eq('user_id', user.id);
+  }
+
+  if (dailyState.count >= DAILY_DRAFT_LIMIT) {
+    return {
+      allowed: false,
+      isPro: pro,
+      reason: 'daily_limit',
+      message: DAILY_DRAFT_LIMIT_MESSAGE,
+      used: dailyState.count,
+      limit: DAILY_DRAFT_LIMIT,
+      remaining: 0,
+      userType: profile?.user_type || 'advocate',
+    };
+  }
 
   if (pro && isAdvocate) {
     return {
       allowed: true,
       isPro: true,
+      reason: 'ok',
+      message: null,
       used: sub!.drafts_used,
       limit: null,
       remaining: null,
@@ -243,8 +302,55 @@ export async function checkDraftAllowance() {
   const freeRemaining = Math.max(0, freeLimit - used);
   const paidBalance = sub?.drafts_count ?? 0;
   const totalRemaining = freeRemaining + paidBalance;
-  
-  return { allowed: totalRemaining > 0, isPro: false, used, limit: freeLimit, remaining: totalRemaining, userType: profile?.user_type || 'advocate' };
+
+  return {
+    allowed: totalRemaining > 0,
+    isPro: false,
+    reason: totalRemaining > 0 ? 'ok' : 'subscription_limit',
+    message: totalRemaining > 0 ? null : 'Your free draft quota has been used. Upgrade to continue.',
+    used,
+    limit: freeLimit,
+    remaining: totalRemaining,
+    userType: profile?.user_type || 'advocate',
+  };
+}
+
+export async function consumeDraftAllowance() {
+  const allowance = await checkDraftAllowance();
+  if (!allowance.allowed) {
+    return allowance;
+  }
+
+  const user = await getCurrentUser();
+  if (!user) {
+    return {
+      ...allowance,
+      allowed: false,
+      reason: 'unauthenticated',
+      message: null,
+    };
+  }
+
+  const profile = await fetchProfile();
+  const dailyState = getDailyDraftState(profile);
+  const nextCount = (dailyState.shouldReset ? 0 : dailyState.count) + 1;
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      daily_draft_count: nextCount,
+      last_draft_date: dailyState.today,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+
+  return {
+    ...allowance,
+    allowed: true,
+    dailyCount: nextCount,
+    reason: 'ok',
+  };
 }
 
 export async function incrementDraftUsage() {
@@ -258,7 +364,7 @@ export async function incrementDraftUsage() {
 
   const freeLimit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
   const used = sub?.drafts_used ?? 0;
-  
+
   if (used < freeLimit) {
     const { error } = await supabase.from('subscriptions').update({ drafts_used: used + 1 }).eq('id', user.id);
     if (error) throw error;
@@ -266,6 +372,19 @@ export async function incrementDraftUsage() {
     const { error } = await supabase.from('subscriptions').update({ drafts_count: (sub.drafts_count) - 1 }).eq('id', user.id);
     if (error) throw error;
   }
+
+  const dailyState = getDailyDraftState(profile);
+  const nextCount = (dailyState.shouldReset ? 0 : dailyState.count) + 1;
+  const { error: dailyError } = await supabase
+    .from('profiles')
+    .update({
+      daily_draft_count: nextCount,
+      last_draft_date: dailyState.today,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id);
+
+  if (dailyError) throw dailyError;
 }
 
 export async function checkChatAllowance() {

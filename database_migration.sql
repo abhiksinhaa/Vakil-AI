@@ -32,6 +32,17 @@ alter table feedback enable row level security;
 
 DO $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='daily_draft_count') THEN
+    ALTER TABLE profiles ADD COLUMN daily_draft_count integer default 0;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='last_draft_date') THEN
+    ALTER TABLE profiles ADD COLUMN last_draft_date date;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert feedback' AND tablename = 'feedback') THEN
     create policy "Users can insert feedback"
       on feedback for insert with check (auth.uid() = user_id);
