@@ -208,30 +208,44 @@ Generate the complete ${draftType} now:`;
   while (attempt <= maxRetries) {
     try {
       console.log(`[Draft Generation] Attempt ${attempt + 1}: Calling Gemini API with model ${currentModel}`);
+      console.log('[Draft Generation] Starting draft generation...');
+      console.log('[Draft Generation] Form data:', {
+        draftType,
+        advocateName,
+        party1Name,
+        party2Name,
+        language,
+        incidentTiming,
+      });
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const requestPayload = {
+        model: currentModel,
+        systemInstruction: {
+          parts: [{ text: finalSystemPrompt }],
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: finalUserPrompt }],
+          },
+        ],
+        generationConfig: {
+          maxOutputTokens: 8192,
+          temperature: 0.4,
+        },
+      };
+      
+      console.log('[Draft Generation] Request payload keys:', Object.keys(requestPayload));
 
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: currentModel,
-          systemInstruction: {
-            parts: [{ text: finalSystemPrompt }],
-          },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: finalUserPrompt }],
-            },
-          ],
-          generationConfig: {
-            maxOutputTokens: 8192,
-            temperature: 0.4,
-          },
-        }),
+        body: JSON.stringify(requestPayload),
         signal: controller.signal,
       });
 
@@ -240,6 +254,9 @@ Generate the complete ${draftType} now:`;
 
       const contentType = response.headers.get('content-type') || '';
       const raw = await response.text();
+      
+      console.log('[Draft Generation] Response content-type:', contentType);
+      console.log('[Draft Generation] Response body (first 500 chars):', raw.slice(0, 500));
 
       if (!contentType.includes('application/json')) {
         console.error(
@@ -298,9 +315,13 @@ Generate the complete ${draftType} now:`;
       const parts = data.candidates?.[0]?.content?.parts ?? [];
       const text = parts.map((part: any) => part.text).filter(Boolean).join('\n');
       const finishReason = data.candidates?.[0]?.finishReason;
+      
+      console.log('[Draft Generation] Gemini response received successfully');
+      console.log('[Draft Generation] Generated text length:', text?.length);
 
       if (!text) {
         console.error('Gemini API empty response:', data);
+        console.error('[Draft Generation] Error: Empty response from Gemini');
         throw new Error(
           finishReason === 'SAFETY'
             ? 'Draft blocked by safety filters. Please modify the facts and try again.'
@@ -313,6 +334,8 @@ Generate the complete ${draftType} now:`;
         finalDraft += '\n\n[WARNING: Draft generation was truncated due to length limits. Please review the ending.]';
       }
 
+      console.log('[Draft Generation] Draft generated successfully');
+      console.log('[Draft Generation] Final draft length:', finalDraft.length);
       return finalDraft;
 
     } catch (err: any) {
@@ -329,6 +352,7 @@ Generate the complete ${draftType} now:`;
           errorType: 'NETWORK_TIMEOUT',
           message: err?.message || 'Request timed out',
         });
+        console.error('[Draft Generation] Network timeout error:', err.message);
         throw new Error('Draft could not be generated. Please try again.');
       }
 
@@ -340,16 +364,27 @@ Generate the complete ${draftType} now:`;
         message: err?.message || 'Unknown Gemini error',
         cause: err,
       });
+      
+      console.error('[Draft Generation] Error in attempt', attempt + 1, ':', {
+        message: err?.message,
+        isNetworkError,
+        errorName: err?.name,
+        attempt: attempt + 1,
+        maxRetries,
+      });
 
       if (attempt < maxRetries) {
         attempt++;
         currentModel = 'gemini-2.0-flash'; // Fallback model
+        console.log('[Draft Generation] Retrying with fallback model:', currentModel);
         continue;
       }
 
+      console.error('[Draft Generation] Max retries exceeded, throwing error');
       throw new Error('Draft could not be generated. Please try again.');
     }
   }
   
+  console.error('[Draft Generation] Failed after all retry attempts');
   throw new Error('Draft could not be generated after multiple attempts. Please try again later.');
 }

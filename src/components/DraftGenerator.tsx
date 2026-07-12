@@ -324,8 +324,10 @@ export default function DraftGenerator() {
 
     try {
       try {
+        console.log('Starting draft generation...');
         const allowance = await checkDraftAllowance();
         if (!allowance.allowed) {
+          console.log('Draft limit reached, showing upgrade modal');
           setIsGenerating(false);
           setShowUpgradeModal(allowance.userType === 'individual' ? 'individual' : 'advocate');
           return;
@@ -336,12 +338,19 @@ export default function DraftGenerator() {
           console.warn('Offline mode: Bypassing allowance check.');
         } else {
           console.error('Allowance check failed:', allowanceErr);
+          console.warn('Proceeding with generation anyway (allowance check failed)');
         }
       }
 
       setGeneratingStatus('Generating Document...');
 
       const submissionForm = getSubmissionForm();
+      console.log('Form data:', {
+        draftType: submissionForm.draftType,
+        advocateName: submissionForm.advocateName,
+        party1Name: submissionForm.party1Name,
+        language: submissionForm.language,
+      });
 
       let userFactsText = `Advocate: ${submissionForm.advocateName || 'Not provided'}
 City/Court: ${submissionForm.advocateCity || 'Not provided'}
@@ -368,19 +377,25 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             fields: [] 
           };
 
+      console.log('Calling generateLegalDraft...');
       const text = await generateLegalDraft({
         ...submissionForm,
         schema: schemaFallback,
         customPrompt,
       }, (status) => setGeneratingStatus(status));
       
+      console.log('Gemini response:', { textLength: text?.length });
+      console.log('Draft generation successful, displaying to user');
+      
       setDraft(text);
       setIsGenerating(false); // Stop loading immediately so user sees the draft
       handleDraftGenerated();
 
       // These can happen in the background without blocking the UI
+      console.log('Refreshing account in background...');
       refreshAccount().catch(err => console.error('Failed to refresh account:', err));
 
+      console.log('Auto-saving draft in background...');
       void saveDraft({
         draftType: submissionForm.draftType === 'Affidavit' ? `Affidavit - ${submissionForm.affidavitSubType}` : submissionForm.draftType,
         party1Name: submissionForm.party1Name,
@@ -394,18 +409,22 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       })
         .then((res) => {
           if (res?.id) {
+            console.log('Draft auto-save successful, id:', res.id);
             setDraftId(res.id);
             setSaveSuccess(true);
           } else {
             console.error('Draft auto-save did not return an id:', res);
+            setSaveSuccess(false);
           }
         })
         .catch((err) => {
           console.error('Draft auto-save failed:', err);
+          console.log('Draft is still displayed to user even though save failed');
           setSaveSuccess(false);
         });
     } catch (err: any) {
       console.error('Draft generation error:', err);
+      console.log('Error if any:', err);
       setError(err.message || 'Draft could not be generated. Please try again.');
       setIsGenerating(false); // Ensure we stop loading on error
     }
