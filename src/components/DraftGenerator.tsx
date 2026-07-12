@@ -76,7 +76,7 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export default function DraftGenerator() {
-  const { profile, refreshAccount, session, setProfile } = useApp();
+  const { profile, refreshAccount, session, setProfile, accountLoading } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -299,8 +299,9 @@ export default function DraftGenerator() {
       event.stopPropagation();
     }
 
-    if (isGenerating || dailyDraftUsage >= DAILY_DRAFT_LIMIT) {
-      console.log('[draft-generator] Generate Draft blocked', { isGenerating, dailyDraftUsage });
+    // Safety checks: prevent generation if button is disabled or profile is still loading
+    if (isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT) {
+      console.log('[draft-generator] Generate Draft blocked', { isGenerating, accountLoading, dailyDraftUsage, limit: DAILY_DRAFT_LIMIT });
       return;
     }
 
@@ -623,10 +624,21 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                 type="button"
                 onClick={(event) => void handleGenerateTap(event)}
                 onTouchEnd={(event) => void handleGenerateTap(event)}
-                disabled={isGenerating || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
-                className="btn-primary w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation select-none"
+                disabled={isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
+                className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${
+                  accountLoading
+                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10 hover:shadow-gray-600/10'
+                    : dailyDraftUsage >= DAILY_DRAFT_LIMIT
+                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10 hover:shadow-gray-600/10'
+                    : 'btn-primary shadow-gold/20 hover:shadow-gold/40 hover:scale-[1.02]'
+                }`}
               >
-                {isGenerating ? (
+                {accountLoading ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="w-5 h-5 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
+                    Loading draft quota...
+                  </div>
+                ) : isGenerating ? (
                   <div className="flex items-center justify-center gap-3">
                     <span className="w-5 h-5 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
                     {generatingStatus}
@@ -635,6 +647,12 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                   'Generate Draft'
                 )}
               </button>
+              
+              {dailyDraftUsage >= DAILY_DRAFT_LIMIT && !accountLoading && (
+                <p className="mt-3 text-center text-sm font-semibold text-orange-400">
+                  Daily limit reached. Resets tomorrow at midnight.
+                </p>
+              )}
             </div>
 
             <section className="card space-y-4 transition-all duration-300">
