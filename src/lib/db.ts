@@ -75,9 +75,11 @@ export async function saveDraft(draft: DraftInput) {
   }
 
   const now = new Date().toISOString();
+  const documentType = draft.selectedDocumentType || draft.documentType || draft.draftType || '';
   const draftRow = {
     user_id: currentUser.id,
-    draft_type: draft.draftType,
+    document_type: documentType,
+    draft_type: documentType,
     party1_name: draft.party1Name || '',
     party1_address: draft.party1Address || '',
     party2_name: draft.party2Name || '',

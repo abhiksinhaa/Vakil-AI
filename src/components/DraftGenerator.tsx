@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
 import FeedbackPopup from './FeedbackPopup';
@@ -77,8 +76,7 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export default function DraftGenerator() {
-  const router = useRouter();
-  const { profile, isPro, refreshAccount, session, setProfile } = useApp();
+  const { profile, refreshAccount, session, setProfile } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -317,6 +315,33 @@ export default function DraftGenerator() {
     dismissFeedback();
   };
 
+  const handleGenerateTap = async (event?: ReactMouseEvent<HTMLButtonElement> | ReactTouchEvent<HTMLButtonElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (isGenerating || dailyDraftUsage >= DAILY_DRAFT_LIMIT) {
+      console.log('[draft-generator] Generate Draft blocked', { isGenerating, dailyDraftUsage });
+      return;
+    }
+
+    console.log('[draft-generator] Generate Draft tapped', {
+      dailyDraftUsage,
+      isGenerating,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+    });
+
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => {
+        const button = document.getElementById('generate-draft-button');
+        button?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 80);
+    }
+
+    await runGenerate();
+  };
+
   const handleDraftTypeSelect = (data: { matterId: string; draftTypeId: string; structure: string[]; label: string }) => {
     let style = 'include';
     if (data.draftTypeId === 'affidavit') style = 'simple';
@@ -430,6 +455,7 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       console.log('Auto-saving draft in background...');
       void saveDraft({
         draftType: submissionForm.draftType === 'Affidavit' ? `Affidavit - ${submissionForm.affidavitSubType}` : submissionForm.draftType,
+        selectedDocumentType: submissionForm.draftTypeLabel || submissionForm.draftType,
         party1Name: submissionForm.party1Name,
         party1Address: submissionForm.party1Address,
         party2Name: submissionForm.party2Name,
@@ -469,6 +495,7 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       const submissionForm = getSubmissionForm();
       await saveDraft({
         draftType: submissionForm.draftType === 'Affidavit' ? `Affidavit - ${submissionForm.affidavitSubType}` : submissionForm.draftType,
+        selectedDocumentType: submissionForm.draftTypeLabel || submissionForm.draftType,
         party1Name: submissionForm.party1Name,
         party1Address: submissionForm.party1Address,
         party2Name: submissionForm.party2Name,
@@ -529,7 +556,7 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:min-h-[calc(100vh-12rem)]">
           <div
-            className="lg:w-[40%] shrink-0 space-y-6 overflow-y-auto max-h-none lg:max-h-[calc(100vh-10rem)] lg:pr-2 pb-24"
+            className="lg:w-[40%] shrink-0 space-y-6 overflow-visible lg:overflow-y-auto max-h-none lg:max-h-[calc(100vh-10rem)] lg:pr-2 pb-4 sm:pb-24"
           >
             <div className="rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-cream/80">
               Just 3 quick fields to generate — more details are optional.
@@ -597,21 +624,25 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => void runGenerate()}
-              disabled={isGenerating || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
-              className="btn-primary sticky bottom-4 z-20 w-full py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isGenerating ? (
-                <div className="flex items-center justify-center gap-3">
-                  <span className="w-5 h-5 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
-                  {generatingStatus}
-                </div>
-              ) : (
-                'Generate Draft'
-              )}
-            </button>
+            <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0">
+              <button
+                id="generate-draft-button"
+                type="button"
+                onClick={(event) => void handleGenerateTap(event)}
+                onTouchEnd={(event) => void handleGenerateTap(event)}
+                disabled={isGenerating || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
+                className="btn-primary w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg shadow-gold/20 hover:shadow-gold/40 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation select-none"
+              >
+                {isGenerating ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="w-5 h-5 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
+                    {generatingStatus}
+                  </div>
+                ) : (
+                  'Generate Draft'
+                )}
+              </button>
+            </div>
 
             <section className="card space-y-4 transition-all duration-300">
               <button

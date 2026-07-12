@@ -85,6 +85,8 @@ export interface DraftRecord {
 
 export interface DraftInput {
   draftType: string;
+  selectedDocumentType?: string;
+  documentType?: string;
   party1Name?: string;
   party1Address?: string;
   party2Name?: string;
