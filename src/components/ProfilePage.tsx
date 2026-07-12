@@ -115,16 +115,22 @@ export default function ProfilePage() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      console.log('Profile payload (client):', payload);
+
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert(payload, { onConflict: 'user_id' });
+        .upsert(payload, { onConflict: 'user_id' })
+        .select()
+        .maybeSingle();
+
+      console.log('Profile upsert response (client):', { data, error });
 
       if (error) throw error;
-      
+
       setMessage('Profile saved successfully!');
       setIsEditing(false);
       await fetchProfile(); // Refetch to update UI state B
-      
+
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
       console.error('Save error:', err);

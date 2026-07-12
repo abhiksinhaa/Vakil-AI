@@ -173,10 +173,20 @@ export async function updateProfile(updates: Partial<Profile>) {
   if (!user) throw new Error('Not authenticated');
 
   const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+  const filteredUpdates = Object.fromEntries(
+    Object.entries(cleanUpdates).filter(([, v]) => v !== undefined)
+  ) as Partial<Profile>;
+
+  // If there are no meaningful updates (only updated_at or nothing), skip upsert
+  const meaningfulKeys = Object.keys(filteredUpdates).filter((k) => k !== 'updated_at');
+  if (meaningfulKeys.length === 0) {
+    console.log('updateProfile: no meaningful updates, skipping upsert', { filteredUpdates });
+    return getProfileRow(user.id);
+  }
   const profilePayload = {
     id: user.id,
     user_id: user.id,
-    ...cleanUpdates,
+    ...filteredUpdates,
   } as Partial<Profile>;
 
   console.log('Saving profile payload:', profilePayload);
