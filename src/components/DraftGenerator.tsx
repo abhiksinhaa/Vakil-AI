@@ -98,6 +98,7 @@ export default function DraftGenerator() {
   const [feedbackSubmittedThisSession, setFeedbackSubmittedThisSession] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const feedbackTimeoutRef = useRef<number | null>(null);
+  const draftGenerationPaused = true;
 
   // Feedback popup tracking (separate from rate limiting - uses localStorage)
   const THRESHOLD_KEY = 'draftee_feedback_threshold';
@@ -297,6 +298,11 @@ export default function DraftGenerator() {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
+    }
+
+    if (draftGenerationPaused) {
+      console.log('[draft-generator] Generate Draft blocked', { reason: 'premium-launch-pending' });
+      return;
     }
 
     // Safety checks: prevent generation if button is disabled or profile is still loading
@@ -619,16 +625,24 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             </div>
 
             <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0">
+              <div className="mb-3 rounded-xl border border-[#d4af37] bg-[#0f1b3d] px-4 py-3 shadow-sm">
+                <p className="text-sm font-medium leading-6 text-[#d4af37] whitespace-pre-line">
+                  Draft generation is temporarily unavailable.
+                  We're launching Draftee Premium in the next
+                  2 days with fair usage limits and a better
+                  experience. Thank you for your patience.
+                </p>
+              </div>
+
               <button
                 id="generate-draft-button"
                 type="button"
                 onClick={(event) => void handleGenerateTap(event)}
                 onTouchEnd={(event) => void handleGenerateTap(event)}
-                disabled={isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
+                disabled={draftGenerationPaused || isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
+                aria-disabled={draftGenerationPaused || isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
                 className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${
-                  accountLoading
-                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10 hover:shadow-gray-600/10'
-                    : dailyDraftUsage >= DAILY_DRAFT_LIMIT
+                  draftGenerationPaused || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT
                     ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10 hover:shadow-gray-600/10'
                     : 'btn-primary shadow-gold/20 hover:shadow-gold/40 hover:scale-[1.02]'
                 }`}
