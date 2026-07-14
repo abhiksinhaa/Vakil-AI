@@ -2,10 +2,25 @@ export type PaidPlan = 'basic' | 'standard' | 'pro';
 export type PlanKey = 'free' | PaidPlan;
 
 export const PLAN_CONFIG = {
-  free: { label: 'Free', amount: 0, draftsLimit: 3 },
-  basic: { label: 'Basic', amount: 14900, draftsLimit: 30 },
-  standard: { label: 'Standard', amount: 19900, draftsLimit: 40 },
-  pro: { label: 'Pro', amount: 29900, draftsLimit: 100 },
+  free: { label: 'Free', amount: 0, draftsLimit: 3, planId: '' },
+  basic: {
+    label: 'Starter',
+    amount: 14900,
+    draftsLimit: 30,
+    planId: process.env.RAZORPAY_PLAN_BASIC || 'plan_TDWCGXaopCTWZw',
+  },
+  standard: {
+    label: 'Standard',
+    amount: 19900,
+    draftsLimit: 40,
+    planId: process.env.RAZORPAY_PLAN_STANDARD || 'plan_TDWJ0fBwA0AmY6',
+  },
+  pro: {
+    label: 'Pro',
+    amount: 24900,
+    draftsLimit: 100,
+    planId: process.env.RAZORPAY_PLAN_PRO || 'plan_TDWJdOwAyauKDY',
+  },
 } as const;
 
 export const SUBSCRIPTION_MONTHS = 1;
