@@ -176,3 +176,70 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }:
     rzp.open();
   });
 }
+
+export async function startSubscriptionCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
+  console.log('startSubscriptionCheckout: begin', { plan });
+  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+  console.log('startSubscriptionCheckout: has public key?', !!razorpayKey);
+  if (!razorpayKey) {
+    console.error('Razorpay key missing');
+    throw new Error('Payment not configured');
+  }
+
+  // create subscription on server
+  const subRes = await fetch('/api/razorpay/create-subscription', {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ plan }),
+  });
+  const subData = await subRes.json();
+  console.log('startSubscriptionCheckout: create-subscription response', { ok: subRes.ok, body: subData });
+  if (!subRes.ok) {
+    throw new Error(subData?.error?.message || 'Could not create subscription');
+  }
+
+  const subscriptionId = subData.subscription_id;
+  if (!subscriptionId) {
+    throw new Error('Subscription id missing from server');
+  }
+
+  const Razorpay: any = await loadRazorpayScript();
+  console.log('startSubscriptionCheckout: Razorpay SDK loaded', { hasRazorpay: !!Razorpay });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      key: razorpayKey,
+      subscription_id: subscriptionId,
+      name: 'Draftee',
+      description: `${plan} subscription`,
+      prefill: { email: userEmail || '', name: userName || '' },
+      theme: { color: '#c9a84c' },
+      handler: async (response: any) => {
+        try {
+          console.log('startSubscriptionCheckout: handler response', response);
+          // verify payment on server (reuse verify endpoint)
+          const verifyRes = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: await getAuthHeaders(),
+            body: JSON.stringify({ razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature }),
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok || !verifyData.success) {
+            throw new Error(verifyData?.error?.message || 'Payment verification failed');
+          }
+          await onSuccess?.();
+          resolve(response);
+        } catch (err) {
+          reject(err);
+        }
+      },
+      modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', (res: any) => {
+      reject(new Error(res.error?.description || 'Payment failed'));
+    });
+    rzp.open();
+  });
+}

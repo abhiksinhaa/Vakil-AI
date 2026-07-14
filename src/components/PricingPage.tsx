@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
-import { startPlanCheckout } from '../lib/razorpay';
+import { startSubscriptionCheckout } from '../lib/razorpay';
 
 const GLITTER_STYLES = `
   @keyframes sparkle {
@@ -77,7 +77,9 @@ export default function PricingPage() {
     setMessage(null);
 
     try {
-      await startPlanCheckout({
+      console.log('PricingPage: Razorpay Key present?', !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
+      console.log('PricingPage: initiating subscription for plan', plan);
+      await startSubscriptionCheckout({
         plan,
         userEmail: session.user.email,
         userName: profile?.full_name || session.user.email,
