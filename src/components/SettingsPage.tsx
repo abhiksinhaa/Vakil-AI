@@ -414,9 +414,9 @@ export default function SettingsPage() {
     }
   };
 
-  const planLabel = subscription?.plan === 'pro' ? 'Pro subscriber' : 'Free plan';
-  const draftLimit = profile?.user_type === 'individual' ? 2 : 10;
-  const usedDrafts = subscription?.drafts_used ?? 0;
+  const planLabel = subscription?.plan && subscription.plan !== 'free' ? `${String(subscription.plan).charAt(0).toUpperCase()}${String(subscription.plan).slice(1)} subscriber` : 'Free plan';
+  const draftLimit = profile?.drafts_limit ?? (profile?.user_type === 'individual' ? 2 : 3);
+  const usedDrafts = profile?.drafts_used ?? subscription?.drafts_used ?? 0;
   const remainingDrafts = Math.max(0, draftLimit - usedDrafts);
   const chatUsage = subscription?.chat_count ?? 0;
 

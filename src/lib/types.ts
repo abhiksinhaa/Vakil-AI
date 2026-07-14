@@ -8,6 +8,11 @@ export interface Profile {
   advocate_name: string;
   bar_council_number: string;
   court_jurisdiction: string;
+  plan?: 'free' | 'basic' | 'standard' | 'pro';
+  drafts_limit?: number;
+  drafts_used?: number;
+  plan_expires_at?: string | null;
+  razorpay_payment_id?: string | null;
   referral_code: string;
   referred_by: string | null;
   theme: 'dark' | 'light' | 'system';
@@ -60,7 +65,7 @@ export interface Profile {
 
 export interface Subscription {
   id?: string;
-  plan: 'free' | 'pro';
+  plan: 'free' | 'basic' | 'standard' | 'pro';
   drafts_used: number;
   created_at?: string;
   chat_day_key: string;

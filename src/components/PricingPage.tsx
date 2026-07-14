@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Navbar from './Navbar';
+import { useApp } from '../context/AppContext';
+import { startPlanCheckout } from '../lib/razorpay';
 
 const GLITTER_STYLES = `
   @keyframes sparkle {
@@ -40,44 +43,122 @@ const GLITTER_STYLES = `
   }
 `;
 
+const PLANS = [
+  { key: 'basic', label: 'Basic', price: '₹149/mo', drafts: '30 drafts/month' },
+  { key: 'standard', label: 'Standard', price: '₹199/mo', drafts: '40 drafts/month' },
+  { key: 'pro', label: 'Pro', price: '₹299/mo', drafts: '100 drafts/month' },
+] as const;
+
 export default function PricingPage() {
+  const { session, profile, refreshAccount } = useApp();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const currentPlan = useMemo(() => {
+    const plan = profile?.plan || 'free';
+    return plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1);
+  }, [profile?.plan]);
+
+  useEffect(() => {
+    if (!profile?.plan) {
+      void refreshAccount();
+    }
+  }, [profile?.plan, refreshAccount]);
+
+  const handleSubscribe = async (plan: 'basic' | 'standard' | 'pro') => {
+    if (!session?.user?.email) {
+      setError('Please sign in to subscribe.');
+      return;
+    }
+
+    setLoadingPlan(plan);
+    setError(null);
+    setMessage(null);
+
+    try {
+      await startPlanCheckout({
+        plan,
+        userEmail: session.user.email,
+        userName: profile?.full_name || session.user.email,
+        onSuccess: async () => {
+          await refreshAccount();
+          setMessage(`Your ${plan} plan is now active.`);
+        },
+      });
+    } catch (err: any) {
+      setError(err?.message || 'Unable to start checkout.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#020b14] flex flex-col relative overflow-hidden">
       <style>{GLITTER_STYLES}</style>
       <Navbar />
 
-      <div className="flex-1 w-full px-4 flex flex-col items-center justify-center relative z-10">
-        
-        {/* Background glow effects */}
+      <div className="flex-1 w-full px-4 py-10 flex flex-col items-center justify-center relative z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gold/5 blur-[150px] rounded-full pointer-events-none"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#d4af37]/10 blur-[100px] rounded-full pointer-events-none"></div>
 
-        <div className="text-center relative z-20 animate-[float_6s_ease-in-out_infinite]">
-          <div className="sparkle-container mb-8">
-            <span className="sparkle-dot" style={{ top: '-10px', left: '-20px', animationDelay: '0s' }}></span>
-            <span className="sparkle-dot" style={{ top: '20px', right: '-30px', animationDelay: '0.7s' }}></span>
-            <span className="sparkle-dot" style={{ bottom: '-15px', left: '40%', animationDelay: '1.2s' }}></span>
-            <span className="sparkle-dot" style={{ top: '-5px', right: '10%', animationDelay: '0.4s' }}></span>
-            
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight px-8 py-4">
-              <span className="text-gold/80">✨</span>
-              <span className="mx-4 glitter-text">Premium Version Coming Next Month</span>
-              <span className="text-gold/80">✨</span>
-            </h1>
+        <div className="w-full max-w-6xl relative z-20">
+          <div className="text-center mb-8">
+            <div className="sparkle-container mb-6">
+              <span className="sparkle-dot" style={{ top: '-10px', left: '-20px', animationDelay: '0s' }}></span>
+              <span className="sparkle-dot" style={{ top: '20px', right: '-30px', animationDelay: '0.7s' }}></span>
+              <span className="sparkle-dot" style={{ bottom: '-15px', left: '40%', animationDelay: '1.2s' }}></span>
+              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight px-6 py-4">
+                <span className="mx-4 glitter-text">Choose Your Premium Plan</span>
+              </h1>
+            </div>
+            <p className="text-cream/90 text-lg max-w-3xl mx-auto font-light leading-relaxed">
+              Unlock higher monthly draft limits with secure Razorpay checkout.
+            </p>
           </div>
 
-          <p className="text-cream/90 text-lg sm:text-xl max-w-2xl mx-auto mb-12 font-light leading-relaxed">
-            "We're crafting something extraordinary for you. Stay tuned."
-          </p>
-          
-          <Link 
-            href="/dashboard"
-            className="inline-flex items-center justify-center bg-transparent border border-gold/40 text-gold font-medium px-8 py-4 rounded-full hover:bg-gold hover:text-[#020b14] transition-all duration-300 hover:scale-105 shadow-[0_0_20px_rgba(212,175,55,0.1)] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
-          >
-            Return to Dashboard
-          </Link>
-        </div>
+          <div className="mb-6 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-4 text-sm text-cream/90 text-center">
+            Current plan: <span className="font-semibold text-gold">{currentPlan}</span>
+            {profile?.plan_expires_at ? ` • Renews ${new Date(profile.plan_expires_at).toLocaleDateString('en-IN')}` : ''}
+          </div>
 
+          {message ? <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</div> : null}
+          {error ? <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div> : null}
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {PLANS.map((plan) => {
+              const isActive = profile?.plan === plan.key;
+              return (
+                <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)]">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-gold">{plan.label}</h2>
+                    {isActive ? <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span> : null}
+                  </div>
+                  <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
+                  <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
+                  <ul className="mt-6 space-y-2 text-sm text-cream/70">
+                    <li>• Secure Razorpay payment</li>
+                    <li>• Monthly renewals</li>
+                    <li>• Priority draft generation</li>
+                  </ul>
+                  <button
+                    onClick={() => void handleSubscribe(plan.key as 'basic' | 'standard' | 'pro')}
+                    disabled={loadingPlan === plan.key || isActive}
+                    className="mt-8 w-full rounded-full border border-gold/40 bg-transparent px-4 py-3 text-sm font-semibold text-gold transition hover:bg-gold hover:text-[#020b14] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loadingPlan === plan.key ? 'Processing…' : isActive ? 'Current Plan' : `Subscribe to ${plan.label}`}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link href="/dashboard" className="inline-flex items-center justify-center rounded-full border border-gold/40 px-6 py-3 text-sm font-medium text-gold hover:bg-gold hover:text-[#020b14] transition-all">
+              Return to Dashboard
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -2,13 +2,18 @@ import { supabase } from './supabase';
 import type { User } from '@supabase/supabase-js';
 import type { Profile, Subscription } from './types';
 import { buildSubscriptionPayload } from './subscription';
+import { getPlanConfig, normalizePlan, PLAN_CONFIG } from './plans';
 
-export const FREE_DRAFT_LIMIT = 10;
+export const PLAN_PRICING = PLAN_CONFIG;
+
+export const FREE_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const FREE_CHAT_DAILY_LIMIT = 5;
-export const DAILY_DRAFT_LIMIT = 3;
-export const DAILY_DRAFT_LIMIT_MESSAGE = 'You have reached your daily limit of 3 drafts. Come back tomorrow for more.';
-export const PRO_PRICE_PAISE = 9900;
-export const PRO_PRICE_INR = 99;
+export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
+export const DAILY_DRAFT_LIMIT_MESSAGE = 'You have reached your monthly limit. Upgrade to continue.';
+export const PRO_PRICE_PAISE = PLAN_CONFIG.pro.amount;
+export const PRO_PRICE_INR = 299;
+
+export { getPlanConfig };
 
 
 
@@ -62,6 +67,44 @@ async function getCurrentUser(): Promise<User | null> {
 
 function getTodayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
+}
+
+async function syncProfilePlanState(userId: string, profile: Partial<Profile> | null | undefined) {
+  const normalizedPlan = normalizePlan(profile?.plan);
+  const now = new Date();
+  const expiresAt = profile?.plan_expires_at ? new Date(profile.plan_expires_at) : null;
+  const expired = Boolean(normalizedPlan !== 'free' && expiresAt && expiresAt <= now);
+
+  if (!expired) {
+    return {
+      plan: normalizedPlan as Profile['plan'],
+      draftsLimit: Number(profile?.drafts_limit ?? getPlanConfig(profile?.plan).draftsLimit),
+      draftsUsed: Number(profile?.drafts_used ?? 0),
+      planExpiresAt: profile?.plan_expires_at ?? null,
+      reset: false,
+    };
+  }
+
+  const resetPayload = {
+    plan: 'free',
+    drafts_limit: PLAN_PRICING.free.draftsLimit,
+    drafts_used: 0,
+    plan_expires_at: null,
+    updated_at: now.toISOString(),
+  };
+
+  const { error } = await supabase.from('profiles').update(resetPayload).eq('user_id', userId);
+  if (error) {
+    console.warn('Failed to reset expired plan to free', error);
+  }
+
+  return {
+    plan: 'free' as Profile['plan'],
+    draftsLimit: PLAN_PRICING.free.draftsLimit,
+    draftsUsed: 0,
+    planExpiresAt: null,
+    reset: true,
+  };
 }
 
 function getDailyDraftState(profile: Partial<Profile> | null | undefined) {
@@ -122,6 +165,10 @@ async function defaultProfileValues(user: User, userType?: 'advocate' | 'individ
     language: 'English',
     preferred_draft_language: 'English',
     user_type: userType || 'advocate',
+    plan: 'free',
+    drafts_limit: PLAN_PRICING.free.draftsLimit,
+    drafts_used: 0,
+    plan_expires_at: null,
     daily_draft_count: 0,
     last_draft_date: getTodayKey(),
     created_at: new Date().toISOString(),
@@ -238,7 +285,7 @@ async function normalizeSubscription(sub: Subscription): Promise<Subscription> {
 
 export function isProActive(sub: Subscription | null) {
   if (!sub) return false;
-  return sub.plan === 'pro';
+  return sub.plan !== 'free';
 }
 
 export async function fetchSubscription(): Promise<Subscription | null> {
@@ -262,65 +309,43 @@ export async function checkDraftAllowance() {
       reason: 'unauthenticated',
       message: null,
       used: 0,
-      limit: DAILY_DRAFT_LIMIT,
+      limit: FREE_DRAFT_LIMIT,
       remaining: 0,
       userType: 'advocate',
     };
   }
 
-  const sub = await fetchSubscription();
   const profile = await fetchProfile();
+  const sub = await fetchSubscription();
+  const planState = await syncProfilePlanState(user.id, profile);
   const isAdvocate = profile?.user_type !== 'individual';
-  const freeLimit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
-  const pro = isProActive(sub);
-  const dailyState = getDailyDraftState(profile);
+  const plan = planState.plan ?? 'free';
+  const isPro = plan !== 'free';
+  const limit = isPro ? Number(planState.draftsLimit || getPlanConfig(plan).draftsLimit) : FREE_DRAFT_LIMIT;
+  const used = Math.max(0, Number(planState.draftsUsed ?? sub?.drafts_used ?? 0));
+  const remaining = Math.max(0, limit - used);
 
-  if (dailyState.shouldReset) {
-    await supabase
-      .from('profiles')
-      .update({ daily_draft_count: 0, last_draft_date: dailyState.today, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id);
-  }
-
-  if (dailyState.count >= DAILY_DRAFT_LIMIT) {
+  if (!isAdvocate && plan === 'free') {
     return {
-      allowed: false,
-      isPro: pro,
-      reason: 'daily_limit',
-      message: DAILY_DRAFT_LIMIT_MESSAGE,
-      used: dailyState.count,
-      limit: DAILY_DRAFT_LIMIT,
-      remaining: 0,
+      allowed: remaining > 0,
+      isPro: false,
+      reason: remaining > 0 ? 'ok' : 'plan_limit',
+      message: remaining > 0 ? null : 'Your monthly draft quota has been used. Upgrade to continue.',
+      used,
+      limit: FREE_DRAFT_LIMIT,
+      remaining,
       userType: profile?.user_type || 'advocate',
     };
   }
-
-  if (pro && isAdvocate) {
-    return {
-      allowed: true,
-      isPro: true,
-      reason: 'ok',
-      message: null,
-      used: sub!.drafts_used,
-      limit: null,
-      remaining: null,
-      userType: profile?.user_type || 'advocate',
-    };
-  }
-
-  const used = sub?.drafts_used ?? 0;
-  const freeRemaining = Math.max(0, freeLimit - used);
-  const paidBalance = sub?.drafts_count ?? 0;
-  const totalRemaining = freeRemaining + paidBalance;
 
   return {
-    allowed: totalRemaining > 0,
-    isPro: false,
-    reason: totalRemaining > 0 ? 'ok' : 'subscription_limit',
-    message: totalRemaining > 0 ? null : 'Your free draft quota has been used. Upgrade to continue.',
+    allowed: remaining > 0,
+    isPro,
+    reason: remaining > 0 ? 'ok' : 'plan_limit',
+    message: remaining > 0 ? null : DAILY_DRAFT_LIMIT_MESSAGE,
     used,
-    limit: freeLimit,
-    remaining: totalRemaining,
+    limit,
+    remaining,
     userType: profile?.user_type || 'advocate',
   };
 }
@@ -366,35 +391,32 @@ export async function consumeDraftAllowance() {
 export async function incrementDraftUsage() {
   const user = await getCurrentUser();
   if (!user) return;
-  const sub = await fetchSubscription();
+
   const profile = await fetchProfile();
-  const isAdvocate = profile?.user_type !== 'individual';
+  const sub = await fetchSubscription();
+  const planState = await syncProfilePlanState(user.id, profile);
+  const plan = planState.plan ?? 'free';
+  const limit = plan !== 'free' ? Number(planState.draftsLimit || getPlanConfig(plan).draftsLimit) : FREE_DRAFT_LIMIT;
+  const used = Math.max(0, Number(planState.draftsUsed ?? sub?.drafts_used ?? 0));
 
-  if (isProActive(sub) && isAdvocate) return;
-
-  const freeLimit = isAdvocate ? FREE_DRAFT_LIMIT : 2;
-  const used = sub?.drafts_used ?? 0;
-
-  if (used < freeLimit) {
-    const { error } = await supabase.from('subscriptions').update({ drafts_used: used + 1 }).eq('id', user.id);
-    if (error) throw error;
-  } else if ((sub?.drafts_count ?? 0) > 0) {
-    const { error } = await supabase.from('subscriptions').update({ drafts_count: (sub.drafts_count) - 1 }).eq('id', user.id);
-    if (error) throw error;
+  if (used >= limit) {
+    return;
   }
 
-  const dailyState = getDailyDraftState(profile);
-  const nextCount = (dailyState.shouldReset ? 0 : dailyState.count) + 1;
-  const { error: dailyError } = await supabase
+  const nextUsed = used + 1;
+  const { error } = await supabase
     .from('profiles')
     .update({
-      daily_draft_count: nextCount,
-      last_draft_date: dailyState.today,
+      drafts_used: nextUsed,
       updated_at: new Date().toISOString(),
     })
     .eq('user_id', user.id);
 
-  if (dailyError) throw dailyError;
+  if (error) throw error;
+
+  await supabase
+    .from('subscriptions')
+    .upsert({ id: user.id, plan, drafts_used: nextUsed, created_at: sub?.created_at ?? new Date().toISOString(), chat_day_key: sub?.chat_day_key ?? new Date().toISOString(), chat_count: sub?.chat_count ?? 0, drafts_count: sub?.drafts_count ?? 0, last_reset: sub?.last_reset ?? new Date().toISOString() }, { onConflict: 'id' });
 }
 
 export async function checkChatAllowance() {

@@ -88,7 +88,8 @@ export default function DraftGenerator() {
   const [profileFilled, setProfileFilled] = useState(false);
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
-  const [dailyDraftUsage, setDailyDraftUsage] = useState(0);
+  const [draftsUsed, setDraftsUsed] = useState(0);
+  const [draftLimit, setDraftLimit] = useState(3);
   const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -98,7 +99,6 @@ export default function DraftGenerator() {
   const [feedbackSubmittedThisSession, setFeedbackSubmittedThisSession] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const feedbackTimeoutRef = useRef<number | null>(null);
-  const draftGenerationPaused = true;
 
   // Feedback popup tracking (separate from rate limiting - uses localStorage)
   const THRESHOLD_KEY = 'draftee_feedback_threshold';
@@ -120,8 +120,8 @@ export default function DraftGenerator() {
 
   useEffect(() => {
     if (
-      dailyDraftUsage > 0 &&
-      dailyDraftUsage >= feedbackThreshold &&
+      draftsUsed > 0 &&
+      draftsUsed >= feedbackThreshold &&
       !feedbackSubmittedThisSession &&
       !isGenerating &&
       !actionBusy
@@ -129,7 +129,7 @@ export default function DraftGenerator() {
       if (feedbackTimeoutRef.current) {
         window.clearTimeout(feedbackTimeoutRef.current);
       }
-      console.log(`Conditions met for feedback popup (count: ${dailyDraftUsage}, threshold: ${feedbackThreshold}). Waiting 2s...`);
+      console.log(`Conditions met for feedback popup (count: ${draftsUsed}, threshold: ${feedbackThreshold}). Waiting 2s...`);
       feedbackTimeoutRef.current = window.setTimeout(() => {
         console.log('Triggering feedback popup now.');
         setFeedbackVisible(true);
@@ -141,7 +141,7 @@ export default function DraftGenerator() {
         window.clearTimeout(feedbackTimeoutRef.current);
       }
     };
-  }, [dailyDraftUsage, feedbackThreshold, feedbackSubmittedThisSession, isGenerating, actionBusy]);
+  }, [draftsUsed, feedbackThreshold, feedbackSubmittedThisSession, isGenerating, actionBusy]);
 
   useEffect(() => {
     if (profile) {
@@ -154,26 +154,16 @@ export default function DraftGenerator() {
       }));
       setProfileFilled(isUserProfileComplete(profile));
 
-      const profileCount = Number(profile.daily_draft_count ?? 0);
-      if (Number.isFinite(profileCount)) {
-        setDailyDraftUsage(Math.max(0, Math.min(DAILY_DRAFT_LIMIT, profileCount)));
+      const usedCount = Number(profile.drafts_used ?? 0);
+      if (Number.isFinite(usedCount)) {
+        setDraftsUsed(Math.max(0, usedCount));
       }
+      const planLimit = Number(profile.drafts_limit ?? DAILY_DRAFT_LIMIT);
+      setDraftLimit(Number.isFinite(planLimit) ? planLimit : DAILY_DRAFT_LIMIT);
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const now = new Date();
-    const nextMidnight = new Date(now);
-    nextMidnight.setHours(24, 0, 0, 0);
-    const timeoutId = window.setTimeout(() => {
-      setDailyDraftUsage(0);
-      void refreshAccount();
-    }, nextMidnight.getTime() - now.getTime());
-
-    return () => window.clearTimeout(timeoutId);
-  }, [refreshAccount]);
+  const quotaExhausted = draftsUsed >= draftLimit;
 
   const update = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -284,9 +274,7 @@ export default function DraftGenerator() {
   };
 
   const handleDraftGenerated = () => {
-    // Draft count is now automatically synced from Supabase via profile refresh
-    // Just update UI state to show the incremented count
-    setDailyDraftUsage((prev) => Math.min(prev + 1, DAILY_DRAFT_LIMIT));
+    setDraftsUsed((prev) => Math.min(prev + 1, draftLimit));
   };
 
   const handleFeedbackSkip = () => {
@@ -300,19 +288,13 @@ export default function DraftGenerator() {
       event.stopPropagation();
     }
 
-    if (draftGenerationPaused) {
-      console.log('[draft-generator] Generate Draft blocked', { reason: 'premium-launch-pending' });
-      return;
-    }
-
-    // Safety checks: prevent generation if button is disabled or profile is still loading
-    if (isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT) {
-      console.log('[draft-generator] Generate Draft blocked', { isGenerating, accountLoading, dailyDraftUsage, limit: DAILY_DRAFT_LIMIT });
+    if (isGenerating || accountLoading || quotaExhausted) {
+      console.log('[draft-generator] Generate Draft blocked', { isGenerating, accountLoading, draftsUsed, limit: draftLimit });
       return;
     }
 
     console.log('[draft-generator] Generate Draft tapped', {
-      dailyDraftUsage,
+      draftsUsed,
       isGenerating,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     });
@@ -363,18 +345,14 @@ export default function DraftGenerator() {
         
         // Update UI with the fresh database value
         if (allowance.used !== undefined) {
-          console.log('[RATE-LIMIT] Updated dailyDraftUsage from database:', allowance.used);
-          setDailyDraftUsage(allowance.used);
+          console.log('[RATE-LIMIT] Updated draftsUsed from database:', allowance.used);
+          setDraftsUsed(allowance.used);
         }
         
         if (!allowance.allowed) {
           console.log('[RATE-LIMIT] Draft limit reached, blocking generation', { used: allowance.used, limit: allowance.limit, reason: allowance.reason });
           setIsGenerating(false);
-          if (allowance.reason === 'daily_limit') {
-            setError(allowance.message || DAILY_DRAFT_LIMIT_MESSAGE);
-          } else {
-            setError(null);
-          }
+          setError(allowance.message || DAILY_DRAFT_LIMIT_MESSAGE);
           return;
         }
         console.log('[RATE-LIMIT] Generation allowed, proceeding...', { used: allowance.used, limit: allowance.limit });
@@ -436,22 +414,6 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       setDraft(text);
       setIsGenerating(false); // Stop loading immediately so user sees the draft
       
-      // Immediately increment usage in database AFTER successful generation
-      try {
-        console.log('[RATE-LIMIT] Incrementing draft usage in Supabase...');
-        await incrementDraftUsage();
-        console.log('[RATE-LIMIT] Draft usage incremented successfully');
-      } catch (err) {
-        console.error('[RATE-LIMIT] Failed to update draft usage counter:', err);
-      }
-      
-      // Update UI to reflect new count
-      handleDraftGenerated();
-
-      // Refresh account to get latest count from database
-      console.log('Refreshing account to sync draft count...');
-      refreshAccount().catch(err => console.error('Failed to refresh account:', err));
-
       console.log('Auto-saving draft in background...');
       void saveDraft({
         draftType: submissionForm.draftType === 'Affidavit' ? `Affidavit - ${submissionForm.affidavitSubType}` : submissionForm.draftType,
@@ -464,12 +426,21 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
         dynamicFields: submissionForm.dynamicFields,
         schema: schemaFallback,
         generatedDraft: text,
-      })
-        .then((res) => {
+      }, { trackUsage: true })
+        .then(async (res) => {
           if (res?.id) {
             console.log('Draft auto-save successful, id:', res.id);
             setDraftId(res.id);
             setSaveSuccess(true);
+            try {
+              console.log('[RATE-LIMIT] Incrementing draft usage in Supabase...');
+              await incrementDraftUsage();
+              console.log('[RATE-LIMIT] Draft usage incremented successfully');
+              handleDraftGenerated();
+              refreshAccount().catch(err => console.error('Failed to refresh account:', err));
+            } catch (err) {
+              console.error('[RATE-LIMIT] Failed to update draft usage counter:', err);
+            }
           } else {
             console.error('Draft auto-save did not return an id:', res);
             setSaveSuccess(false);
@@ -614,35 +585,22 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
 
             <div className="mb-3 rounded-xl border border-gold/30 bg-gold/10 px-3 py-3 text-sm text-cream/90">
               <div className="font-semibold text-gold">
-                {dailyDraftUsage >= DAILY_DRAFT_LIMIT
-                  ? 'You have reached your daily quota. Resets tomorrow.'
-                  : dailyDraftUsage === 0
-                    ? 'You have used 0 drafts today. 3 remaining. Resets tomorrow.'
-                    : dailyDraftUsage === 1
-                      ? 'You have used 1 draft today. 2 remaining. Resets tomorrow.'
-                      : 'You have used 2 drafts today. 1 remaining. Resets tomorrow.'}
+                {quotaExhausted
+                  ? 'You have reached your monthly quota. Upgrade to continue.'
+                  : `You have used ${draftsUsed} draft${draftsUsed === 1 ? '' : 's'} this month. ${Math.max(0, draftLimit - draftsUsed)} remaining.`}
               </div>
             </div>
 
             <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0">
-              <div className="mb-3 rounded-xl border border-[#d4af37] bg-[#0f1b3d] px-4 py-3 shadow-sm">
-                <p className="text-sm font-medium leading-6 text-[#d4af37] whitespace-pre-line">
-                  Draft generation is temporarily unavailable.
-                  We're launching Draftee Premium in the next
-                  2 days with fair usage limits and a better
-                  experience. Thank you for your patience.
-                </p>
-              </div>
-
               <button
                 id="generate-draft-button"
                 type="button"
                 onClick={(event) => void handleGenerateTap(event)}
                 onTouchEnd={(event) => void handleGenerateTap(event)}
-                disabled={draftGenerationPaused || isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
-                aria-disabled={draftGenerationPaused || isGenerating || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT}
+                disabled={isGenerating || accountLoading || quotaExhausted}
+                aria-disabled={isGenerating || accountLoading || quotaExhausted}
                 className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${
-                  draftGenerationPaused || accountLoading || dailyDraftUsage >= DAILY_DRAFT_LIMIT
+                  accountLoading || quotaExhausted
                     ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10 hover:shadow-gray-600/10'
                     : 'btn-primary shadow-gold/20 hover:shadow-gold/40 hover:scale-[1.02]'
                 }`}
@@ -662,9 +620,9 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                 )}
               </button>
               
-              {dailyDraftUsage >= DAILY_DRAFT_LIMIT && !accountLoading && (
+              {quotaExhausted && !accountLoading && (
                 <p className="mt-3 text-center text-sm font-semibold text-orange-400">
-                  Daily limit reached. Resets tomorrow at midnight.
+                  Monthly limit reached. Upgrade to continue.
                 </p>
               )}
             </div>

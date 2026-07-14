@@ -95,7 +95,7 @@ export default function Dashboard() {
               <h2 className="font-display text-xl text-gold">Create New Draft</h2>
               {subscription && (
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isPro ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-cream/10 text-cream/80 border border-cream/20'}`}>
-                  {isPro ? 'Pro: Unlimited' : `${Math.max(0, FREE_DRAFT_LIMIT - (subscription.drafts_used || 0))} free drafts left`}
+                  {isPro ? `${profile?.plan ? profile.plan.charAt(0).toUpperCase() + profile.plan.slice(1) : 'Premium'} plan active` : `${Math.max(0, FREE_DRAFT_LIMIT - (profile?.drafts_used || subscription.drafts_used || 0))} free drafts left`}
                 </span>
               )}
             </div>

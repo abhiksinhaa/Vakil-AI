@@ -39,7 +39,35 @@ async function getCurrentUser() {
   return authData?.user ?? null;
 }
 
-export async function saveDraft(draft: DraftInput) {
+async function insertDraftUsageRow(userId: string, draftId: string) {
+  const { data: existing, error: lookupError } = await supabase
+    .from('draft_usage')
+    .select('id')
+    .eq('draft_id', draftId)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error('draft_usage lookup failed:', lookupError);
+    throw lookupError;
+  }
+
+  if (existing) return;
+
+  const { error } = await supabase.from('draft_usage').insert([
+    {
+      user_id: userId,
+      draft_id: draftId,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
+  if (error) {
+    console.error('draft_usage insert failed:', error);
+    throw error;
+  }
+}
+
+export async function saveDraft(draft: DraftInput, options?: { trackUsage?: boolean }) {
   const currentUser = await getCurrentUser();
   if (!currentUser) return null;
 
@@ -103,6 +131,10 @@ export async function saveDraft(draft: DraftInput) {
   if (!data?.id) {
     console.error('Draft save returned no id:', { data });
     throw new Error('Draft save failed: no id returned');
+  }
+
+  if (options?.trackUsage) {
+    await insertDraftUsageRow(currentUser.id, data.id);
   }
 
   return { id: data.id };

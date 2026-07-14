@@ -1,5 +1,23 @@
-import { PRO_PRICE_PAISE } from './userAccount';
 import { supabase } from './supabase';
+
+interface CheckoutOptions {
+  plan?: 'basic' | 'standard' | 'pro';
+  userEmail?: string | null;
+  userName?: string | null;
+  onSuccess?: () => Promise<void> | void;
+}
+
+async function getAuthHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token ?? null;
+  if (!token) {
+    throw new Error('Please sign in to continue.');
+  }
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 function loadRazorpayScript() {
   return new Promise((resolve, reject) => {
@@ -15,7 +33,7 @@ function loadRazorpayScript() {
   });
 }
 
-export async function startProCheckout({ userEmail, userName, onSuccess }) {
+export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   if (!keyId || keyId.includes('your_')) {
     throw new Error(
@@ -25,8 +43,8 @@ export async function startProCheckout({ userEmail, userName, onSuccess }) {
 
   const orderRes = await fetch('/api/razorpay/create-order', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount: PRO_PRICE_PAISE, currency: 'INR' }),
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ plan }),
   });
 
   const orderData = await orderRes.json();
@@ -42,7 +60,7 @@ export async function startProCheckout({ userEmail, userName, onSuccess }) {
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'Draftee',
-      description: 'Pro Plan — Unlimited drafts & chat (1 month)',
+      description: `${orderData.planName || 'Premium'} Plan — ${orderData.plan === 'basic' ? '30 drafts' : orderData.plan === 'standard' ? '40 drafts' : '100 drafts'} (1 month)`,
       order_id: orderData.id,
       prefill: {
         email: userEmail || '',
@@ -51,14 +69,9 @@ export async function startProCheckout({ userEmail, userName, onSuccess }) {
       theme: { color: '#c9a84c' },
       handler: async (response) => {
         try {
-          const { data } = await supabase.auth.getSession();
-          const token = data.session?.access_token ?? null;
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
+            headers: await getAuthHeaders(),
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -88,7 +101,11 @@ export async function startProCheckout({ userEmail, userName, onSuccess }) {
   });
 }
 
-export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }) {
+export async function startProCheckout(options: CheckoutOptions) {
+  return startPlanCheckout({ ...options, plan: options.plan || 'pro' });
+}
+
+export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }: CheckoutOptions) {
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   if (!keyId || keyId.includes('your_')) {
     throw new Error(
@@ -98,7 +115,7 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess })
 
   const orderRes = await fetch('/api/razorpay/create-order-draft', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({}),
   });
 
@@ -124,14 +141,9 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess })
       theme: { color: '#c9a84c' },
       handler: async (response) => {
         try {
-          const { data } = await supabase.auth.getSession();
-          const token = data.session?.access_token ?? null;
           const verifyRes = await fetch('/api/razorpay/verify-draft', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
+            headers: await getAuthHeaders(),
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,

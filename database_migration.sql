@@ -53,3 +53,80 @@ BEGIN
       on feedback for select using (true);
   END IF;
 END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='plan') THEN
+    ALTER TABLE profiles ADD COLUMN plan text default 'free';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='drafts_limit') THEN
+    ALTER TABLE profiles ADD COLUMN drafts_limit integer default 3;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='drafts_used') THEN
+    ALTER TABLE profiles ADD COLUMN drafts_used integer default 0;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='plan_expires_at') THEN
+    ALTER TABLE profiles ADD COLUMN plan_expires_at timestamp with time zone;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='razorpay_payment_id') THEN
+    ALTER TABLE profiles ADD COLUMN razorpay_payment_id text;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS draft_usage (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  draft_id uuid unique,
+  created_at timestamp with time zone default now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'draft_usage_draft_id_key'
+  ) THEN
+    ALTER TABLE draft_usage ADD CONSTRAINT draft_usage_draft_id_key UNIQUE (draft_id);
+  END IF;
+END $$;
+
+alter table draft_usage enable row level security;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert own draft usage' AND tablename = 'draft_usage') THEN
+    create policy "Users can insert own draft usage"
+      on draft_usage for insert with check (auth.uid() = user_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own draft usage' AND tablename = 'draft_usage') THEN
+    create policy "Users can view own draft usage"
+      on draft_usage for select using (auth.uid() = user_id);
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS payments (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  razorpay_order_id text,
+  razorpay_payment_id text unique,
+  amount_paise integer not null default 0,
+  status text not null default 'paid',
+  type text,
+  plan text,
+  created_at timestamp with time zone default now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='type') THEN
+    ALTER TABLE payments ADD COLUMN type text;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='plan') THEN
+    ALTER TABLE payments ADD COLUMN plan text;
+  END IF;
+END $$;
