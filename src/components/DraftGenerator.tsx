@@ -595,36 +595,16 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               <button
                 id="generate-draft-button"
                 type="button"
-                onClick={(event) => void handleGenerateTap(event)}
-                onTouchEnd={(event) => void handleGenerateTap(event)}
-                disabled={isGenerating || accountLoading || quotaExhausted}
-                aria-disabled={isGenerating || accountLoading || quotaExhausted}
-                className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${
-                  accountLoading || quotaExhausted
-                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10 hover:shadow-gray-600/10'
-                    : 'btn-primary shadow-gold/20 hover:shadow-gold/40 hover:scale-[1.02]'
-                }`}
+                disabled={true}
+                aria-disabled={true}
+                className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10`}
               >
-                {accountLoading ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="w-5 h-5 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
-                    Loading draft quota...
-                  </div>
-                ) : isGenerating ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="w-5 h-5 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
-                    {generatingStatus}
-                  </div>
-                ) : (
-                  'Generate Draft'
-                )}
+                Coming Back Soon...
               </button>
-              
-              {quotaExhausted && !accountLoading && (
-                <p className="mt-3 text-center text-sm font-semibold text-orange-400">
-                  Monthly limit reached. Upgrade to continue.
-                </p>
-              )}
+
+              <p className="mt-3 text-center text-sm font-semibold text-cream/70">
+                We're upgrading our systems. Back in a few hours! ⚡
+              </p>
             </div>
 
             <section className="card space-y-4 transition-all duration-300">
