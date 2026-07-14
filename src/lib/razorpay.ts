@@ -35,6 +35,7 @@ function loadRazorpayScript() {
 
 export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  console.log('Razorpay key:', process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ? 'Found' : 'Missing');
   if (!keyId || keyId.includes('your_')) {
     throw new Error(
       'Razorpay is not configured. Add NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the server.'
@@ -107,6 +108,7 @@ export async function startProCheckout(options: CheckoutOptions) {
 
 export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }: CheckoutOptions) {
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  console.log('Razorpay key:', process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ? 'Found' : 'Missing');
   if (!keyId || keyId.includes('your_')) {
     throw new Error(
       'Razorpay is not configured. Add NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the server.'
