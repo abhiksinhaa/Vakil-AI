@@ -40,7 +40,7 @@ export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onS
     keyPrefix: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.substring(0, 10),
   });
 
-  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
   if (!razorpayKey) {
     console.error('Razorpay key missing');
     throw new Error('Payment not configured');
@@ -111,7 +111,7 @@ export async function startProCheckout(options: CheckoutOptions) {
 }
 
 export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }: CheckoutOptions) {
-  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
   if (!razorpayKey) {
     console.error('Razorpay key missing');
     throw new Error('Payment not configured');
@@ -179,7 +179,7 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }:
 
 export async function startSubscriptionCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
   console.log('startSubscriptionCheckout: begin', { plan });
-  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
   console.log('startSubscriptionCheckout: has public key?', !!razorpayKey);
   if (!razorpayKey) {
     console.error('Razorpay key missing');
