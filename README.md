@@ -7,7 +7,7 @@ AI-powered legal draft generator for Indian lawyers. Describe a situation, get a
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - Tailwind CSS
 - **Supabase** — Authentication and database backend
-- Google Gemini (`gemini-2.5-flash`) via the `/api/gemini` route handler
+- Google Gemini (`gemini-2.0-flash`) via the `/api/gemini` route handler
 - Razorpay for the Pro plan (`/api/razorpay/*`)
 - Deploy on [Vercel](https://vercel.com)
 
@@ -37,7 +37,7 @@ Copy `.env.example` to `.env.local` and fill in:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public API key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) |
-| `GEMINI_MODEL` | optional, default `gemini-2.5-flash` |
+| `GEMINI_MODEL` | optional, default `gemini-2.0-flash` |
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` / `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Razorpay dashboard (optional — Pro plan) |
 
 > `NEXT_PUBLIC_*` values are exposed to the browser (safe for public Supabase config). Everything else stays server-only.
