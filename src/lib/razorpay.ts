@@ -34,12 +34,16 @@ function loadRazorpayScript() {
 }
 
 export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-  console.log('Razorpay key:', process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ? 'Found' : 'Missing');
-  if (!keyId || keyId.includes('your_')) {
-    throw new Error(
-      'Razorpay is not configured. Add NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the server.'
-    );
+  // ENV CHECK (presence only, small prefix)
+  console.log('ENV CHECK:', {
+    hasPublicKey: !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    keyPrefix: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.substring(0, 10),
+  });
+
+  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+  if (!razorpayKey) {
+    console.error('Razorpay key missing');
+    throw new Error('Payment not configured');
   }
 
   const orderRes = await fetch('/api/razorpay/create-order', {
@@ -57,7 +61,7 @@ export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onS
 
   return new Promise((resolve, reject) => {
     const options = {
-      key: keyId,
+      key: razorpayKey,
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'Draftee',
@@ -107,12 +111,10 @@ export async function startProCheckout(options: CheckoutOptions) {
 }
 
 export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }: CheckoutOptions) {
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-  console.log('Razorpay key:', process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ? 'Found' : 'Missing');
-  if (!keyId || keyId.includes('your_')) {
-    throw new Error(
-      'Razorpay is not configured. Add NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the server.'
-    );
+  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+  if (!razorpayKey) {
+    console.error('Razorpay key missing');
+    throw new Error('Payment not configured');
   }
 
   const orderRes = await fetch('/api/razorpay/create-order-draft', {
@@ -130,7 +132,7 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }:
 
   return new Promise((resolve, reject) => {
     const options = {
-      key: keyId,
+      key: razorpayKey,
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'Draftee',
