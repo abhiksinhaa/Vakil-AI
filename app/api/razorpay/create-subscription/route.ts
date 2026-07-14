@@ -4,12 +4,24 @@ import { PLAN_CONFIG } from '@/lib/plans';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+function getRazorpayCredentials() {
+  const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || process.env.NEXT_PUBLIC_RAZORPAY_KEY_SECRET;
+  return { keyId, keySecret };
+}
+
 export async function POST(req: Request) {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const { keyId, keySecret } = getRazorpayCredentials();
 
   if (!keyId || !keySecret) {
-    console.error('[create-subscription] Razorpay keys missing on server');
+    console.error('[create-subscription] Razorpay keys missing on server', {
+      hasKeyId: !!keyId,
+      hasKeySecret: !!keySecret,
+      hasServerKeyId: !!process.env.RAZORPAY_KEY_ID,
+      hasServerKeySecret: !!process.env.RAZORPAY_KEY_SECRET,
+      hasPublicKeyId: !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      hasPublicKeySecret: !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_SECRET,
+    });
     return Response.json({ error: { message: 'Razorpay keys not configured on server.' } }, { status: 500 });
   }
 
