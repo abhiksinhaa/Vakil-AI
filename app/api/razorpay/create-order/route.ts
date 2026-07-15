@@ -61,7 +61,8 @@ export async function POST(req: Request) {
       planName: planConfig.label,
     });
   } catch (err) {
-    console.error('[razorpay/create-order]', err);
-    return Response.json({ error: { message: 'Order creation failed' } }, { status: 500 });
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[razorpay/create-order] full error:', errMsg);
+    return Response.json({ error: { message: errMsg } }, { status: 500 });
   }
 }
