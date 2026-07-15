@@ -44,7 +44,7 @@ export function getPaidPlanFromAmount(amountPaise: number): PaidPlan | null {
 
 export function parsePlanFromReceipt(receipt?: string | null): PaidPlan | null {
   if (!receipt) return null;
-  const match = receipt.match(/^draftee_(basic|standard|pro)_/);
+  const match = receipt.match(/^draftee_(starter|standard|pro)_/);
   return match ? (match[1] as PaidPlan) : null;
 }
 

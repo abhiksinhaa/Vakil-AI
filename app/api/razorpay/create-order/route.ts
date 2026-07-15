@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic';
 const PAID_PLANS: PaidPlan[] = ['starter', 'standard', 'pro'];
 
 export async function POST(req: Request) {
+  console.log('KEY_ID:', process.env.RAZORPAY_KEY_ID?.substring(0, 15));
+  console.log('SECRET:', process.env.RAZORPAY_KEY_SECRET?.substring(0, 5));
+
   console.log('ENV CHECK:', {
     KEY_ID: process.env.RAZORPAY_KEY_ID,
     SECRET_EXISTS: !!process.env.RAZORPAY_KEY_SECRET,
@@ -60,9 +63,10 @@ export async function POST(req: Request) {
       plan,
       planName: planConfig.label,
     });
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    console.error('[razorpay/create-order] full error:', errMsg);
-    return Response.json({ error: { message: errMsg } }, { status: 500 });
+  } catch (err: any) {
+    console.error('Full error:', err);
+    return Response.json({
+      error: { message: err?.message || String(err) }
+    }, { status: 500 });
   }
 }
