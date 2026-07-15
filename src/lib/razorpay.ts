@@ -8,11 +8,30 @@ interface CheckoutOptions {
 }
 
 async function getAuthHeaders() {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token ?? null;
+  const { data, error } = await supabase.auth.getSession();
+  let token = data.session?.access_token ?? null;
+
+  console.log('Razorpay auth session:', {
+    hasSession: !!data.session,
+    hasToken: !!token,
+    tokenPrefix: token?.substring(0, 20) ?? null,
+    sessionError: error?.message ?? null,
+  });
+
+  if (!token) {
+    const refreshResult = await supabase.auth.refreshSession();
+    token = refreshResult.data.session?.access_token ?? null;
+    console.log('Razorpay auth refresh:', {
+      hasToken: !!token,
+      tokenPrefix: token?.substring(0, 20) ?? null,
+      refreshError: refreshResult.error?.message ?? null,
+    });
+  }
+
   if (!token) {
     throw new Error('Please sign in to continue.');
   }
+
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,

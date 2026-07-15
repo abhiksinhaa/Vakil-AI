@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 const PAID_PLANS: PaidPlan[] = ['starter', 'standard', 'pro'];
 
 export async function POST(req: Request) {
+  console.log('Auth header:', req.headers.get('authorization')?.substring(0, 20));
   console.log('KEY_ID:', process.env.RAZORPAY_KEY_ID?.substring(0, 15));
   console.log('SECRET:', process.env.RAZORPAY_KEY_SECRET?.substring(0, 5));
 

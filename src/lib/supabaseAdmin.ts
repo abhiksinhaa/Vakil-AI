@@ -15,6 +15,8 @@ export function adminAuth() {
  */
 export async function requireUser(req: Request) {
   const header = req.headers.get('authorization') || '';
+  console.log('Auth header:', header.substring(0, 20));
+
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
   if (!token) throw new Error('UNAUTHENTICATED');
 
