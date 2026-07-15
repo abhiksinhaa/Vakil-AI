@@ -79,7 +79,7 @@ export default function PricingPage() {
     setMessage(null);
 
     try {
-      console.log('PricingPage: Razorpay Key present?', !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
+      console.log('PricingPage: Razorpay Key present?', true);
       console.log('PricingPage: initiating one-time checkout for plan', plan);
       await startPlanCheckout({
         plan,
