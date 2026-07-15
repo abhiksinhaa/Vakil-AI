@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import CourtNewsCarousel from './CourtNewsCarousel';
@@ -54,10 +55,14 @@ function DraftModal({ draft, onClose }) {
 }
 
 export default function Dashboard() {
+  const searchParams = useSearchParams();
   const { session, subscription, isPro, profile } = useApp();
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDraft, setSelectedDraft] = useState(null);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+
+  const paymentSuccess = searchParams.get('payment') === 'success';
 
   const displayName =
     session?.user?.user_metadata?.full_name ||
@@ -71,11 +76,27 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!paymentSuccess) return;
+
+    setShowPaymentSuccess(true);
+    const timer = window.setTimeout(() => {
+      setShowPaymentSuccess(false);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [paymentSuccess]);
+
   return (
     <div className="min-h-screen bg-navy">
       <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+        {showPaymentSuccess ? (
+          <div className="mb-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-200">
+            🎉 Welcome to Premium! Your plan is now active.
+          </div>
+        ) : null}
         <header className="mb-10">
           <p className="text-gold/80 text-sm font-medium mb-1">Welcome,</p>
           <h1 className="font-display text-3xl sm:text-4xl text-cream mb-2">

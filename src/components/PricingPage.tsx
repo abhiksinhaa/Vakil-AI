@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
@@ -50,6 +51,7 @@ const PLANS = [
 ] as const;
 
 export default function PricingPage() {
+  const router = useRouter();
   const { session, profile, refreshAccount } = useApp();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export default function PricingPage() {
         userName: profile?.full_name || session.user.email,
         onSuccess: async () => {
           await refreshAccount();
-          setMessage(`Your ${plan} plan is now active.`);
+          router.push('/dashboard?payment=success');
         },
       });
     } catch (err: any) {
@@ -105,6 +107,9 @@ export default function PricingPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#d4af37]/10 blur-[100px] rounded-full pointer-events-none"></div>
 
         <div className="w-full max-w-6xl relative z-20">
+          <div className="mb-6 rounded-2xl border border-yellow-400/20 bg-[#1e2a3a] px-4 py-4 text-sm text-[#d1d5db] text-center">
+            🚧 Premium launching very soon!
+          </div>
           <div className="text-center mb-8">
             <div className="sparkle-container mb-6">
               <span className="sparkle-dot" style={{ top: '-10px', left: '-20px', animationDelay: '0s' }}></span>
@@ -145,10 +150,10 @@ export default function PricingPage() {
                   </ul>
                   <button
                     onClick={() => void handleSubscribe(plan.key as 'basic' | 'standard' | 'pro')}
-                    disabled={loadingPlan === plan.key || isActive}
-                    className="mt-8 w-full rounded-full border border-gold/40 bg-transparent px-4 py-3 text-sm font-semibold text-gold transition hover:bg-gold hover:text-[#020b14] disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled
+                    className="mt-8 w-full rounded-full border border-transparent bg-[#1e2a3a] px-4 py-3 text-sm font-semibold text-[#6b7280] cursor-not-allowed"
                   >
-                    {loadingPlan === plan.key ? 'Processing…' : isActive ? 'Current Plan' : `Subscribe to ${plan.label}`}
+                    Coming Soon
                   </button>
                 </div>
               );

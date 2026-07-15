@@ -51,7 +51,16 @@ export async function POST(req: Request) {
     const upstream = await fetch('https://api.razorpay.com/v1/subscriptions', {
       method: 'POST',
       headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan_id: planId, customer_notify: 1 }),
+      body: JSON.stringify({
+        plan_id: planId,
+        total_count: 12,
+        quantity: 1,
+        notify_info: {
+          notify_phone: '',
+          notify_email: '',
+        },
+        customer_notify: 1,
+      }),
     });
 
     const data = await upstream.json();

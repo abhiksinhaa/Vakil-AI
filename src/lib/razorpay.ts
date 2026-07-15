@@ -216,15 +216,21 @@ export async function startSubscriptionCheckout({ plan = 'pro', userEmail, userN
       theme: { color: '#c9a84c' },
       handler: async (response: any) => {
         try {
-          console.log('startSubscriptionCheckout: handler response', response);
-          // verify payment on server (reuse verify endpoint)
+          console.log('Payment response:', response);
+          // verify payment on server
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
             headers: await getAuthHeaders(),
-            body: JSON.stringify({ razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature }),
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_subscription_id: response.razorpay_subscription_id,
+              razorpay_signature: response.razorpay_signature,
+              plan,
+            }),
           });
           const verifyData = await verifyRes.json();
           if (!verifyRes.ok || !verifyData.success) {
+            console.error('Verify failed:', verifyData);
             throw new Error(verifyData?.error?.message || 'Payment verification failed');
           }
           await onSuccess?.();

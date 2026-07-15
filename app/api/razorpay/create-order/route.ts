@@ -1,5 +1,7 @@
 import { requireUser } from '@/lib/supabaseAdmin';
 import { PLAN_CONFIG, type PaidPlan } from '@/lib/plans';
+import Razorpay from 'razorpay';
+import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -7,12 +9,20 @@ export const dynamic = 'force-dynamic';
 const PAID_PLANS: PaidPlan[] = ['basic', 'standard', 'pro'];
 
 export async function POST(req: Request) {
+  console.log('ENV CHECK:', {
+    KEY_ID: process.env.RAZORPAY_KEY_ID,
+    SECRET_EXISTS: !!process.env.RAZORPAY_KEY_SECRET,
+  });
+
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
+  console.log('Razorpay keys:', !!keyId, !!keySecret);
+
   if (!keyId || !keySecret) {
-    return Response.json(
-      { error: { message: 'Razorpay keys not configured on server.' } },
+    console.error('MISSING KEYS - keyId:', keyId, 'keySecret:', !!keySecret);
+    return NextResponse.json(
+      { error: 'Payment unavailable' },
       { status: 500 }
     );
   }
@@ -34,24 +44,14 @@ export async function POST(req: Request) {
     const planConfig = PLAN_CONFIG[plan];
     const currency = 'INR';
     const receipt = `draftee_${plan}_${Date.now()}`;
-    const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
-    const upstream = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ amount: planConfig.amount, currency, receipt }),
-    });
 
-    const data = await upstream.json();
-    if (!upstream.ok) {
-      console.error('[razorpay/create-order]', data);
-      return Response.json(
-        { error: { message: data.error?.description || 'Order creation failed' } },
-        { status: upstream.status }
-      );
-    }
+    const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    const data = await razorpay.orders.create({
+      amount: planConfig.amount,
+      currency,
+      receipt,
+      notes: { plan },
+    });
 
     return Response.json({
       id: data.id,

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { adminDb, requireUser } from '@/lib/supabaseAdmin';
 import { buildSubscriptionPayload } from '@/lib/subscription';
-import { getPlanExpiry, PLAN_CONFIG, resolvePaidPlanFromOrder, SUBSCRIPTION_MONTHS } from '@/lib/plans';
+import { getPlanExpiry, PLAN_CONFIG, PaidPlan, resolvePaidPlanFromOrder, SUBSCRIPTION_MONTHS } from '@/lib/plans';
 import { fetchRazorpayOrder } from '@/lib/razorpayServer';
 
 export const runtime = 'nodejs';
@@ -28,18 +28,22 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+    const { razorpay_order_id, razorpay_subscription_id, razorpay_payment_id, razorpay_signature, plan } = body;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!razorpay_payment_id || !razorpay_signature || (!razorpay_order_id && !razorpay_subscription_id)) {
       return Response.json(
         { error: { message: 'Missing payment fields' }, success: false },
         { status: 400 }
       );
     }
 
+    const payload = razorpay_subscription_id
+      ? `${razorpay_payment_id}|${razorpay_subscription_id}`
+      : `${razorpay_order_id}|${razorpay_payment_id}`;
+
     const expected = crypto
       .createHmac('sha256', keySecret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .update(payload)
       .digest('hex');
 
     if (expected !== razorpay_signature) {
@@ -72,18 +76,31 @@ export async function POST(req: Request) {
       });
     }
 
-    const order = await fetchRazorpayOrder(razorpay_order_id);
-    const validPlan = resolvePaidPlanFromOrder(order);
+    let validPlan: PaidPlan | null = null;
+    let planConfig: (typeof PLAN_CONFIG)[PaidPlan] = PLAN_CONFIG.pro;
+    let planExpiry = getPlanExpiry(SUBSCRIPTION_MONTHS);
 
-    if (!validPlan) {
-      return Response.json(
-        { error: { message: 'Unsupported or invalid subscription order' }, success: false },
-        { status: 400 }
-      );
+    if (razorpay_subscription_id) {
+      const planKey = String(plan || 'pro').toLowerCase();
+      if (!['basic', 'standard', 'pro'].includes(planKey)) {
+        return Response.json(
+          { error: { message: 'Unsupported subscription plan' }, success: false },
+          { status: 400 }
+        );
+      }
+      validPlan = planKey as PaidPlan;
+      planConfig = PLAN_CONFIG[validPlan];
+    } else {
+      const order = await fetchRazorpayOrder(razorpay_order_id);
+      validPlan = resolvePaidPlanFromOrder(order);
+      if (!validPlan) {
+        return Response.json(
+          { error: { message: 'Unsupported or invalid subscription order' }, success: false },
+          { status: 400 }
+        );
+      }
+      planConfig = PLAN_CONFIG[validPlan as keyof typeof PLAN_CONFIG] as any;
     }
-
-    const planConfig = PLAN_CONFIG[validPlan];
-    const planExpiry = getPlanExpiry(SUBSCRIPTION_MONTHS);
 
     const { data: currentSub } = await db
       .from('subscriptions')

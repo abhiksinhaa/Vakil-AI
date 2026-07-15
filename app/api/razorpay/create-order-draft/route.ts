@@ -1,3 +1,6 @@
+import Razorpay from 'razorpay';
+import { NextResponse } from 'next/server';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -5,9 +8,13 @@ export async function POST(req: Request) {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
+  console.log('KEY_ID exists:', !!keyId);
+  console.log('KEY_SECRET exists:', !!keySecret);
+
   if (!keyId || !keySecret) {
-    return Response.json(
-      { error: { message: 'Razorpay keys not configured on server.' } },
+    console.error('Missing:', { keyId: !!keyId, keySecret: !!keySecret });
+    return NextResponse.json(
+      { error: 'Payment service unavailable. Please try again later.' },
       { status: 500 }
     );
   }
@@ -17,24 +24,12 @@ export async function POST(req: Request) {
     const currency = 'INR';
     const receipt = `draftee_draft_${Date.now()}`;
 
-    const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
-    const upstream = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ amount, currency, receipt }),
+    const razorpay = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
     });
 
-    const data = await upstream.json();
-    if (!upstream.ok) {
-      console.error('[razorpay/create-order-draft]', data);
-      return Response.json(
-        { error: { message: data.error?.description || 'Order creation failed' } },
-        { status: upstream.status }
-      );
-    }
+    const data = await razorpay.orders.create({ amount, currency, receipt });
 
     return Response.json({ id: data.id, amount: data.amount, currency: data.currency });
   } catch (err) {
