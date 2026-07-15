@@ -36,11 +36,11 @@ function loadRazorpayScript() {
 export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
   // ENV CHECK (presence only, small prefix)
   console.log('ENV CHECK:', {
-    hasPublicKey: !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-    keyPrefix: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.substring(0, 10),
+    hasPublicKey: !!'rzp_live_TDQGNB6HCxWwNq',
+    keyPrefix: 'rzp_live_TDQGNB6HCxWwNq'.substring(0, 10),
   });
 
-  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
+  const razorpayKey = 'rzp_live_TDQGNB6HCxWwNq';
   if (!razorpayKey) {
     console.error('Razorpay key missing');
     throw new Error('Payment not configured');
@@ -98,7 +98,7 @@ export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onS
       },
     };
 
-    console.log('Razorpay Key:', process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
+    console.log('Razorpay Key:', 'rzp_live_TDQGNB6HCxWwNq');
     const rzp = new Razorpay(options);
     rzp.on('payment.failed', (res) => {
       reject(new Error(res.error?.description || 'Payment failed'));
@@ -112,7 +112,7 @@ export async function startProCheckout(options: CheckoutOptions) {
 }
 
 export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }: CheckoutOptions) {
-  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
+  const razorpayKey = 'rzp_live_TDQGNB6HCxWwNq';
   if (!razorpayKey) {
     console.error('Razorpay key missing');
     throw new Error('Payment not configured');
