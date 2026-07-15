@@ -34,12 +34,6 @@ function loadRazorpayScript() {
 }
 
 export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
-  // ENV CHECK (presence only, small prefix)
-  console.log('ENV CHECK:', {
-    hasPublicKey: !!'rzp_live_TDQGNB6HCxWwNq',
-    keyPrefix: 'rzp_live_TDQGNB6HCxWwNq'.substring(0, 10),
-  });
-
   const razorpayKey = 'rzp_live_TDQGNB6HCxWwNq';
   if (!razorpayKey) {
     console.error('Razorpay key missing');
