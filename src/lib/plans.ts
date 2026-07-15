@@ -1,9 +1,9 @@
-export type PaidPlan = 'basic' | 'standard' | 'pro';
+export type PaidPlan = 'starter' | 'standard' | 'pro';
 export type PlanKey = 'free' | PaidPlan;
 
 export const PLAN_CONFIG = {
   free: { label: 'Free', amount: 0, draftsLimit: 3, planId: '' },
-  basic: {
+  starter: {
     label: 'Starter',
     amount: 14900,
     draftsLimit: 30,
@@ -17,7 +17,7 @@ export const PLAN_CONFIG = {
   },
   pro: {
     label: 'Pro',
-    amount: 24900,
+    amount: 29900,
     draftsLimit: 100,
     planId: process.env.RAZORPAY_PLAN_PRO || 'plan_TDWJdOwAyauKDY',
   },
@@ -27,7 +27,8 @@ export const SUBSCRIPTION_MONTHS = 1;
 
 export function normalizePlan(plan?: string | null): PlanKey {
   const key = String(plan || 'free').toLowerCase();
-  if (key === 'basic' || key === 'standard' || key === 'pro') return key;
+  if (key === 'basic' || key === 'starter') return 'starter';
+  if (key === 'standard' || key === 'pro') return key;
   return 'free';
 }
 

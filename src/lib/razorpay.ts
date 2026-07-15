@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 interface CheckoutOptions {
-  plan?: 'basic' | 'standard' | 'pro';
+  plan?: 'starter' | 'standard' | 'pro';
   userEmail?: string | null;
   userName?: string | null;
   onSuccess?: () => Promise<void> | void;
@@ -65,7 +65,7 @@ export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onS
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'Draftee',
-      description: `${orderData.planName || 'Premium'} Plan — ${orderData.plan === 'basic' ? '30 drafts' : orderData.plan === 'standard' ? '40 drafts' : '100 drafts'} (1 month)`,
+      description: `${orderData.planName || 'Premium'} Plan — ${orderData.plan === 'starter' ? '30 drafts' : orderData.plan === 'standard' ? '40 drafts' : '100 drafts'} (one-time)`,
       order_id: orderData.id,
       prefill: {
         email: userEmail || '',
@@ -98,6 +98,7 @@ export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onS
       },
     };
 
+    console.log('Razorpay Key:', process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
     const rzp = new Razorpay(options);
     rzp.on('payment.failed', (res) => {
       reject(new Error(res.error?.description || 'Payment failed'));
@@ -177,75 +178,3 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }:
   });
 }
 
-export async function startSubscriptionCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
-  console.log('startSubscriptionCheckout: begin', { plan });
-  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
-  console.log('startSubscriptionCheckout: has public key?', !!razorpayKey);
-  if (!razorpayKey) {
-    console.error('Razorpay key missing');
-    throw new Error('Payment not configured');
-  }
-
-  // create subscription on server
-  const subRes = await fetch('/api/razorpay/create-subscription', {
-    method: 'POST',
-    headers: await getAuthHeaders(),
-    body: JSON.stringify({ plan }),
-  });
-  const subData = await subRes.json();
-  console.log('startSubscriptionCheckout: create-subscription response', { ok: subRes.ok, body: subData });
-  if (!subRes.ok) {
-    throw new Error(subData?.error?.message || 'Could not create subscription');
-  }
-
-  const subscriptionId = subData.subscription_id;
-  if (!subscriptionId) {
-    throw new Error('Subscription id missing from server');
-  }
-
-  const Razorpay: any = await loadRazorpayScript();
-  console.log('startSubscriptionCheckout: Razorpay SDK loaded', { hasRazorpay: !!Razorpay });
-
-  return new Promise((resolve, reject) => {
-    const options = {
-      key: razorpayKey,
-      subscription_id: subscriptionId,
-      name: 'Draftee',
-      description: `${plan} subscription`,
-      prefill: { email: userEmail || '', name: userName || '' },
-      theme: { color: '#c9a84c' },
-      handler: async (response: any) => {
-        try {
-          console.log('Payment response:', response);
-          // verify payment on server
-          const verifyRes = await fetch('/api/razorpay/verify', {
-            method: 'POST',
-            headers: await getAuthHeaders(),
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_subscription_id: response.razorpay_subscription_id,
-              razorpay_signature: response.razorpay_signature,
-              plan,
-            }),
-          });
-          const verifyData = await verifyRes.json();
-          if (!verifyRes.ok || !verifyData.success) {
-            console.error('Verify failed:', verifyData);
-            throw new Error(verifyData?.error?.message || 'Payment verification failed');
-          }
-          await onSuccess?.();
-          resolve(response);
-        } catch (err) {
-          reject(err);
-        }
-      },
-      modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
-    };
-
-    const rzp = new Razorpay(options);
-    rzp.on('payment.failed', (res: any) => {
-      reject(new Error(res.error?.description || 'Payment failed'));
-    });
-    rzp.open();
-  });
-}

@@ -69,42 +69,21 @@ function getTodayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
-async function syncProfilePlanState(userId: string, profile: Partial<Profile> | null | undefined) {
-  const normalizedPlan = normalizePlan(profile?.plan);
-  const now = new Date();
-  const expiresAt = profile?.plan_expires_at ? new Date(profile.plan_expires_at) : null;
-  const expired = Boolean(normalizedPlan !== 'free' && expiresAt && expiresAt <= now);
-
-  if (!expired) {
-    return {
-      plan: normalizedPlan as Profile['plan'],
-      draftsLimit: Number(profile?.drafts_limit ?? getPlanConfig(profile?.plan).draftsLimit),
-      draftsUsed: Number(profile?.drafts_used ?? 0),
-      planExpiresAt: profile?.plan_expires_at ?? null,
-      reset: false,
-    };
-  }
-
-  const resetPayload = {
-    plan: 'free',
-    drafts_limit: PLAN_PRICING.free.draftsLimit,
-    drafts_used: 0,
-    plan_expires_at: null,
-    updated_at: now.toISOString(),
-  };
-
-  const { error } = await supabase.from('profiles').update(resetPayload).eq('user_id', userId);
-  if (error) {
-    console.warn('Failed to reset expired plan to free', error);
-  }
+export async function checkAndHandlePlanExpiry(userId: string, profile?: Partial<Profile> | null | undefined) {
+  const currentProfile = profile ?? await getProfileRow(userId);
+  const normalizedPlan = normalizePlan(currentProfile?.plan);
 
   return {
-    plan: 'free' as Profile['plan'],
-    draftsLimit: PLAN_PRICING.free.draftsLimit,
-    draftsUsed: 0,
-    planExpiresAt: null,
-    reset: true,
+    plan: normalizedPlan as Profile['plan'],
+    draftsLimit: Number(currentProfile?.drafts_limit ?? getPlanConfig(currentProfile?.plan).draftsLimit),
+    draftsUsed: Number(currentProfile?.drafts_used ?? 0),
+    planExpiresAt: currentProfile?.plan_expires_at ?? null,
+    reset: false,
   };
+}
+
+async function syncProfilePlanState(userId: string, profile: Partial<Profile> | null | undefined) {
+  return checkAndHandlePlanExpiry(userId, profile);
 }
 
 function getDailyDraftState(profile: Partial<Profile> | null | undefined) {
@@ -212,6 +191,7 @@ export async function fetchProfile(): Promise<Profile | null> {
   const user = await getCurrentUser();
   if (!user) return null;
   await ensureUserRecords();
+  await checkAndHandlePlanExpiry(user.id);
   return getProfileRow(user.id);
 }
 

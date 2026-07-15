@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PAID_PLANS: PaidPlan[] = ['basic', 'standard', 'pro'];
+const PAID_PLANS: PaidPlan[] = ['starter', 'standard', 'pro'];
 
 export async function POST(req: Request) {
   console.log('ENV CHECK:', {

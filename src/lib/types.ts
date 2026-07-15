@@ -65,7 +65,7 @@ export interface Profile {
 
 export interface Subscription {
   id?: string;
-  plan: 'free' | 'basic' | 'standard' | 'pro';
+  plan: 'free' | 'starter' | 'standard' | 'pro';
   drafts_used: number;
   created_at?: string;
   chat_day_key: string;

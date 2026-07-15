@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
-import { startSubscriptionCheckout } from '../lib/razorpay';
+import { startPlanCheckout } from '../lib/razorpay';
 
 const GLITTER_STYLES = `
   @keyframes sparkle {
@@ -45,9 +45,9 @@ const GLITTER_STYLES = `
 `;
 
 const PLANS = [
-  { key: 'basic', label: 'Basic', price: '₹149/mo', drafts: '30 drafts/month' },
-  { key: 'standard', label: 'Standard', price: '₹199/mo', drafts: '40 drafts/month' },
-  { key: 'pro', label: 'Pro', price: '₹299/mo', drafts: '100 drafts/month' },
+  { key: 'starter', label: 'Starter', price: '₹149', drafts: '30 drafts' },
+  { key: 'standard', label: 'Standard', price: '₹199', drafts: '40 drafts' },
+  { key: 'pro', label: 'Pro', price: '₹299', drafts: '100 drafts' },
 ] as const;
 
 export default function PricingPage() {
@@ -68,7 +68,7 @@ export default function PricingPage() {
     }
   }, [profile?.plan, refreshAccount]);
 
-  const handleSubscribe = async (plan: 'basic' | 'standard' | 'pro') => {
+  const handleSubscribe = async (plan: 'starter' | 'standard' | 'pro') => {
     if (!session?.user?.email) {
       setError('Please sign in to subscribe.');
       return;
@@ -80,8 +80,8 @@ export default function PricingPage() {
 
     try {
       console.log('PricingPage: Razorpay Key present?', !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
-      console.log('PricingPage: initiating subscription for plan', plan);
-      await startSubscriptionCheckout({
+      console.log('PricingPage: initiating one-time checkout for plan', plan);
+      await startPlanCheckout({
         plan,
         userEmail: session.user.email,
         userName: profile?.full_name || session.user.email,
@@ -126,7 +126,6 @@ export default function PricingPage() {
 
           <div className="mb-6 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-4 text-sm text-cream/90 text-center">
             Current plan: <span className="font-semibold text-gold">{currentPlan}</span>
-            {profile?.plan_expires_at ? ` • Renews ${new Date(profile.plan_expires_at).toLocaleDateString('en-IN')}` : ''}
           </div>
 
           {message ? <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</div> : null}
@@ -149,11 +148,11 @@ export default function PricingPage() {
                     <li>• Priority draft generation</li>
                   </ul>
                   <button
-                    onClick={() => void handleSubscribe(plan.key as 'basic' | 'standard' | 'pro')}
-                    disabled
-                    className="mt-8 w-full rounded-full border border-transparent bg-[#1e2a3a] px-4 py-3 text-sm font-semibold text-[#6b7280] cursor-not-allowed"
+                    onClick={() => void handleSubscribe(plan.key as 'starter' | 'standard' | 'pro')}
+                    disabled={loadingPlan === plan.key}
+                    className="mt-8 w-full rounded-full border border-gold/40 bg-gold px-4 py-3 text-sm font-semibold text-[#020b14] transition hover:bg-[#ffd966] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    Coming Soon
+                    {loadingPlan === plan.key ? 'Processing...' : 'Buy now'}
                   </button>
                 </div>
               );

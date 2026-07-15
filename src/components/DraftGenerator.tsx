@@ -592,18 +592,24 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             </div>
 
             <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0">
-              <button
-                id="generate-draft-button"
-                type="button"
-                disabled={true}
-                aria-disabled={true}
-                className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10`}
-              >
-                Coming Back Soon...
-              </button>
+              {quotaExhausted ? (
+                <Link href="/pricing" className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]">
+                  Buy more drafts
+                </Link>
+              ) : (
+                <button
+                  id="generate-draft-button"
+                  type="button"
+                  onClick={() => void handleGenerateTap()}
+                  disabled={isGenerating || accountLoading}
+                  className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${isGenerating || accountLoading ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
+                >
+                  {isGenerating ? 'Generating...' : 'Generate Draft'}
+                </button>
+              )}
 
               <p className="mt-3 text-center text-sm font-semibold text-cream/70">
-                We're upgrading our systems. Back in a few hours! ⚡
+                {quotaExhausted ? 'Your draft quota is used up. Buy more drafts to continue.' : 'Generate your draft in seconds.'}
               </p>
             </div>
 
