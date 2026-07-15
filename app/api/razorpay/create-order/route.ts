@@ -17,8 +17,8 @@ export async function POST(req: Request) {
     SECRET_EXISTS: !!process.env.RAZORPAY_KEY_SECRET,
   });
 
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || 9gKZOM82PZej8aTAi2D8flFR
 
   console.log('Razorpay keys:', !!keyId, !!keySecret);
 
