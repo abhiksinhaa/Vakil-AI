@@ -1,5 +1,3 @@
-'use client';
-
 import { supabase } from './supabase';
 import type { DraftInput, DraftRecord } from './types';
 

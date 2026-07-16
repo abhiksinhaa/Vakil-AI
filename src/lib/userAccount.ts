@@ -1,5 +1,3 @@
-'use client';
-
 import { supabase } from './supabase';
 import type { User } from '@supabase/supabase-js';
 import type { Profile, Subscription } from './types';
