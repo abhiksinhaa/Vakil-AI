@@ -22,15 +22,16 @@ export async function requireUser(req: Request) {
     throw new Error('No token provided');
   }
 
+  // Use anon key but pass token in auth header
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
   const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) {
-    console.error('Auth error:', error?.message);
+    console.error('Auth error:', error?.message, error?.status);
     throw new Error('Unauthorized');
   }
 
