@@ -1,11 +1,6 @@
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { adminDb } from '@/lib/supabaseAdmin'
 
 const PLANS: Record<string, {drafts: number}> = {
   basic:    { drafts: 30  },
@@ -33,7 +28,7 @@ export async function POST(req: Request) {
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 30)
 
-  const { error } = await supabaseAdmin
+  const { error } = await adminDb()
     .from('profiles')
     .update({
       plan,
