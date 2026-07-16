@@ -22,6 +22,7 @@ import {
 import { DOCUMENT_SCHEMAS } from '../lib/draftSchemas';
 import { DRAFT_TYPES as NEW_DRAFT_TYPES } from '../data/legalDraftTypes';
 import type { Profile } from '../lib/types';
+import { supabase } from '../lib/supabase';
 
 const AFFIDAVIT_SUB_TYPES = [
   "Name Change Affidavit",
@@ -90,6 +91,7 @@ export default function DraftGenerator() {
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [draftsUsed, setDraftsUsed] = useState(0);
   const [draftLimit, setDraftLimit] = useState(3);
+  const [plan, setPlan] = useState('free');
   const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -117,6 +119,25 @@ export default function DraftGenerator() {
       setFeedbackSubmittedThisSession(submitted);
     }
   }, []);
+
+  useEffect(() => {
+    async function loadUsage() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan, drafts_used, drafts_limit')
+          .eq('id', user.id)
+          .single()
+        if (profile) {
+          setDraftsUsed(profile.drafts_used || 0)
+          setDraftLimit(profile.drafts_limit || 3)
+          setPlan(profile.plan || 'free')
+        }
+      }
+    }
+    loadUsage()
+  }, [])
 
   useEffect(() => {
     if (
@@ -583,34 +604,43 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
             </div>
 
-            <div className="mb-3 rounded-xl border border-gold/30 bg-gold/10 px-3 py-3 text-sm text-cream/90">
-              <div className="font-semibold text-gold">
-                {quotaExhausted
-                  ? 'You have reached your monthly quota. Upgrade to continue.'
-                  : `You have used ${draftsUsed} draft${draftsUsed === 1 ? '' : 's'} this month. ${Math.max(0, draftLimit - draftsUsed)} remaining.`}
-              </div>
-            </div>
-
-            <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0">
+            <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0 mt-4">
               {quotaExhausted ? (
-                <Link href="/pricing" className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]">
-                  Buy more drafts
-                </Link>
+                <>
+                  <p style={{ 
+                    fontSize: '0.85rem', 
+                    opacity: 0.9, 
+                    marginBottom: '12px',
+                    textAlign: 'center',
+                    color: '#ff4444'
+                  }}>
+                    Draft limit reached. Upgrade your plan.
+                  </p>
+                  <Link href="/pricing" className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]">
+                    Upgrade Plan
+                  </Link>
+                </>
               ) : (
-                <button
-                  id="generate-draft-button"
-                  type="button"
-                  onClick={() => void handleGenerateTap()}
-                  disabled={isGenerating || accountLoading}
-                  className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${isGenerating || accountLoading ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate Draft'}
-                </button>
+                <>
+                  <p style={{ 
+                    fontSize: '0.85rem', 
+                    opacity: 0.7, 
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}>
+                    You have used {draftsUsed} draft{draftsUsed !== 1 ? 's' : ''} this month. {Math.max(0, draftLimit - draftsUsed)} remaining.
+                  </p>
+                  <button
+                    id="generate-draft-button"
+                    type="button"
+                    onClick={() => void handleGenerateTap()}
+                    disabled={isGenerating || accountLoading}
+                    className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${isGenerating || accountLoading ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
+                  >
+                    {isGenerating ? 'Generating...' : 'Generate Draft'}
+                  </button>
+                </>
               )}
-
-              <p className="mt-3 text-center text-sm font-semibold text-cream/70">
-                {quotaExhausted ? 'Your draft quota is used up. Buy more drafts to continue.' : 'Generate your draft in seconds.'}
-              </p>
             </div>
 
             <section className="card space-y-4 transition-all duration-300">
