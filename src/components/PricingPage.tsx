@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import { startCheckout } from '../lib/razorpay';
+import { supabase } from '../lib/supabase';
 
 const GLITTER_STYLES = `
   @keyframes sparkle {
@@ -45,32 +45,42 @@ const GLITTER_STYLES = `
 `;
 
 const PLANS = [
-  { key: 'starter', label: 'Starter', price: '₹149', drafts: '30 drafts' },
+  { key: 'basic', label: 'Basic', price: '₹149', drafts: '30 drafts' },
   { key: 'standard', label: 'Standard', price: '₹199', drafts: '40 drafts' },
   { key: 'pro', label: 'Pro', price: '₹299', drafts: '100 drafts' },
 ] as const;
 
 export default function PricingPage() {
-  const router = useRouter();
   const { session, profile, refreshAccount } = useApp();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const currentPlan = useMemo(() => {
-    const plan = profile?.plan || 'free';
-    return plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1);
-  }, [profile?.plan]);
+  const [user, setUser] = useState<any>(null);
+  const [currentPlan, setCurrentPlan] = useState<string>('Free');
 
   useEffect(() => {
-    if (!profile?.plan) {
-      void refreshAccount();
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', user.id)
+          .single()
+        if (profile) {
+          const plan = profile.plan || 'free';
+          setCurrentPlan(plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1));
+        }
+      }
     }
-  }, [profile?.plan, refreshAccount]);
+    loadUser()
+  }, [])
 
-  const handleSubscribe = async (plan: 'starter' | 'standard' | 'pro') => {
-    if (!session?.user?.email) {
-      setError('Please sign in to subscribe.');
+  const handleSubscribe = async (plan: 'basic' | 'standard' | 'pro') => {
+    if (!session?.user?.id) {
+      setError('Please sign in to purchase.');
       return;
     }
 
@@ -81,11 +91,12 @@ export default function PricingPage() {
     try {
       await startCheckout({
         plan,
+        userId: session.user.id,
         userEmail: session.user.email,
         userName: profile?.full_name || session.user.email,
         onSuccess: async () => {
           await refreshAccount();
-          router.push('/dashboard?payment=success');
+          window.location.href = '/dashboard?payment=success';
         },
       });
     } catch (err: any) {
@@ -105,9 +116,6 @@ export default function PricingPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#d4af37]/10 blur-[100px] rounded-full pointer-events-none"></div>
 
         <div className="w-full max-w-6xl relative z-20">
-          <div className="mb-6 rounded-2xl border border-yellow-400/20 bg-[#1e2a3a] px-4 py-4 text-sm text-[#d1d5db] text-center">
-            🚧 Premium launching very soon!
-          </div>
           <div className="text-center mb-8">
             <div className="sparkle-container mb-6">
               <span className="sparkle-dot" style={{ top: '-10px', left: '-20px', animationDelay: '0s' }}></span>
@@ -141,16 +149,17 @@ export default function PricingPage() {
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
                   <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
                   <ul className="mt-6 space-y-2 text-sm text-cream/70">
+                    <li>• Valid for 30 days</li>
                     <li>• Secure one-time payment</li>
                     <li>• Instant limit updates</li>
                     <li>• Priority draft generation</li>
                   </ul>
                   <button
-                    onClick={() => void handleSubscribe(plan.key as 'starter' | 'standard' | 'pro')}
+                    onClick={() => void handleSubscribe(plan.key as 'basic' | 'standard' | 'pro')}
                     disabled={loadingPlan === plan.key}
-                    className="mt-8 w-full rounded-full border border-gold/40 bg-gold px-4 py-3 text-sm font-semibold text-[#020b14] transition hover:bg-[#ffd966] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="mt-8 w-full rounded-full border border-gold/40 bg-gold px-4 py-3 text-sm font-semibold text-[#020b14] transition hover:bg-[#ffd966]"
                   >
-                    {loadingPlan === plan.key ? 'Processing...' : 'Buy now'}
+                    {loadingPlan === plan.key ? 'Processing...' : 'Buy Now'}
                   </button>
                 </div>
               );
@@ -161,6 +170,44 @@ export default function PricingPage() {
             <Link href="/dashboard" className="inline-flex items-center justify-center rounded-full border border-gold/40 px-6 py-3 text-sm font-medium text-gold hover:bg-gold hover:text-[#020b14] transition-all">
               Return to Dashboard
             </Link>
+            
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={async () => {
+                  if (!user) {
+                    console.error('User is null!')
+                    alert('Not logged in!')
+                    return
+                  }
+                  console.log('User ID:', user.id)
+                  
+                  const res = await fetch('/api/razorpay/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      razorpay_order_id: 'test_order_123',
+                      razorpay_payment_id: 'test_payment_123',
+                      razorpay_signature: 'test_skip',
+                      plan: 'basic',
+                      userId: user.id,
+                    }),
+                  })
+                  const result = await res.json()
+                  console.log('Test verify result:', result)
+                  if (result.success) {
+                    window.location.href = '/dashboard?payment=success'
+                  }
+                }}
+                style={{
+                  background: 'red', color: 'white',
+                  padding: '10px 20px', borderRadius: '8px',
+                  border: 'none', cursor: 'pointer',
+                  marginTop: '20px'
+                }}
+              >
+                [DEV] Test Plan Update
+              </button>
+            )}
           </div>
         </div>
       </div>

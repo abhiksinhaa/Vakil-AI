@@ -1,7 +1,6 @@
-import { supabase } from './supabase';
-
 interface CheckoutOptions {
-  plan: 'starter' | 'standard' | 'pro';
+  plan: 'basic' | 'standard' | 'pro';
+  userId: string;
   userEmail?: string | null;
   userName?: string | null;
   onSuccess?: () => Promise<void> | void;
@@ -12,25 +11,6 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Razorpay?: any;
   }
-}
-
-async function getAuthHeaders() {
-  const { data, error } = await supabase.auth.getSession();
-  let token = data.session?.access_token ?? null;
-
-  if (!token) {
-    const refreshResult = await supabase.auth.refreshSession();
-    token = refreshResult.data.session?.access_token ?? null;
-  }
-
-  if (!token) {
-    throw new Error('Please sign in to continue.');
-  }
-
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
 }
 
 function loadRazorpayScript(): Promise<any> {
@@ -47,14 +27,14 @@ function loadRazorpayScript(): Promise<any> {
   });
 }
 
-export async function startCheckout({ plan, userEmail, userName, onSuccess }: CheckoutOptions) {
+export async function startCheckout({ plan, userId, userEmail, userName, onSuccess }: CheckoutOptions) {
   const razorpayKey = 'rzp_live_TDQGNB6HCxWwNq';
 
   // 1. Create Order
   const orderRes = await fetch('/api/razorpay/create-order', {
     method: 'POST',
-    headers: await getAuthHeaders(),
-    body: JSON.stringify({ plan }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan, userId }),
   });
 
   const orderData = await orderRes.json();
@@ -70,30 +50,35 @@ export async function startCheckout({ plan, userEmail, userName, onSuccess }: Ch
     const options = {
       key: razorpayKey,
       amount: orderData.amount,
-      currency: orderData.currency,
+      currency: 'INR',
       name: 'Draftee',
       description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan (one-time)`,
-      order_id: orderData.id,
+      order_id: orderData.orderId,
       prefill: {
         email: userEmail || '',
         name: userName || '',
       },
       theme: { color: '#c9a84c' },
       handler: async (response: any) => {
+        console.log('=== PAYMENT HANDLER CALLED ===');
+        console.log('Response:', response);
         try {
           // 4. Verify payment
+          console.log('Calling verify API...');
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
-            headers: await getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               plan,
+              userId,
             }),
           });
           
           const verifyData = await verifyRes.json();
+          console.log('Verify result:', verifyData);
           if (!verifyRes.ok || !verifyData.success) {
             throw new Error(verifyData?.error || 'Payment verification failed');
           }

@@ -25,6 +25,7 @@ export default function ProfilePage() {
   });
   
   const [bio, setBio] = useState('');
+  const [currentPlan, setCurrentPlan] = useState('free');
   
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
@@ -58,6 +59,7 @@ export default function ProfilePage() {
           whatsapp_number: data.whatsapp_number || '',
         });
         setBio(data.bio || '');
+        setCurrentPlan(data.plan || 'free');
         setGlobalProfile(data); // Sync global context
       }
     } catch (err) {
@@ -458,7 +460,7 @@ export default function ProfilePage() {
                 <span style={{ 
                   color: '#c9a84c', fontWeight: 700, fontSize: '0.9rem' 
                 }}>
-                  Free
+                  {currentPlan === 'free' ? 'Free' : currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
                 </span>
               </div>
 
