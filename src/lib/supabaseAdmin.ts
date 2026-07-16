@@ -16,7 +16,7 @@ export function adminAuth() {
  */
 export async function requireUser(req: Request) {
   const authHeader = req.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
+  const token = authHeader?.replace('Bearer ', '').trim();
 
   if (!token) {
     throw new Error('No token provided');
@@ -24,19 +24,13 @@ export async function requireUser(req: Request) {
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) {
+    console.error('Auth error:', error?.message);
     throw new Error('Unauthorized');
   }
 
