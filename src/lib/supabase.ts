@@ -1,7 +1,18 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const createClient = () => createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
-export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey)
-export const createClient = () => createSupabaseClient(supabaseUrl, supabaseAnonKey)
+let clientInstance: any = null;
+
+// Use a Proxy to defer initialization until the client is actually used
+export const supabase = new Proxy({} as any, {
+  get: (target, prop) => {
+    if (!clientInstance) {
+      clientInstance = createClient();
+    }
+    return clientInstance[prop];
+  }
+});
