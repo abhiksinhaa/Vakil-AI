@@ -25,7 +25,9 @@ function friendlyAuthError(code, fallback) {
     case 'otp_expired':
       return 'The sign-in link has expired. Please request a new one.';
     default:
-      return fallback || 'Authentication failed. Please try again.';
+      if (typeof fallback === 'string' && fallback.trim() !== '' && fallback !== '{}') return fallback;
+      if (typeof fallback === 'object' && fallback !== null) return fallback.message || JSON.stringify(fallback);
+      return 'Authentication failed. Please try again.';
   }
 }
 
@@ -87,7 +89,8 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
       router.replace('/generate');
     } catch (err: any) {
       console.error('Supabase auth submit error:', err);
-      setError(friendlyAuthError(err?.code || err?.status, err?.message));
+      const msg = err?.message || err?.error_description || (typeof err === 'string' ? err : 'Something went wrong');
+      setError(friendlyAuthError(err?.code || err?.status, msg));
     } finally {
       setLoading(false);
     }
@@ -107,7 +110,8 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
       if (error) throw error;
     } catch (err: any) {
       console.error('Supabase Google auth error:', err);
-      setError(friendlyAuthError(err?.code || err?.status, err?.message));
+      const msg = err?.message || err?.error_description || (typeof err === 'string' ? err : 'Something went wrong');
+      setError(friendlyAuthError(err?.code || err?.status, msg));
     } finally {
       setGoogleLoading(false);
     }
@@ -247,6 +251,22 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
               />
             </div>
+
+            {isLogin && (
+              <div style={{ textAlign: 'right', marginTop: '6px', marginBottom: '16px' }}>
+                <a 
+                  href="/forgot-password"
+                  style={{ 
+                    color: '#c9a84c', 
+                    fontSize: '0.85rem',
+                    textDecoration: 'none',
+                    opacity: 0.85,
+                  }}
+                >
+                  Forgot Password?
+                </a>
+              </div>
+            )}
 
             {error && (
               <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
