@@ -12,10 +12,10 @@ export async function POST(req: Request) {
       return Response.json({ error: 'No token' }, { status: 401 })
     }
 
-    console.log('SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('SUPABASE_URL:', !!process.env.SUPABASE_URL)
     const supabase = createClient(
-      'https://bbmojmpekooflbbyuroz.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_ANON_KEY!
     )
     const { data: { user } } = await supabase.auth.getUser(token)
     if (!user) {
