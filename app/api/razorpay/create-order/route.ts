@@ -1,73 +1,70 @@
-import { requireUser } from '@/lib/supabaseAdmin';
-import { PLAN_CONFIG, type PaidPlan } from '@/lib/plans';
-import Razorpay from 'razorpay';
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import Razorpay from 'razorpay';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PAID_PLANS: PaidPlan[] = ['starter', 'standard', 'pro'];
+const PLAN_PRICES = {
+  starter: 14900, // ₹149
+  standard: 19900, // ₹199
+  pro: 29900, // ₹299
+};
 
 export async function POST(req: Request) {
-  console.log('Auth header:', req.headers.get('authorization')?.substring(0, 20));
-  console.log('KEY_ID:', process.env.RAZORPAY_KEY_ID?.substring(0, 15));
-  console.log('SECRET:', process.env.RAZORPAY_KEY_SECRET?.substring(0, 5));
-
-  console.log('ENV CHECK:', {
-    KEY_ID: process.env.RAZORPAY_KEY_ID,
-    SECRET_EXISTS: !!process.env.RAZORPAY_KEY_SECRET,
-  });
-
-  const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_live_TDQGNB6HCxWwNq';
-  const keySecret = process.env.RAZORPAY_KEY_SECRET || '9gKZOM82PZej8aTAi2D8flFR'
-
-  console.log('Razorpay keys:', !!keyId, !!keySecret);
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
   if (!keyId || !keySecret) {
-    console.error('MISSING KEYS - keyId:', keyId, 'keySecret:', !!keySecret);
-    return NextResponse.json(
-      { error: 'Payment unavailable' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Payment not configured' }, { status: 500 });
+  }
+
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '').trim();
+
+  if (!token) {
+    return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    await requireUser(req);
-  } catch {
-    return Response.json({ error: { message: 'Not authenticated' } }, { status: 401 });
-  }
+    const body = await req.json();
+    const plan = String(body.plan).toLowerCase() as keyof typeof PLAN_PRICES;
 
-  try {
-    const body = await req.json().catch(() => ({}));
-    const plan = String(body.plan || 'pro').toLowerCase() as PaidPlan;
-
-    if (!PAID_PLANS.includes(plan)) {
-      return Response.json({ error: { message: 'Unsupported plan' } }, { status: 400 });
+    if (!PLAN_PRICES[plan]) {
+      return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
 
-    const planConfig = PLAN_CONFIG[plan];
+    const amount = PLAN_PRICES[plan];
     const currency = 'INR';
     const receipt = `draftee_${plan}_${Date.now()}`;
 
     const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
-    const data = await razorpay.orders.create({
-      amount: planConfig.amount,
+    const order = await razorpay.orders.create({
+      amount,
       currency,
       receipt,
-      notes: { plan },
+      notes: { plan, user_id: user.id },
     });
 
-    return Response.json({
-      id: data.id,
-      amount: data.amount,
-      currency: data.currency,
+    return NextResponse.json({
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
       plan,
-      planName: planConfig.label,
     });
   } catch (err: any) {
-    console.error('Full error:', err);
-    return Response.json({
-      error: { message: err?.message || String(err) }
-    }, { status: 500 });
+    console.error('Create order error:', err);
+    return NextResponse.json({ error: err?.message || 'Failed to create order' }, { status: 500 });
   }
 }

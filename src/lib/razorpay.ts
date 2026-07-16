@@ -1,31 +1,25 @@
 import { supabase } from './supabase';
 
 interface CheckoutOptions {
-  plan?: 'starter' | 'standard' | 'pro';
+  plan: 'starter' | 'standard' | 'pro';
   userEmail?: string | null;
   userName?: string | null;
   onSuccess?: () => Promise<void> | void;
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
 }
 
 async function getAuthHeaders() {
   const { data, error } = await supabase.auth.getSession();
   let token = data.session?.access_token ?? null;
 
-  console.log('Razorpay auth session:', {
-    hasSession: !!data.session,
-    hasToken: !!token,
-    tokenPrefix: token?.substring(0, 20) ?? null,
-    sessionError: error?.message ?? null,
-  });
-
   if (!token) {
     const refreshResult = await supabase.auth.refreshSession();
     token = refreshResult.data.session?.access_token ?? null;
-    console.log('Razorpay auth refresh:', {
-      hasToken: !!token,
-      tokenPrefix: token?.substring(0, 20) ?? null,
-      refreshError: refreshResult.error?.message ?? null,
-    });
   }
 
   if (!token) {
@@ -38,9 +32,9 @@ async function getAuthHeaders() {
   };
 }
 
-function loadRazorpayScript() {
+function loadRazorpayScript(): Promise<any> {
   return new Promise((resolve, reject) => {
-    if (window.Razorpay) {
+    if (typeof window !== 'undefined' && window.Razorpay) {
       resolve(window.Razorpay);
       return;
     }
@@ -52,13 +46,10 @@ function loadRazorpayScript() {
   });
 }
 
-export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onSuccess }: CheckoutOptions) {
+export async function startCheckout({ plan, userEmail, userName, onSuccess }: CheckoutOptions) {
   const razorpayKey = 'rzp_live_TDQGNB6HCxWwNq';
-  if (!razorpayKey) {
-    console.error('Razorpay key missing');
-    throw new Error('Payment not configured');
-  }
 
+  // 1. Create Order
   const orderRes = await fetch('/api/razorpay/create-order', {
     method: 'POST',
     headers: await getAuthHeaders(),
@@ -67,26 +58,29 @@ export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onS
 
   const orderData = await orderRes.json();
   if (!orderRes.ok) {
-    throw new Error(orderData?.error?.message || 'Could not create payment order');
+    throw new Error(orderData?.error || 'Could not create payment order');
   }
 
-  const Razorpay: any = await loadRazorpayScript();
+  // 2. Load SDK
+  const Razorpay = await loadRazorpayScript();
 
+  // 3. Initialize Razorpay and open checkout
   return new Promise((resolve, reject) => {
     const options = {
       key: razorpayKey,
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'Draftee',
-      description: `${orderData.planName || 'Premium'} Plan — ${orderData.plan === 'starter' ? '30 drafts' : orderData.plan === 'standard' ? '40 drafts' : '100 drafts'} (one-time)`,
+      description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan (one-time)`,
       order_id: orderData.id,
       prefill: {
         email: userEmail || '',
         name: userName || '',
       },
       theme: { color: '#c9a84c' },
-      handler: async (response) => {
+      handler: async (response: any) => {
         try {
+          // 4. Verify payment
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
             headers: await getAuthHeaders(),
@@ -94,84 +88,15 @@ export async function startPlanCheckout({ plan = 'pro', userEmail, userName, onS
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
+              plan,
             }),
           });
+          
           const verifyData = await verifyRes.json();
           if (!verifyRes.ok || !verifyData.success) {
-            throw new Error(verifyData?.error?.message || 'Payment verification failed');
+            throw new Error(verifyData?.error || 'Payment verification failed');
           }
-          await onSuccess?.();
-          resolve(response);
-        } catch (err) {
-          reject(err);
-        }
-      },
-      modal: {
-        ondismiss: () => reject(new Error('Payment cancelled')),
-      },
-    };
-
-    console.log('Razorpay Key:', 'rzp_live_TDQGNB6HCxWwNq');
-    const rzp = new Razorpay(options);
-    rzp.on('payment.failed', (res) => {
-      reject(new Error(res.error?.description || 'Payment failed'));
-    });
-    rzp.open();
-  });
-}
-
-export async function startProCheckout(options: CheckoutOptions) {
-  return startPlanCheckout({ ...options, plan: options.plan || 'pro' });
-}
-
-export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }: CheckoutOptions) {
-  const razorpayKey = 'rzp_live_TDQGNB6HCxWwNq';
-  if (!razorpayKey) {
-    console.error('Razorpay key missing');
-    throw new Error('Payment not configured');
-  }
-
-  const orderRes = await fetch('/api/razorpay/create-order-draft', {
-    method: 'POST',
-    headers: await getAuthHeaders(),
-    body: JSON.stringify({}),
-  });
-
-  const orderData = await orderRes.json();
-  if (!orderRes.ok) {
-    throw new Error(orderData?.error?.message || 'Could not create payment order');
-  }
-
-  const Razorpay: any = await loadRazorpayScript();
-
-  return new Promise((resolve, reject) => {
-    const options = {
-      key: razorpayKey,
-      amount: orderData.amount,
-      currency: orderData.currency,
-      name: 'Draftee',
-      description: 'Pay Per Use — Generate 1 Draft',
-      order_id: orderData.id,
-      prefill: {
-        email: userEmail || '',
-        name: userName || '',
-      },
-      theme: { color: '#c9a84c' },
-      handler: async (response) => {
-        try {
-          const verifyRes = await fetch('/api/razorpay/verify-draft', {
-            method: 'POST',
-            headers: await getAuthHeaders(),
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            }),
-          });
-          const verifyData = await verifyRes.json();
-          if (!verifyRes.ok || !verifyData.success) {
-            throw new Error(verifyData?.error?.message || 'Payment verification failed');
-          }
+          
           await onSuccess?.();
           resolve(response);
         } catch (err) {
@@ -184,10 +109,9 @@ export async function startPayPerUseCheckout({ userEmail, userName, onSuccess }:
     };
 
     const rzp = new Razorpay(options);
-    rzp.on('payment.failed', (res) => {
+    rzp.on('payment.failed', (res: any) => {
       reject(new Error(res.error?.description || 'Payment failed'));
     });
     rzp.open();
   });
 }
-

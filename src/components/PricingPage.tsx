@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
-import { startPlanCheckout } from '../lib/razorpay';
+import { startCheckout } from '../lib/razorpay';
 
 const GLITTER_STYLES = `
   @keyframes sparkle {
@@ -79,9 +79,7 @@ export default function PricingPage() {
     setMessage(null);
 
     try {
-      console.log('PricingPage: Razorpay Key present?', true);
-      console.log('PricingPage: initiating one-time checkout for plan', plan);
-      await startPlanCheckout({
+      await startCheckout({
         plan,
         userEmail: session.user.email,
         userName: profile?.full_name || session.user.email,
@@ -143,8 +141,8 @@ export default function PricingPage() {
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
                   <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
                   <ul className="mt-6 space-y-2 text-sm text-cream/70">
-                    <li>• Secure Razorpay payment</li>
-                    <li>• Monthly renewals</li>
+                    <li>• Secure one-time payment</li>
+                    <li>• Instant limit updates</li>
                     <li>• Priority draft generation</li>
                   </ul>
                   <button
