@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
     console.log('SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      'https://bbmojmpekooflbbyuroz.supabase.co',
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     const { data: { user } } = await supabase.auth.getUser(token)
