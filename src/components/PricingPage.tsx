@@ -5,7 +5,10 @@ import Link from 'next/link';
 import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import { startCheckout } from '../lib/razorpay';
-import { supabase } from '../lib/supabase';
+import { createClient } from '../lib/supabase';
+
+console.log('SUPABASE URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+console.log('SUPABASE KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
 const GLITTER_STYLES = `
   @keyframes sparkle {
@@ -61,6 +64,7 @@ export default function PricingPage() {
 
   useEffect(() => {
     async function loadUser() {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (user) {
