@@ -28,7 +28,7 @@ function loadRazorpayScript(): Promise<any> {
 }
 
 export async function startCheckout({ plan, userId, userEmail, userName, onSuccess }: CheckoutOptions) {
-  const razorpayKey = 'rzp_live_TDQGNB6HCxWwNq';
+  const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
   // 1. Create Order
   const orderRes = await fetch('/api/razorpay/create-order', {
