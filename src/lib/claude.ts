@@ -233,7 +233,7 @@ Generate the complete ${draftType} now:`;
           },
         ],
         generationConfig: {
-          maxOutputTokens: 8192,
+          maxOutputTokens: 5000,
           temperature: 0.4,
         },
       };
