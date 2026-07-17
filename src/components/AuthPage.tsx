@@ -14,8 +14,9 @@ function friendlyAuthError(code, fallback) {
   switch (code) {
     case 'invalid_credentials':
     case 'invalid_grant':
-    case 'email_not_confirmed':
       return 'Invalid email or password.';
+    case 'email_not_confirmed':
+      return 'Please check your email to confirm your account before signing in.';
     case 'user_already_exists':
       return 'An account with this email already exists. Please sign in.';
     case 'weak_password':
@@ -52,6 +53,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [userType, setUserType] = useState<'advocate' | 'individual'>('advocate');
 
   useEffect(() => {
@@ -64,11 +66,17 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
 
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error?.message?.includes('Email not confirmed') || error?.code === 'email_not_confirmed') {
+          setError('Please check your email to confirm your account before signing in.');
+          setLoading(false);
+          return;
+        }
         if (error) throw error;
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -114,6 +122,25 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
       setError(friendlyAuthError(err?.code || err?.status, msg));
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      setSuccessMsg('');
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (error) throw error;
+      setSuccessMsg('Confirmation email sent! Please check your inbox.');
+    } catch (err: any) {
+      console.error('Resend error:', err);
+      setError('Failed to resend confirmation email. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -268,10 +295,28 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
               </div>
             )}
 
-            {error && (
-              <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
-                {error}
+            {successMsg && (
+              <p className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">
+                {successMsg}
               </p>
+            )}
+
+            {error && (
+              <div className="flex flex-col gap-2">
+                <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+                {error === 'Please check your email to confirm your account before signing in.' && (
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    className="text-gold text-sm hover:underline self-end"
+                    disabled={loading}
+                  >
+                    Resend confirmation email
+                  </button>
+                )}
+              </div>
             )}
 
             <button type="submit" className="btn-primary w-full mt-2" disabled={loading || googleLoading}>
