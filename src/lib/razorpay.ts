@@ -75,6 +75,7 @@ export async function startCheckout({ plan, userId, userEmail, userName, onSucce
               razorpay_signature: response.razorpay_signature,
               plan,
               userId,
+              amount: orderData.amount,
             }),
           });
           

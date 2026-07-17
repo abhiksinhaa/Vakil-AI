@@ -10,7 +10,7 @@ const PLANS: Record<string, {drafts: number}> = {
 
 export async function POST(req: Request) {
   const { razorpay_order_id, razorpay_payment_id,
-          razorpay_signature, plan, userId } = await req.json()
+          razorpay_signature, plan, userId, amount } = await req.json()
 
   console.log('=== VERIFY API CALLED ===')
   console.log('userId received:', userId)
@@ -40,5 +40,22 @@ export async function POST(req: Request) {
     .eq('id', userId)
 
   if (error) return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+
+  const { error: paymentError } = await adminDb()
+    .from('payments')
+    .insert({
+      user_id: userId,
+      razorpay_order_id: razorpay_order_id,
+      razorpay_payment_id: razorpay_payment_id,
+      plan: plan,
+      amount: amount || 0,
+      status: 'success',
+      created_at: new Date().toISOString()
+    })
+
+  if (paymentError) {
+    console.error('Payment record insert error:', paymentError)
+  }
+
   return NextResponse.json({ success: true })
 }
