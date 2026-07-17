@@ -44,6 +44,7 @@ export async function startCheckout({ plan, userId, userEmail, userName, onSucce
 
   // 2. Load SDK
   const Razorpay = await loadRazorpayScript();
+  await new Promise(resolve => setTimeout(resolve, 2000));
 
   // 3. Initialize Razorpay and open checkout
   return new Promise((resolve, reject) => {
@@ -94,10 +95,15 @@ export async function startCheckout({ plan, userId, userEmail, userName, onSucce
       },
     };
 
-    const rzp = new Razorpay(options);
-    rzp.on('payment.failed', (res: any) => {
-      reject(new Error(res.error?.description || 'Payment failed'));
-    });
-    rzp.open();
+    try {
+      const rzp = new Razorpay(options);
+      rzp.on('payment.failed', (res: any) => {
+        reject(new Error(res.error?.description || 'Payment failed'));
+      });
+      rzp.open();
+    } catch (err) {
+      console.error('Razorpay init error:', err);
+      reject(new Error('Payment could not be initialized'));
+    }
   });
 }
