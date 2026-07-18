@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60s execution on Vercel
 
-import { adminDb } from '@/lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
 
 const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 
@@ -45,12 +45,16 @@ export async function POST(req: Request) {
     console.log('[api/gemini] Using model:', model);
 
     if (userId !== 'unknown') {
-      const supabaseAdmin = adminDb();
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      
       const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('drafts_used, drafts_limit, plan')
         .eq('id', userId)
-        .single()
+        .single();
         
       const used = profile?.drafts_used ?? 0;
       const limit = profile?.drafts_limit ?? 3;
@@ -96,7 +100,11 @@ export async function POST(req: Request) {
       console.error('[api/gemini] Gemini API error response:', data);
     } else if (userId !== 'unknown') {
       try {
-        const supabaseAdmin = adminDb();
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        
         const { data: profile } = await supabaseAdmin
           .from('profiles')
           .select('drafts_used')
