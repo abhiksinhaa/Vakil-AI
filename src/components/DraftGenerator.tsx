@@ -126,12 +126,24 @@ export default function DraftGenerator() {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('plan, drafts_used, drafts_limit')
+          .select('plan, drafts_used, drafts_limit, last_draft_date')
           .eq('id', user.id)
           .single()
         if (profile) {
-          setDraftsUsed(profile.drafts_used || 0)
-          setDraftLimit(profile.drafts_limit || 3)
+          let currentUsed = profile.drafts_used || 0;
+          let currentLimit = profile.drafts_limit ?? (profile.plan === 'free' ? 3 : 3);
+          
+          if (profile.plan === 'free' && profile.last_draft_date) {
+            const lastDate = new Date(profile.last_draft_date);
+            const now = new Date();
+            if (lastDate.getMonth() !== now.getMonth() || lastDate.getFullYear() !== now.getFullYear()) {
+              currentUsed = 0;
+              await supabase.from('profiles').update({ drafts_used: 0, last_draft_date: now.toISOString() }).eq('id', user.id);
+            }
+          }
+
+          setDraftsUsed(currentUsed)
+          setDraftLimit(currentLimit)
           setPlan(profile.plan || 'free')
         }
       }
@@ -362,13 +374,41 @@ export default function DraftGenerator() {
       try {
         console.log('Starting draft generation...');
         console.log('[RATE-LIMIT] Fetching fresh draft allowance from Supabase...');
-        const allowance = await checkDraftAllowance();
         
-        // Update UI with the fresh database value
-        if (allowance.used !== undefined) {
-          console.log('[RATE-LIMIT] Updated draftsUsed from database:', allowance.used);
-          setDraftsUsed(allowance.used);
+        const { data: { user } } = await supabase.auth.getUser();
+        let freshLimit = draftLimit;
+        let freshUsed = draftsUsed;
+        let currentPlan = plan;
+
+        if (user) {
+          const { data: currentProfile } = await supabase
+            .from('profiles')
+            .select('plan, drafts_used, drafts_limit')
+            .eq('id', user.id)
+            .single();
+            
+          if (currentProfile) {
+            freshUsed = currentProfile.drafts_used || 0;
+            freshLimit = currentProfile.drafts_limit ?? 3;
+            currentPlan = currentProfile.plan || 'free';
+            
+            setDraftsUsed(freshUsed);
+            setDraftLimit(freshLimit);
+            setPlan(currentPlan);
+          }
         }
+        
+        if (currentPlan === 'free' && freshUsed >= freshLimit) {
+          setIsGenerating(false);
+          setError(`You have used all ${freshLimit} free drafts this month. Upgrade to Premium to continue.`);
+          return;
+        } else if (freshUsed >= freshLimit) {
+          setIsGenerating(false);
+          setError("You have reached your draft limit. Upgrade to continue.");
+          return;
+        }
+        
+        const allowance = await checkDraftAllowance();
         
         if (!allowance.allowed) {
           console.log('[RATE-LIMIT] Draft limit reached, blocking generation', { used: allowance.used, limit: allowance.limit, reason: allowance.reason });
@@ -456,6 +496,18 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             setSaveSuccess(true);
             try {
               console.log('[RATE-LIMIT] Incrementing draft usage in Supabase...');
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const { data: p } = await supabase.from('profiles').select('drafts_used').eq('id', user.id).single();
+                const currentUsed = p?.drafts_used || 0;
+                await supabase
+                  .from('profiles')
+                  .update({ 
+                    drafts_used: currentUsed + 1,
+                    last_draft_date: new Date().toISOString()
+                  })
+                  .eq('id', user.id);
+              }
               await incrementDraftUsage();
               console.log('[RATE-LIMIT] Draft usage incremented successfully');
               handleDraftGenerated();
@@ -624,12 +676,13 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               ) : (
                 <>
                   <p style={{ 
-                    fontSize: '0.85rem', 
-                    opacity: 0.7, 
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
                     marginBottom: '12px',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    color: '#c9a84c'
                   }}>
-                    You have used {draftsUsed} draft{draftsUsed !== 1 ? 's' : ''} this month. {Math.max(0, draftLimit - draftsUsed)} remaining.
+                    {plan === 'free' ? `${draftsUsed}/${draftLimit} free drafts used this month` : `${draftsUsed}/${draftLimit} drafts used this month`}
                   </p>
                   <button
                     id="generate-draft-button"
