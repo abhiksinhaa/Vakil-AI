@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
 import FeedbackPopup from './FeedbackPopup';
@@ -77,6 +78,7 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export default function DraftGenerator() {
+  const router = useRouter();
   const { profile, refreshAccount, session, setProfile, accountLoading } = useApp();
   const [form, setForm] = useState(INITIAL_FORM);
   const [draft, setDraft] = useState('');
@@ -685,9 +687,13 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                   }}>
                     Draft limit reached. Upgrade your plan.
                   </p>
-                  <Link href="/pricing" className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]">
+                  <button
+                    type="button"
+                    onClick={() => router.push('/pricing')}
+                    className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]"
+                  >
                     Upgrade Plan
-                  </Link>
+                  </button>
                 </>
               ) : (
                 <>
