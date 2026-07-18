@@ -427,6 +427,7 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
         ...submissionForm,
         schema: schemaFallback,
         customPrompt,
+        userId: session?.user?.id,
       }, (status) => setGeneratingStatus(status));
       
       console.log('Gemini response:', { textLength: text?.length });

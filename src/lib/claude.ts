@@ -201,9 +201,9 @@ Generate the complete ${draftType} now:`;
 
   const requestTraceId = (formData as any)?.draftId || (formData as any)?.sessionId || `${draftType}-${Date.now()}`;
 
-  let currentModel = 'gemini-2.0-flash';
+  let currentModel = 'gemini-2.5-flash-lite';
   let attempt = 0;
-  const maxRetries = 3;
+  const maxRetries = 1;
 
   while (attempt <= maxRetries) {
     try {
@@ -222,6 +222,7 @@ Generate the complete ${draftType} now:`;
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
       const requestPayload = {
+        userId: formData.userId,
         model: currentModel,
         systemInstruction: {
           parts: [{ text: finalSystemPrompt }],
@@ -283,7 +284,7 @@ Generate the complete ${draftType} now:`;
           message: parseErr?.message || 'Unable to parse Gemini response',
           rawPreview: raw.slice(0, 1000),
         });
-        throw new Error('Draft could not be generated. Please try again.');
+        throw new Error('Generation failed, please try again.');
       }
 
       console.log('[GEMINI_RAW_RESPONSE]', {
@@ -309,7 +310,7 @@ Generate the complete ${draftType} now:`;
           error: data?.error ?? null,
           message: data?.error?.message || data?.error?.status || 'Gemini API returned an error',
         });
-        throw new Error('Draft could not be generated. Please try again.');
+        throw new Error('Generation failed, please try again.');
       }
 
       const parts = data.candidates?.[0]?.content?.parts ?? [];
@@ -325,7 +326,7 @@ Generate the complete ${draftType} now:`;
         throw new Error(
           finishReason === 'SAFETY'
             ? 'Draft blocked by safety filters. Please modify the facts and try again.'
-            : 'Draft could not be generated. Please try again.'
+            : 'Generation failed, please try again.'
         );
       }
 
@@ -353,7 +354,7 @@ Generate the complete ${draftType} now:`;
           message: err?.message || 'Request timed out',
         });
         console.error('[Draft Generation] Network timeout error:', err.message);
-        throw new Error('Draft could not be generated. Please try again.');
+        throw new Error('Generation failed, please try again.');
       }
 
       console.error('[GEMINI_RAW_RESPONSE]', {
@@ -375,16 +376,16 @@ Generate the complete ${draftType} now:`;
 
       if (attempt < maxRetries) {
         attempt++;
-        currentModel = 'gemini-2.0-flash'; // Fallback model
+        currentModel = 'gemini-2.5-flash-lite'; // Fallback model
         console.log('[Draft Generation] Retrying with fallback model:', currentModel);
         continue;
       }
 
       console.error('[Draft Generation] Max retries exceeded, throwing error');
-      throw new Error('Draft could not be generated. Please try again.');
+      throw new Error('Generation failed, please try again.');
     }
   }
   
   console.error('[Draft Generation] Failed after all retry attempts');
-  throw new Error('Draft could not be generated after multiple attempts. Please try again later.');
+  throw new Error('Generation failed, please try again.');
 }
