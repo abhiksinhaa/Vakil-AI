@@ -103,6 +103,25 @@ export async function POST(req: Request) {
 
     if (upstream.status !== 200) {
       console.error('[api/gemini] Gemini API error response:', data);
+    } else if (userId !== 'unknown') {
+      try {
+        const db = adminDb();
+        const { data: currentProfile } = await db.from('profiles').select('drafts_used').eq('id', userId).single();
+        const currentUsed = currentProfile?.drafts_used || 0;
+        
+        await db.from('profiles').update({
+          drafts_used: currentUsed + 1,
+          last_draft_date: new Date().toISOString()
+        }).eq('id', userId);
+        
+        await db.from('subscriptions').update({
+          drafts_used: currentUsed + 1
+        }).eq('id', userId);
+        
+        console.log('[api/gemini] Successfully incremented draft usage for user:', userId);
+      } catch (incrementErr) {
+        console.error('[api/gemini] Failed to increment draft usage:', incrementErr);
+      }
     }
     
     return Response.json(data, { status: upstream.status });

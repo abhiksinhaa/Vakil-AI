@@ -497,41 +497,11 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             setDraftId(res.id);
             setSaveSuccess(true);
             try {
-              console.log('[RATE-LIMIT] Incrementing draft usage in Supabase...');
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                const { data: profile } = await supabase
-                  .from('profiles')
-                  .select('drafts_used, drafts_limit, plan')
-                  .eq('id', user.id)
-                  .single()
-
-                console.log('Current profile:', profile)
-
-                const newCount = (profile?.drafts_used || 0) + 1
-
-                const { error: updateErr } = await supabase
-                  .from('profiles')
-                  .update({ drafts_used: newCount, last_draft_date: new Date().toISOString() })
-                  .eq('id', user.id)
-
-                const { data: sub } = await supabase.from('subscriptions').select('*').eq('id', user.id).single();
-                if (sub) {
-                  await supabase
-                    .from('subscriptions')
-                    .update({ drafts_used: newCount })
-                    .eq('id', user.id);
-                }
-
-                console.log('Update error:', updateErr)
-                console.log('New draft count:', newCount)
-              }
-              // Removed duplicate incrementDraftUsage() since we explicitly update it above now
-              console.log('[RATE-LIMIT] Draft usage incremented successfully');
+              console.log('[RATE-LIMIT] Server already incremented draft usage upon API success.');
               handleDraftGenerated();
               refreshAccount().catch(err => console.error('Failed to refresh account:', err));
             } catch (err) {
-              console.error('[RATE-LIMIT] Failed to update draft usage counter:', err);
+              console.error('[RATE-LIMIT] Failed to update draft usage UI:', err);
             }
           } else {
             console.error('Draft auto-save did not return an id:', res);
