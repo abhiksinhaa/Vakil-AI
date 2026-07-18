@@ -151,7 +151,7 @@ export default function DraftGenerator() {
       }
     }
     loadUsage()
-  }, [])
+  }, [session?.user?.id])
 
   useEffect(() => {
     if (
