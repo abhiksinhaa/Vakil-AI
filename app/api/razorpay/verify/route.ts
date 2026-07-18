@@ -2,12 +2,6 @@ import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 import { adminDb } from '@/lib/supabaseAdmin'
 
-const PLANS: Record<string, {drafts: number}> = {
-  basic:    { drafts: 30  },
-  standard: { drafts: 40  },
-  pro:      { drafts: 100 },
-}
-
 export async function POST(req: Request) {
   const { razorpay_order_id, razorpay_payment_id,
           razorpay_signature, plan, userId, amount } = await req.json()
@@ -28,26 +22,47 @@ export async function POST(req: Request) {
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 30)
 
-  const { error } = await adminDb()
+  let planName = plan || 'starter';
+  let draftsLimit = 30;
+
+  const numAmount = Number(amount);
+  if (numAmount === 14900) {
+    planName = 'starter';
+    draftsLimit = 30;
+  } else if (numAmount === 19900) {
+    planName = 'standard';
+    draftsLimit = 40;
+  } else if (numAmount === 29900) {
+    planName = 'pro';
+    draftsLimit = 100;
+  }
+
+  const db = adminDb()
+  const { error } = await db
     .from('profiles')
     .update({
-      plan,
-      drafts_limit: PLANS[plan]?.drafts || 30,
+      plan: planName,
+      drafts_limit: draftsLimit,
       drafts_used: 0,
       plan_expires_at: expiresAt.toISOString(),
       razorpay_payment_id,
     })
     .eq('id', userId)
 
-  if (error) return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+  console.log('Plan update error:', error)
+  console.log('Plan updated for:', userId)
 
-  const { error: paymentError } = await adminDb()
+  if (error) {
+    return NextResponse.json({ error: 'Update failed', details: error }, { status: 500 })
+  }
+
+  const { error: paymentError } = await db
     .from('payments')
     .insert({
       user_id: userId,
       razorpay_order_id: razorpay_order_id,
       razorpay_payment_id: razorpay_payment_id,
-      plan: plan,
+      plan: planName,
       amount: amount || 0,
       status: 'success',
       created_at: new Date().toISOString()
