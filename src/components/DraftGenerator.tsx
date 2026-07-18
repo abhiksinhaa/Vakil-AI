@@ -513,10 +513,18 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                   .update({ drafts_used: newCount, last_draft_date: new Date().toISOString() })
                   .eq('id', user.id)
 
+                const { data: sub } = await supabase.from('subscriptions').select('*').eq('id', user.id).single();
+                if (sub) {
+                  await supabase
+                    .from('subscriptions')
+                    .update({ drafts_used: newCount })
+                    .eq('id', user.id);
+                }
+
                 console.log('Update error:', updateErr)
                 console.log('New draft count:', newCount)
               }
-              await incrementDraftUsage();
+              // Removed duplicate incrementDraftUsage() since we explicitly update it above now
               console.log('[RATE-LIMIT] Draft usage incremented successfully');
               handleDraftGenerated();
               refreshAccount().catch(err => console.error('Failed to refresh account:', err));
