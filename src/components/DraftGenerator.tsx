@@ -647,35 +647,14 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             </div>
 
             <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0 mt-4">
-              {quotaExhausted ? (
+              {draftsUsed < draftLimit ? (
                 <>
                   <p style={{ 
-                    fontSize: '0.85rem', 
-                    opacity: 0.9, 
-                    marginBottom: '12px',
-                    textAlign: 'center',
-                    color: '#ff4444'
+                    fontSize: '0.85rem', opacity: 0.7, 
+                    marginBottom: '12px', textAlign: 'center',
+                    color: '#e8e0d0'
                   }}>
-                    Draft limit reached. Upgrade your plan.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/pricing')}
-                    className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]"
-                  >
-                    Upgrade Plan
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p style={{ 
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    marginBottom: '12px',
-                    textAlign: 'center',
-                    color: '#c9a84c'
-                  }}>
-                    {plan === 'free' ? `${draftsUsed}/${draftLimit} free drafts used this month` : `${draftsUsed}/${draftLimit} drafts used this month`}
+                    {draftsUsed}/{draftLimit} free drafts used this month.
                   </p>
                   <button
                     id="generate-draft-button"
@@ -685,6 +664,23 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                     className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${isGenerating || accountLoading ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
                   >
                     {isGenerating ? 'Generating...' : 'Generate Draft'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ 
+                    fontSize: '0.85rem', marginBottom: '12px', 
+                    textAlign: 'center', color: '#ff6b6b',
+                    fontWeight: 600
+                  }}>
+                    Draft limit reached. Upgrade your plan.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/pricing')}
+                    className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]"
+                  >
+                    Upgrade Plan
                   </button>
                 </>
               )}

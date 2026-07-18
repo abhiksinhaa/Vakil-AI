@@ -45,30 +45,21 @@ export async function POST(req: Request) {
     console.log('[api/gemini] Using model:', model);
 
     if (userId !== 'unknown') {
-      const db = adminDb();
-      const { data: profile } = await db
+      const supabaseAdmin = adminDb();
+      const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('drafts_used, drafts_limit, plan')
         .eq('id', userId)
-        .single();
+        .single()
         
-      if (profile) {
-        const used = profile.drafts_used || 0;
-        const limit = profile.drafts_limit ?? 3;
-        
-        if (profile.plan === 'free' && used >= limit) {
-          console.error('[api/gemini] Blocked by server-side rate limit (free)');
-          return Response.json(
-            { error: { message: `You have used all ${limit} free drafts this month. Upgrade to Premium to continue.` } },
-            { status: 403 }
-          );
-        } else if (used >= limit) {
-          console.error('[api/gemini] Blocked by server-side rate limit (paid)');
-          return Response.json(
-            { error: { message: 'You have reached your draft limit. Upgrade to continue.' } },
-            { status: 403 }
-          );
-        }
+      const used = profile?.drafts_used ?? 0;
+      const limit = profile?.drafts_limit ?? 3;
+      
+      if (used >= limit) {
+        return Response.json(
+          { error: 'Draft limit reached. Please upgrade your plan.' },
+          { status: 403 }
+        );
       }
     }
     
@@ -105,20 +96,20 @@ export async function POST(req: Request) {
       console.error('[api/gemini] Gemini API error response:', data);
     } else if (userId !== 'unknown') {
       try {
-        const db = adminDb();
-        const { data: currentProfile } = await db.from('profiles').select('drafts_used').eq('id', userId).single();
-        const currentUsed = currentProfile?.drafts_used || 0;
+        const supabaseAdmin = adminDb();
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('drafts_used')
+          .eq('id', userId)
+          .single();
+          
+        const used = profile?.drafts_used ?? 0;
         
-        await db.from('profiles').update({
-          drafts_used: currentUsed + 1,
-          last_draft_date: new Date().toISOString()
-        }).eq('id', userId);
-        
-        await db.from('subscriptions').update({
-          drafts_used: currentUsed + 1
-        }).eq('id', userId);
-        
-        console.log('[api/gemini] Successfully incremented draft usage for user:', userId);
+        await supabaseAdmin
+          .from('profiles')
+          .update({ drafts_used: used + 1 })
+          .eq('id', userId);
+          
       } catch (incrementErr) {
         console.error('[api/gemini] Failed to increment draft usage:', incrementErr);
       }
