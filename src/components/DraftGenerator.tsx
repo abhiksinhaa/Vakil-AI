@@ -498,15 +498,23 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
               console.log('[RATE-LIMIT] Incrementing draft usage in Supabase...');
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
-                const { data: p } = await supabase.from('profiles').select('drafts_used').eq('id', user.id).single();
-                const currentUsed = p?.drafts_used || 0;
-                await supabase
+                const { data: profile } = await supabase
                   .from('profiles')
-                  .update({ 
-                    drafts_used: currentUsed + 1,
-                    last_draft_date: new Date().toISOString()
-                  })
-                  .eq('id', user.id);
+                  .select('drafts_used, drafts_limit, plan')
+                  .eq('id', user.id)
+                  .single()
+
+                console.log('Current profile:', profile)
+
+                const newCount = (profile?.drafts_used || 0) + 1
+
+                const { error: updateErr } = await supabase
+                  .from('profiles')
+                  .update({ drafts_used: newCount, last_draft_date: new Date().toISOString() })
+                  .eq('id', user.id)
+
+                console.log('Update error:', updateErr)
+                console.log('New draft count:', newCount)
               }
               await incrementDraftUsage();
               console.log('[RATE-LIMIT] Draft usage incremented successfully');
