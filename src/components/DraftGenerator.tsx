@@ -122,35 +122,36 @@ export default function DraftGenerator() {
     }
   }, []);
 
-  useEffect(() => {
-    async function loadUsage() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('plan, drafts_used, drafts_limit, last_draft_date')
-          .eq('id', user.id)
-          .single()
-        if (profile) {
-          let currentUsed = profile.drafts_used || 0;
-          let currentLimit = profile.drafts_limit ?? (profile.plan === 'free' ? 3 : 3);
-          
-          if (profile.plan === 'free' && profile.last_draft_date) {
-            const lastDate = new Date(profile.last_draft_date);
-            const now = new Date();
-            if (lastDate.getMonth() !== now.getMonth() || lastDate.getFullYear() !== now.getFullYear()) {
-              currentUsed = 0;
-              await supabase.from('profiles').update({ drafts_used: 0, last_draft_date: now.toISOString() }).eq('id', user.id);
-            }
+  const refreshDraftCount = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan, drafts_used, drafts_limit, last_draft_date')
+        .eq('id', user.id)
+        .single()
+      if (profile) {
+        let currentUsed = profile.drafts_used || 0;
+        let currentLimit = profile.drafts_limit ?? (profile.plan === 'free' ? 3 : 3);
+        
+        if (profile.plan === 'free' && profile.last_draft_date) {
+          const lastDate = new Date(profile.last_draft_date);
+          const now = new Date();
+          if (lastDate.getMonth() !== now.getMonth() || lastDate.getFullYear() !== now.getFullYear()) {
+            currentUsed = 0;
+            await supabase.from('profiles').update({ drafts_used: 0, last_draft_date: now.toISOString() }).eq('id', user.id);
           }
-
-          setDraftsUsed(currentUsed)
-          setDraftLimit(currentLimit)
-          setPlan(profile.plan || 'free')
         }
+
+        setDraftsUsed(currentUsed)
+        setDraftLimit(currentLimit)
+        setPlan(profile.plan || 'free')
       }
     }
-    loadUsage()
+  }
+
+  useEffect(() => {
+    refreshDraftCount()
   }, [session?.user?.id])
 
   useEffect(() => {
@@ -497,8 +498,8 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             setDraftId(res.id);
             setSaveSuccess(true);
             try {
-              console.log('[RATE-LIMIT] Server already incremented draft usage upon API success.');
-              handleDraftGenerated();
+              console.log('[RATE-LIMIT] Server already incremented draft usage upon API success. Syncing...');
+              await refreshDraftCount();
               refreshAccount().catch(err => console.error('Failed to refresh account:', err));
             } catch (err) {
               console.error('[RATE-LIMIT] Failed to update draft usage UI:', err);
