@@ -674,8 +674,11 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                   </p>
                   <button
                     type="button"
-                    onClick={() => router.push('/pricing')}
-                    className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966]"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push('/pricing');
+                    }}
+                    className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966] cursor-pointer"
                   >
                     Upgrade Plan
                   </button>
