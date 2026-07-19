@@ -672,16 +672,12 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                   }}>
                     Draft limit reached. Upgrade your plan.
                   </p>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      router.push('/pricing');
-                    }}
-                    className="w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold bg-gold text-[#020b14] flex items-center justify-center hover:bg-[#ffd966] cursor-pointer"
+                  <Link 
+                    href="/pricing"
+                    className="w-full block text-center bg-gold text-[#020b14] font-semibold py-3 px-5 rounded-2xl shadow-lg transition-all touch-manipulation hover:bg-[#ffd966]"
                   >
                     Upgrade Plan
-                  </button>
+                  </Link>
                 </>
               )}
             </div>
