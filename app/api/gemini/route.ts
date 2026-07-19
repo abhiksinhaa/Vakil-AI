@@ -52,28 +52,20 @@ export async function POST(req: Request) {
       
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('plan, drafts_limit')
+        .select('plan, drafts_limit, drafts_used')
         .eq('id', userId)
         .single();
         
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0,0,0,0);
-      
-      const { count } = await supabaseAdmin
-        .from('drafts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .gte('created_at', startOfMonth.toISOString());
+      if (profile?.plan === 'free') {
+        const used = profile.drafts_used ?? 0;
+        const limit = profile.drafts_limit ?? 3;
         
-      const currentCount = count || 0;
-      const limit = profile?.drafts_limit ?? 3;
-      
-      if (currentCount >= limit) {
-        return Response.json(
-          { error: 'Draft limit reached. Please upgrade your plan.' },
-          { status: 403 }
-        );
+        if (used >= limit) {
+          return Response.json(
+            { error: 'Draft limit reached. Please upgrade.' },
+            { status: 403 }
+          );
+        }
       }
     }
     
