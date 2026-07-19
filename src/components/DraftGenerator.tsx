@@ -665,19 +665,15 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                 </>
               ) : (
                 <>
-                  <p style={{ 
-                    fontSize: '0.85rem', marginBottom: '12px', 
-                    textAlign: 'center', color: '#ff6b6b',
-                    fontWeight: 600
-                  }}>
-                    Draft limit reached. Upgrade your plan.
+                  <p className="text-gold text-center mb-3 text-sm font-medium">
+                    You have reached your free limit. Please upgrade your plan.
                   </p>
-                  <Link 
-                    href="/pricing"
-                    className="w-full block text-center bg-gold text-[#020b14] font-semibold py-3 px-5 rounded-2xl shadow-lg transition-all touch-manipulation hover:bg-[#ffd966]"
+                  <button
+                    disabled
+                    className="w-full rounded-2xl bg-gray-500 opacity-50 cursor-not-allowed px-5 py-3 text-sm font-semibold text-white"
                   >
-                    Upgrade Plan
-                  </Link>
+                    Generate Draft
+                  </button>
                 </>
               )}
             </div>
