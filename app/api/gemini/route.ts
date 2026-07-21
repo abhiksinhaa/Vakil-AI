@@ -4,7 +4,7 @@ export const maxDuration = 60; // Allow up to 60s execution on Vercel
 
 import { createClient } from '@supabase/supabase-js';
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 
 /** gemini-1.5-flash was removed from the Generative Language API (404). */
 function resolveModel(requested?: string) {

@@ -201,7 +201,7 @@ Generate the complete ${draftType} now:`;
 
   const requestTraceId = (formData as any)?.draftId || (formData as any)?.sessionId || `${draftType}-${Date.now()}`;
 
-  let currentModel = 'gemini-2.5-flash';
+  let currentModel = 'gemini-flash-lite-latest';
   let attempt = 0;
   const maxRetries = 1;
 
@@ -392,7 +392,7 @@ Generate the complete ${draftType} now:`;
         }
 
         attempt++;
-        currentModel = 'gemini-2.5-flash'; // Fallback model
+        currentModel = 'gemini-flash-lite-latest'; // Fallback model
         console.log('[Draft Generation] Retrying with fallback model:', currentModel);
         continue;
       }
