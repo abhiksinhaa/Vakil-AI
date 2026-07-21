@@ -9,7 +9,7 @@ export const PLAN_PRICING = PLAN_CONFIG;
 export const FREE_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const FREE_CHAT_DAILY_LIMIT = 5;
 export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
-export const DAILY_DRAFT_LIMIT_MESSAGE = 'You have reached your monthly limit. Upgrade to continue.';
+export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 30 free drafts. Upgrade to continue.";
 export const PRO_PRICE_PAISE = PLAN_CONFIG.pro.amount;
 export const PRO_PRICE_INR = 299;
 
@@ -244,7 +244,9 @@ async function normalizeSubscription(sub: Subscription): Promise<Subscription> {
   const lastReset = sub.last_reset ? new Date(sub.last_reset) : new Date(0);
   if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
     updates.last_reset = now.toISOString();
-    updates.drafts_used = 0;
+    if (sub.plan !== 'free') {
+      updates.drafts_used = 0;
+    }
   }
   
   const lastChat = sub.chat_day_key ? new Date(sub.chat_day_key) : new Date(0);

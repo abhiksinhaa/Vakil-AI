@@ -92,7 +92,7 @@ export default function DraftGenerator() {
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [draftsUsed, setDraftsUsed] = useState(0);
-  const [draftLimit, setDraftLimit] = useState(3);
+  const [draftLimit, setDraftLimit] = useState(30);
   const [plan, setPlan] = useState('free');
   const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -143,7 +143,7 @@ export default function DraftGenerator() {
       
     if (profile) {
       setDraftsUsed(count ?? 0)
-      setDraftLimit(profile.drafts_limit ?? 3)
+      setDraftLimit(profile.drafts_limit ?? 30)
     }
   }
 
@@ -389,7 +389,7 @@ export default function DraftGenerator() {
             
           if (currentProfile) {
             freshUsed = currentProfile.drafts_used || 0;
-            freshLimit = currentProfile.drafts_limit ?? 3;
+            freshLimit = currentProfile.drafts_limit ?? 30;
             currentPlan = currentProfile.plan || 'free';
             
             setDraftsUsed(freshUsed);
@@ -400,7 +400,7 @@ export default function DraftGenerator() {
         
         if (currentPlan === 'free' && freshUsed >= freshLimit) {
           setIsGenerating(false);
-          setError(`You have used all ${freshLimit} free drafts this month. Upgrade to Premium to continue.`);
+          setError(`You've used all ${freshLimit} free drafts. Upgrade to continue.`);
           return;
         } else if (freshUsed >= freshLimit) {
           setIsGenerating(false);
@@ -651,7 +651,7 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                     marginBottom: '12px', textAlign: 'center',
                     color: '#e8e0d0'
                   }}>
-                    {draftsUsed}/{draftLimit} free drafts used this month.
+                    {draftsUsed}/{draftLimit} free drafts used
                   </p>
                   <button
                     id="generate-draft-button"
