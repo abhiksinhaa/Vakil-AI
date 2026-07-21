@@ -201,7 +201,7 @@ Generate the complete ${draftType} now:`;
 
   const requestTraceId = (formData as any)?.draftId || (formData as any)?.sessionId || `${draftType}-${Date.now()}`;
 
-  let currentModel = 'gemini-2.5-flash-lite';
+  let currentModel = 'gemini-2.5-flash';
   let attempt = 0;
   const maxRetries = 1;
 
@@ -310,7 +310,16 @@ Generate the complete ${draftType} now:`;
           error: data?.error ?? null,
           message: data?.error?.message || data?.error?.status || 'Gemini API returned an error',
         });
-        throw new Error('Generation failed, please try again.');
+        
+        if (response.status === 404) {
+           const err = new Error('Generation failed, please try again.');
+           (err as any).status = 404;
+           throw err;
+        }
+        
+        const err = new Error('Generation failed, please try again.');
+        (err as any).status = response.status;
+        throw err;
       }
 
       const parts = data.candidates?.[0]?.content?.parts ?? [];
@@ -375,8 +384,15 @@ Generate the complete ${draftType} now:`;
       });
 
       if (attempt < maxRetries) {
+        const isTransient = isNetworkError || (err as any)?.status >= 500;
+        
+        if (!isTransient) {
+          console.error('[Draft Generation] Non-transient error (e.g. 404), skipping retry.');
+          throw new Error('Generation failed, please try again.');
+        }
+
         attempt++;
-        currentModel = 'gemini-2.5-flash-lite'; // Fallback model
+        currentModel = 'gemini-2.5-flash'; // Fallback model
         console.log('[Draft Generation] Retrying with fallback model:', currentModel);
         continue;
       }
