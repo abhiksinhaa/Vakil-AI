@@ -72,6 +72,19 @@ export default function PricingPage() {
 
   const [user, setUser] = useState<any>(null);
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
+  const [discountData, setDiscountData] = useState({
+    discountAvailable: false,
+    remaining: 0,
+    discountPrice: 99,
+    originalPrice: 149,
+  });
+
+  useEffect(() => {
+    fetch('/api/discount')
+      .then(r => r.json())
+      .then(data => setDiscountData(data))
+      .catch(err => console.error('Failed to fetch discount', err));
+  }, []);
 
   useEffect(() => {
     async function loadUser() {
@@ -162,7 +175,52 @@ export default function PricingPage() {
                     {isActive ? <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span> : null}
                   </div>
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
-                  <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
+                  {plan.key === 'basic' ? (
+                    discountData.discountAvailable ? (
+                      <div style={{ marginBottom: '8px', marginTop: '16px' }}>
+                        <span style={{
+                          textDecoration: 'line-through',
+                          color: '#ff4444',
+                          fontSize: '1.2rem',
+                          marginRight: '8px',
+                        }}>
+                          ₹149
+                        </span>
+                        <span style={{
+                          fontSize: '2.4rem',
+                          fontWeight: 800,
+                          color: '#c9a84c',
+                        }}>
+                          ₹99
+                        </span>
+                        <span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
+                        <div style={{
+                          background: '#ff4444',
+                          color: 'white',
+                          borderRadius: '20px',
+                          padding: '4px 12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          display: 'inline-block',
+                          marginLeft: '8px',
+                        }}>
+                          34% OFF
+                        </div>
+                        <p style={{ 
+                          color: '#c9a84c', fontSize: '0.78rem', 
+                          marginTop: '6px', fontWeight: 600 
+                        }}>
+                          ⚡ Only {discountData.remaining} spots left at this price!
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
+                        ₹149<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
+                      </div>
+                    )
+                  ) : (
+                    <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
+                  )}
                   <ul className="mt-6 space-y-2 text-sm text-cream/70 flex-1">
                     {plan.features.map(f => <li key={f}>• {f}</li>)}
                   </ul>

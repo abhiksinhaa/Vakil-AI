@@ -53,7 +53,9 @@ export async function startCheckout({ plan, userId, userEmail, userName, onSucce
       amount: orderData.amount,
       currency: 'INR',
       name: 'Draftee',
-      description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan (one-time)`,
+      description: orderData.discountApplied 
+        ? 'Premium Plan - Launch Price ₹99' 
+        : 'Premium Plan ₹149',
       order_id: orderData.orderId,
       prefill: {
         email: userEmail || '',
