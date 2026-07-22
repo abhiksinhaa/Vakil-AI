@@ -127,7 +127,7 @@ export default function DraftGenerator() {
     if (!user) return
     const { data: profile } = await supabase
       .from('profiles')
-      .select('drafts_limit')
+      .select('drafts_limit, plan')
       .eq('id', user.id)
       .single()
       
@@ -143,7 +143,8 @@ export default function DraftGenerator() {
       
     if (profile) {
       setDraftsUsed(count ?? 0)
-      setDraftLimit(profile.drafts_limit ?? 10)
+      setDraftLimit(profile.plan === 'free' ? (profile.drafts_limit ?? 10) : 999999)
+      setPlan(profile.plan || 'free')
     }
   }
 
@@ -389,8 +390,8 @@ export default function DraftGenerator() {
             
           if (currentProfile) {
             freshUsed = currentProfile.drafts_used || 0;
-            freshLimit = currentProfile.drafts_limit ?? 10;
             currentPlan = currentProfile.plan || 'free';
+            freshLimit = currentPlan === 'free' ? (currentProfile.drafts_limit ?? 10) : 999999;
             
             setDraftsUsed(freshUsed);
             setDraftLimit(freshLimit);
@@ -644,14 +645,14 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             </div>
 
             <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0 mt-4">
-              {draftsUsed < draftLimit ? (
+              {draftsUsed < draftLimit || plan !== 'free' ? (
                 <>
                   <p style={{ 
                     fontSize: '0.85rem', opacity: 0.7, 
                     marginBottom: '12px', textAlign: 'center',
                     color: '#e8e0d0'
                   }}>
-                    {draftsUsed}/{draftLimit} free drafts used
+                    {plan === 'free' ? `${draftsUsed}/${draftLimit} free drafts used` : 'Unlimited Premium Drafts'}
                   </p>
                   <button
                     id="generate-draft-button"

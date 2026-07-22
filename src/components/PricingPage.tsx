@@ -48,9 +48,20 @@ const GLITTER_STYLES = `
 `;
 
 const PLANS = [
-  { key: 'basic', label: 'Basic', price: '₹149', drafts: '30 drafts' },
-  { key: 'standard', label: 'Standard', price: '₹199', drafts: '40 drafts' },
-  { key: 'pro', label: 'Pro', price: '₹299', drafts: '100 drafts' },
+  { 
+    key: 'free', 
+    label: 'Free', 
+    price: '₹0', 
+    drafts: '10 lifetime drafts',
+    features: ['10 lifetime drafts total', 'Standard generation speed'] 
+  },
+  { 
+    key: 'basic', 
+    label: 'Premium', 
+    price: '₹149/month', 
+    drafts: 'Unlimited drafts',
+    features: ['Unlimited drafts', 'Draft History', 'PDF Downloads', 'Future features included'] 
+  },
 ] as const;
 
 export default function PricingPage() {
@@ -141,30 +152,33 @@ export default function PricingPage() {
           {message ? <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</div> : null}
           {error ? <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div> : null}
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
             {PLANS.map((plan) => {
-              const isActive = profile?.plan === plan.key;
+              const isActive = profile?.plan === plan.key || (plan.key === 'free' && (!profile?.plan || profile.plan === 'free'));
               return (
-                <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)]">
+                <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)] flex flex-col">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold text-gold">{plan.label}</h2>
                     {isActive ? <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span> : null}
                   </div>
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
                   <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
-                  <ul className="mt-6 space-y-2 text-sm text-cream/70">
-                    <li>• Valid for 30 days</li>
-                    <li>• Secure one-time payment</li>
-                    <li>• Instant limit updates</li>
-                    <li>• Priority draft generation</li>
+                  <ul className="mt-6 space-y-2 text-sm text-cream/70 flex-1">
+                    {plan.features.map(f => <li key={f}>• {f}</li>)}
                   </ul>
-                  <button
-                    onClick={() => void handleSubscribe(plan.key as 'basic' | 'standard' | 'pro')}
-                    disabled={loadingPlan === plan.key}
-                    className="mt-8 w-full rounded-full border border-gold/40 bg-gold px-4 py-3 text-sm font-semibold text-[#020b14] transition hover:bg-[#ffd966]"
-                  >
-                    {loadingPlan === plan.key ? 'Processing...' : 'Buy Now'}
-                  </button>
+                  {plan.key !== 'free' ? (
+                    <button
+                      onClick={() => void handleSubscribe(plan.key as 'basic' | 'standard' | 'pro')}
+                      disabled={loadingPlan === plan.key || isActive}
+                      className={`mt-8 w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition ${isActive ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40 cursor-not-allowed' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
+                    >
+                      {loadingPlan === plan.key ? 'Processing...' : isActive ? 'Current Plan' : 'Buy Now'}
+                    </button>
+                  ) : (
+                    <div className="mt-8 w-full px-4 py-3 text-sm font-semibold text-center text-cream/50 h-[46px]">
+                      {isActive ? 'Current Plan' : ''}
+                    </div>
+                  )}
                 </div>
               );
             })}

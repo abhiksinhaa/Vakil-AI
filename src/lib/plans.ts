@@ -6,19 +6,19 @@ export const PLAN_CONFIG = {
   starter: {
     label: 'Starter',
     amount: 14900,
-    draftsLimit: 30,
+    draftsLimit: 999999,
     planId: process.env.RAZORPAY_PLAN_BASIC || 'plan_TDWCGXaopCTWZw',
   },
   standard: {
     label: 'Standard',
     amount: 19900,
-    draftsLimit: 40,
+    draftsLimit: 999999,
     planId: process.env.RAZORPAY_PLAN_STANDARD || 'plan_TDWJ0fBwA0AmY6',
   },
   pro: {
     label: 'Pro',
     amount: 29900,
-    draftsLimit: 100,
+    draftsLimit: 999999,
     planId: process.env.RAZORPAY_PLAN_PRO || 'plan_TDWJdOwAyauKDY',
   },
 } as const;
