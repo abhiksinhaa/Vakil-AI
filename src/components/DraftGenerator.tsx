@@ -153,28 +153,7 @@ export default function DraftGenerator() {
   }, [])
 
   useEffect(() => {
-    if (
-      draftsUsed > 0 &&
-      draftsUsed >= feedbackThreshold &&
-      !feedbackSubmittedThisSession &&
-      !isGenerating &&
-      !actionBusy
-    ) {
-      if (feedbackTimeoutRef.current) {
-        window.clearTimeout(feedbackTimeoutRef.current);
-      }
-      console.log(`Conditions met for feedback popup (count: ${draftsUsed}, threshold: ${feedbackThreshold}). Waiting 2s...`);
-      feedbackTimeoutRef.current = window.setTimeout(() => {
-        console.log('Triggering feedback popup now.');
-        setFeedbackVisible(true);
-      }, 2000);
-    }
-
-    return () => {
-      if (feedbackTimeoutRef.current) {
-        window.clearTimeout(feedbackTimeoutRef.current);
-      }
-    };
+    // feedback triggering moved to generateDraft to only show once after successful generation
   }, [draftsUsed, feedbackThreshold, feedbackSubmittedThisSession, isGenerating, actionBusy]);
 
   useEffect(() => {
@@ -477,6 +456,11 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       setDraft(text);
       setIsGenerating(false); // Stop loading immediately so user sees the draft
       
+      if (!sessionStorage.getItem('feedback_shown')) {
+        setFeedbackVisible(true);
+        sessionStorage.setItem('feedback_shown', 'true');
+      }
+
       console.log('Auto-saving draft in background...');
       void saveDraft({
         draftType: submissionForm.draftType === 'Affidavit' ? `Affidavit - ${submissionForm.affidavitSubType}` : submissionForm.draftType,

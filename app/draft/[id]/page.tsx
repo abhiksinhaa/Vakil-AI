@@ -61,7 +61,7 @@ export default function DraftDetailPage() {
 
       setDraft(draftData)
       setProfile(profileData)
-      setIsPremium(profileData?.plan !== 'free')
+      setIsPremium(Boolean(profileData?.plan && profileData.plan !== 'free'))
       setLoading(false)
     }
 

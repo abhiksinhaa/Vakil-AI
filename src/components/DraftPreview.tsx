@@ -504,7 +504,7 @@ export default function DraftPreview({
 
       {draft && !isGenerating && !error && (
         <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-          {profile?.plan !== 'free' ? (
+          {profile?.plan && profile.plan !== 'free' ? (
             isEditing ? (
               <>
                 <button type="button" onClick={saveEdits} className="btn-primary text-sm">
