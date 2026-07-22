@@ -14,6 +14,7 @@ export default function DraftDetailPage() {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -60,6 +61,7 @@ export default function DraftDetailPage() {
 
       setDraft(draftData)
       setProfile(profileData)
+      setIsPremium(profileData?.plan !== 'free')
       setLoading(false)
     }
 
@@ -215,32 +217,59 @@ export default function DraftDetailPage() {
         {draftContent}
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '10px',
-        }}
-      >
-        {actions.map(({ label, fn }) => (
-          <button
-            key={label}
-            onClick={fn}
-            style={{
-              background: '#0f1525',
-              border: '1px solid #1e2a3a',
-              borderRadius: '10px',
-              color: '#e8e0d0',
-              padding: '12px 8px',
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {isPremium ? (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '10px',
+          }}
+        >
+          {actions.map(({ label, fn }) => (
+            <button
+              key={label}
+              onClick={fn}
+              style={{
+                background: '#0f1525',
+                border: '1px solid #1e2a3a',
+                borderRadius: '10px',
+                color: '#e8e0d0',
+                padding: '12px 8px',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          background: '#0f1525',
+          border: '1px solid #c9a84c',
+          borderRadius: '12px',
+          marginTop: '20px',
+        }}>
+          <p style={{ color: '#e8e0d0', marginBottom: '12px', fontSize: '0.95rem' }}>
+            ✨ Upgrade to Premium to download, share and edit drafts.
+          </p>
+          <a href="/pricing" style={{
+            display: 'inline-block',
+            background: 'linear-gradient(135deg, #c9a84c, #e3c47e)',
+            color: '#0a0f1e',
+            borderRadius: '10px',
+            padding: '12px 28px',
+            fontWeight: 700,
+            fontSize: '0.9rem',
+            textDecoration: 'none',
+          }}>
+            Upgrade Now →
+          </a>
+        </div>
+      )}
     </div>
   )
 }

@@ -504,52 +504,80 @@ export default function DraftPreview({
 
       {draft && !isGenerating && !error && (
         <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-          {isEditing ? (
-            <>
-              <button type="button" onClick={saveEdits} className="btn-primary text-sm">
-                Save edits
-              </button>
-              <button type="button" onClick={cancelEdit} className="btn-secondary text-sm">
-                Cancel
-              </button>
-            </>
+          {profile?.plan !== 'free' ? (
+            isEditing ? (
+              <>
+                <button type="button" onClick={saveEdits} className="btn-primary text-sm">
+                  Save edits
+                </button>
+                <button type="button" onClick={cancelEdit} className="btn-secondary text-sm">
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={startEdit} className="btn-secondary text-sm">
+                  Edit draft
+                </button>
+                <button type="button" onClick={handleCopy} className="btn-secondary text-sm">
+                  {copied ? 'Copied! ✓' : 'Copy'}
+                </button>
+                <button type="button" onClick={handleDownloadTxt} className="btn-secondary text-sm">
+                  .txt
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={isPdfLoading}
+                  className="btn-secondary text-sm"
+                >
+                  {isPdfLoading ? 'PDF…' : 'PDF'}
+                </button>
+                <button type="button" onClick={handleWhatsApp} className="btn-secondary text-sm">
+                  WhatsApp
+                </button>
+                <button type="button" onClick={handleEmail} className="btn-secondary text-sm">
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveWrapper}
+                  disabled={isSaving || saveSuccess}
+                  className="btn-secondary text-sm"
+                >
+                  {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : 'Save'}
+                </button>
+                <button type="button" onClick={onRegenerate} className="btn-primary text-sm ml-auto">
+                  Regenerate
+                </button>
+              </>
+            )
           ) : (
-            <>
-              <button type="button" onClick={startEdit} className="btn-secondary text-sm">
-                Edit draft
-              </button>
-              <button type="button" onClick={handleCopy} className="btn-secondary text-sm">
-                {copied ? 'Copied! ✓' : 'Copy'}
-              </button>
-              <button type="button" onClick={handleDownloadTxt} className="btn-secondary text-sm">
-                .txt
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={isPdfLoading}
-                className="btn-secondary text-sm"
-              >
-                {isPdfLoading ? 'PDF…' : 'PDF'}
-              </button>
-              <button type="button" onClick={handleWhatsApp} className="btn-secondary text-sm">
-                WhatsApp
-              </button>
-              <button type="button" onClick={handleEmail} className="btn-secondary text-sm">
-                Email
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveWrapper}
-                disabled={isSaving || saveSuccess}
-                className="btn-secondary text-sm"
-              >
-                {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : 'Save'}
-              </button>
-              <button type="button" onClick={onRegenerate} className="btn-primary text-sm ml-auto">
-                Regenerate
-              </button>
-            </>
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              background: '#0f1525',
+              border: '1px solid #c9a84c',
+              borderRadius: '12px',
+              marginTop: '10px',
+              width: '100%',
+            }}>
+              <p style={{ color: '#e8e0d0', marginBottom: '12px', fontSize: '0.95rem' }}>
+                ✨ Upgrade to Premium to download, share and edit drafts.
+              </p>
+              <a href="/pricing" style={{
+                display: 'inline-block',
+                background: 'linear-gradient(135deg, #c9a84c, #e3c47e)',
+                color: '#0a0f1e',
+                borderRadius: '10px',
+                padding: '12px 28px',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+              }}>
+                Upgrade Now →
+              </a>
+            </div>
           )}
         </div>
       )}
