@@ -9,7 +9,7 @@ export const PLAN_PRICING = PLAN_CONFIG;
 export const FREE_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const FREE_CHAT_DAILY_LIMIT = 5;
 export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
-export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 30 free drafts. Upgrade to continue.";
+export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 10 free drafts. Upgrade to continue.";
 export const PRO_PRICE_PAISE = PLAN_CONFIG.pro.amount;
 export const PRO_PRICE_INR = 299;
 

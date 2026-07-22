@@ -92,7 +92,7 @@ export default function DraftGenerator() {
   const [offlineWarning, setOfflineWarning] = useState<string | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [draftsUsed, setDraftsUsed] = useState(0);
-  const [draftLimit, setDraftLimit] = useState(30);
+  const [draftLimit, setDraftLimit] = useState(10);
   const [plan, setPlan] = useState('free');
   const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -143,7 +143,7 @@ export default function DraftGenerator() {
       
     if (profile) {
       setDraftsUsed(count ?? 0)
-      setDraftLimit(profile.drafts_limit ?? 30)
+      setDraftLimit(profile.drafts_limit ?? 10)
     }
   }
 
@@ -389,7 +389,7 @@ export default function DraftGenerator() {
             
           if (currentProfile) {
             freshUsed = currentProfile.drafts_used || 0;
-            freshLimit = currentProfile.drafts_limit ?? 30;
+            freshLimit = currentProfile.drafts_limit ?? 10;
             currentPlan = currentProfile.plan || 'free';
             
             setDraftsUsed(freshUsed);

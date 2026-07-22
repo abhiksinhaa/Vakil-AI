@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         
       if (profile?.plan === 'free') {
         const used = profile.drafts_used ?? 0;
-        const limit = profile.drafts_limit ?? 30;
+        const limit = profile.drafts_limit ?? 10;
         
         if (used >= limit) {
           return Response.json(

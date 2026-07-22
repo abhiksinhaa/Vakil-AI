@@ -2,7 +2,7 @@ export type PaidPlan = 'starter' | 'standard' | 'pro';
 export type PlanKey = 'free' | PaidPlan;
 
 export const PLAN_CONFIG = {
-  free: { label: 'Free', amount: 0, draftsLimit: 30, planId: '' },
+  free: { label: 'Free', amount: 0, draftsLimit: 10, planId: '' },
   starter: {
     label: 'Starter',
     amount: 14900,
