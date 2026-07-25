@@ -57,7 +57,7 @@ const PLANS = [
   },
   { 
     key: 'premium', 
-    label: 'Premium', 
+    label: 'Basic', 
     price: '₹149/month', 
     drafts: 'Unlimited drafts',
     features: ['Unlimited drafts', 'Draft History', 'PDF Downloads', 'Future features included'] 
@@ -94,7 +94,7 @@ export default function PricingPage() {
 
   // Calculate formatted plan for display
   useEffect(() => {
-    setCurrentPlan(isPro ? 'Premium' : 'Free');
+    setCurrentPlan(isPro ? 'Basic' : 'Free');
   }, [isPro]);
 
   const handleSubscribe = async (plan: 'premium') => {
