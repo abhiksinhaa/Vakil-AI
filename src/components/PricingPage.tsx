@@ -70,8 +70,8 @@ export default function PricingPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [user, setUser] = useState<any>(null);
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
+
   const [discountData, setDiscountData] = useState({
     discountAvailable: false,
     remaining: 0,
@@ -87,24 +87,16 @@ export default function PricingPage() {
   }, []);
 
   useEffect(() => {
-    async function loadUser() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('plan')
-          .eq('id', user.id)
-          .single()
-        if (profile) {
-          const plan = profile.plan || 'free';
-          setCurrentPlan(plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1));
-        }
-      }
+    if (session?.user) {
+      refreshAccount().catch(err => console.error('Failed to refresh account on pricing page mount', err));
     }
-    loadUser()
-  }, [])
+  }, [session?.user]); // Only run when user session is available
+
+  // Calculate formatted plan for display
+  useEffect(() => {
+    const plan = profile?.plan || 'free';
+    setCurrentPlan(plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1));
+  }, [profile?.plan]);
 
   const handleSubscribe = async (plan: 'basic' | 'standard' | 'pro') => {
     if (!session?.user?.id) {
@@ -250,12 +242,12 @@ export default function PricingPage() {
             {process.env.NODE_ENV === 'development' && (
               <button
                 onClick={async () => {
-                  if (!user) {
+                  if (!session?.user) {
                     console.error('User is null!')
                     alert('Not logged in!')
                     return
                   }
-                  console.log('User ID:', user.id)
+                  console.log('User ID:', session.user.id)
                   
                   const res = await fetch('/api/razorpay/verify', {
                     method: 'POST',
@@ -265,7 +257,7 @@ export default function PricingPage() {
                       razorpay_payment_id: 'test_payment_123',
                       razorpay_signature: 'test_skip',
                       plan: 'basic',
-                      userId: user.id,
+                      userId: session.user.id,
                     }),
                   })
                   const result = await res.json()

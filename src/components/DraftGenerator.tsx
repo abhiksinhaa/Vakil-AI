@@ -375,6 +375,7 @@ export default function DraftGenerator() {
             setDraftsUsed(freshUsed);
             setDraftLimit(freshLimit);
             setPlan(currentPlan);
+            setProfile((prev) => prev ? { ...prev, plan: currentPlan as any, drafts_used: freshUsed, drafts_limit: freshLimit } : prev);
           }
         }
         

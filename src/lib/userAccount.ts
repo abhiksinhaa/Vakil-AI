@@ -192,7 +192,9 @@ export async function fetchProfile(): Promise<Profile | null> {
   if (!user) return null;
   await ensureUserRecords();
   await checkAndHandlePlanExpiry(user.id);
-  return getProfileRow(user.id);
+  const profile = await getProfileRow(user.id);
+  console.log('Profile fetched:', profile);
+  return profile;
 }
 
 export async function updateProfile(updates: Partial<Profile>) {
