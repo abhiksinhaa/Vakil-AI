@@ -1,5 +1,5 @@
 interface CheckoutOptions {
-  plan: 'basic' | 'standard' | 'pro';
+  plan: 'premium';
   userId: string;
   userEmail?: string | null;
   userName?: string | null;

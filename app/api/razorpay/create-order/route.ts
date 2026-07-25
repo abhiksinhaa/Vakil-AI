@@ -25,9 +25,7 @@ export async function POST(req: Request) {
   const discountAvailable = paidCount < 100
 
   const PLANS: Record<string, {amount: number; drafts: number}> = {
-    basic:    { amount: discountAvailable ? 9900 : 14900, drafts: -1 },
-    standard: { amount: 19900, drafts: 40  },
-    pro:      { amount: 29900, drafts: 100 },
+    premium:    { amount: discountAvailable ? 9900 : 14900, drafts: -1 },
   }
 
   if (!PLANS[plan]) {
@@ -44,6 +42,6 @@ export async function POST(req: Request) {
     orderId: order.id, 
     amount: order.amount, 
     plan,
-    discountApplied: discountAvailable && plan === 'basic',
+    discountApplied: discountAvailable && plan === 'premium',
   })
 }

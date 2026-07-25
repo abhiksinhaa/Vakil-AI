@@ -10,8 +10,8 @@ export const FREE_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const FREE_CHAT_DAILY_LIMIT = 5;
 export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 10 free drafts. Upgrade to continue.";
-export const PRO_PRICE_PAISE = PLAN_CONFIG.pro.amount;
-export const PRO_PRICE_INR = 299;
+export const PRO_PRICE_PAISE = PLAN_CONFIG.premium.amount;
+export const PRO_PRICE_INR = 149;
 
 export { getPlanConfig };
 
@@ -304,9 +304,29 @@ export async function checkDraftAllowance() {
   const planState = await syncProfilePlanState(user.id, profile);
   const isAdvocate = profile?.user_type !== 'individual';
   const plan = planState.plan ?? 'free';
-  const isPro = plan !== 'free';
-  const limit = isPro ? Number(planState.draftsLimit || getPlanConfig(plan).draftsLimit) : FREE_DRAFT_LIMIT;
-  const used = Math.max(0, Number(planState.draftsUsed ?? sub?.drafts_used ?? 0));
+  const isPro = plan === 'premium' && planState.planExpiresAt != null && new Date(planState.planExpiresAt) > new Date();
+  
+  if (isPro) {
+    return {
+      allowed: true,
+      isPro: true,
+      reason: 'ok',
+      message: null,
+      used: 0,
+      limit: null,
+      remaining: null,
+      userType: profile?.user_type || 'advocate',
+    };
+  }
+
+  // Count lifetime drafts from the drafts table directly
+  const { count } = await supabase
+    .from('drafts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+    
+  const used = count || 0;
+  const limit = FREE_DRAFT_LIMIT;
   const remaining = Math.max(0, limit - used);
 
   if (!isAdvocate && plan === 'free') {

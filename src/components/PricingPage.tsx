@@ -56,7 +56,7 @@ const PLANS = [
     features: ['10 lifetime drafts total', 'Standard generation speed'] 
   },
   { 
-    key: 'basic', 
+    key: 'premium', 
     label: 'Premium', 
     price: '₹149/month', 
     drafts: 'Unlimited drafts',
@@ -65,7 +65,7 @@ const PLANS = [
 ] as const;
 
 export default function PricingPage() {
-  const { session, profile, refreshAccount } = useApp();
+  const { session, profile, refreshAccount, isPro } = useApp();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,11 +94,10 @@ export default function PricingPage() {
 
   // Calculate formatted plan for display
   useEffect(() => {
-    const plan = profile?.plan || 'free';
-    setCurrentPlan(plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1));
-  }, [profile?.plan]);
+    setCurrentPlan(isPro ? 'Premium' : 'Free');
+  }, [isPro]);
 
-  const handleSubscribe = async (plan: 'basic' | 'standard' | 'pro') => {
+  const handleSubscribe = async (plan: 'premium') => {
     if (!session?.user?.id) {
       setError('Please sign in to purchase.');
       return;
@@ -159,7 +158,7 @@ export default function PricingPage() {
 
           <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
             {PLANS.map((plan) => {
-              const isActive = profile?.plan === plan.key || (plan.key === 'free' && (!profile?.plan || profile.plan === 'free'));
+              const isActive = isPro ? plan.key === 'premium' : plan.key === 'free';
               return (
                 <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)] flex flex-col">
                   <div className="flex items-center justify-between">
@@ -167,7 +166,7 @@ export default function PricingPage() {
                     {isActive ? <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span> : null}
                   </div>
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
-                  {plan.key === 'basic' ? (
+                  {plan.key === 'premium' ? (
                     discountData.discountAvailable ? (
                       <div style={{ marginBottom: '8px', marginTop: '16px' }}>
                         <span style={{
@@ -218,7 +217,7 @@ export default function PricingPage() {
                   </ul>
                   {plan.key !== 'free' ? (
                     <button
-                      onClick={() => void handleSubscribe(plan.key as 'basic' | 'standard' | 'pro')}
+                      onClick={() => void handleSubscribe(plan.key as 'premium')}
                       disabled={loadingPlan === plan.key || isActive}
                       className={`mt-8 w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition ${isActive ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40 cursor-not-allowed' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
                     >
@@ -256,7 +255,7 @@ export default function PricingPage() {
                       razorpay_order_id: 'test_order_123',
                       razorpay_payment_id: 'test_payment_123',
                       razorpay_signature: 'test_skip',
-                      plan: 'basic',
+                      plan: 'premium',
                       userId: session.user.id,
                     }),
                   })

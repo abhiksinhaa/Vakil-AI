@@ -354,7 +354,7 @@ export default function DraftPreview({
     }
   };
 
-  const isPremium = profile?.plan && ['basic', 'standard', 'pro'].includes(String(profile.plan).toLowerCase());
+  const isPremium = profile?.plan === 'premium' && profile?.plan_expires_at != null && new Date(profile.plan_expires_at) > new Date();
   console.log('RENDER: isPremium value at render time:', isPremium, 'profile:', profile);
 
   return (

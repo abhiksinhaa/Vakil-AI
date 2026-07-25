@@ -561,7 +561,7 @@ export default function SettingsPage() {
               <div className="grid gap-4 pt-6 sm:grid-cols-2">
                 <div className="rounded-3xl border border-border bg-navy/60 p-4">
                   <p className="text-cream/70 text-sm">Plan</p>
-                  <p className="mt-2 font-medium text-cream">{subscription?.plan === 'pro' ? 'Pro Annual' : 'Free'}</p>
+                  <p className="mt-2 font-medium text-cream">{subscription?.plan === 'premium' ? 'Premium Annual' : 'Free'}</p>
                   {isPro ? (
                     <p className="text-cream/50 text-sm mt-1">Status: Active</p>
                   ) : null}
@@ -581,7 +581,7 @@ export default function SettingsPage() {
                   <Download className="inline h-4 w-4 mr-2 align-text-bottom" /> Export data
                 </button>
                 <button type="button" onClick={() => router.push('/pricing')} className="btn-primary px-4 py-3 text-sm">
-                  {subscription?.plan === 'pro' ? 'Upgrade plan' : 'Upgrade to Pro'}
+                  {subscription?.plan === 'premium' ? 'Upgrade plan' : 'Upgrade to Premium'}
                 </button>
               </div>
             </section>

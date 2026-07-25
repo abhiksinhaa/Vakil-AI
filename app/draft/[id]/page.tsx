@@ -61,7 +61,7 @@ export default function DraftDetailPage() {
 
       setDraft(draftData)
       setProfile(profileData)
-      setIsPremium(Boolean(profileData?.plan && ['basic', 'standard', 'pro'].includes(String(profileData.plan).toLowerCase())))
+      setIsPremium(Boolean(profileData?.plan === 'premium' && profileData?.plan_expires_at != null && new Date(profileData.plan_expires_at) > new Date()))
       setLoading(false)
     }
 

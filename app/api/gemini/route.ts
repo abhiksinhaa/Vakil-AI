@@ -56,9 +56,14 @@ export async function POST(req: Request) {
         .eq('id', userId)
         .single();
         
-      if (profile?.plan === 'free') {
-        const used = profile.drafts_used ?? 0;
-        const limit = profile.drafts_limit ?? 10;
+      if (profile?.plan !== 'premium') {
+        const { count } = await supabaseAdmin
+          .from('drafts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId);
+          
+        const used = count || 0;
+        const limit = 10;
         
         if (used >= limit) {
           return Response.json(

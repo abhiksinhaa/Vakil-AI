@@ -131,19 +131,14 @@ export default function DraftGenerator() {
       .eq('id', user.id)
       .single()
       
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    startOfMonth.setHours(0,0,0,0)
-    
     const { count } = await supabase
       .from('drafts')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .gte('created_at', startOfMonth.toISOString())
       
     if (profile) {
       setDraftsUsed(count ?? 0)
-      setDraftLimit(profile.plan === 'free' ? (profile.drafts_limit ?? 10) : 999999)
+      setDraftLimit(profile.plan === 'premium' ? 999999 : 10)
       setPlan(profile.plan || 'free')
     }
   }
@@ -368,14 +363,13 @@ export default function DraftGenerator() {
             .single();
             
           if (currentProfile) {
-            freshUsed = currentProfile.drafts_used || 0;
+            freshUsed = draftsUsed; // Use the draftsUsed we already fetched via refreshDraftCount, not the stale profile.drafts_used
             currentPlan = currentProfile.plan || 'free';
-            freshLimit = currentPlan === 'free' ? (currentProfile.drafts_limit ?? 10) : 999999;
+            freshLimit = currentPlan === 'premium' ? 999999 : 10;
             
-            setDraftsUsed(freshUsed);
             setDraftLimit(freshLimit);
             setPlan(currentPlan);
-            setProfile((prev) => prev ? { ...prev, plan: currentPlan as any, drafts_used: freshUsed, drafts_limit: freshLimit } : prev);
+            setProfile((prev) => prev ? { ...prev, plan: currentPlan as any, drafts_limit: freshLimit } : prev);
           }
         }
         
