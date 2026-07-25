@@ -42,6 +42,6 @@ export async function POST(req: Request) {
     orderId: order.id, 
     amount: order.amount, 
     plan,
-    discountApplied: discountAvailable && plan === 'premium',
+    discountApplied: discountAvailable && plan === 'basic',
   })
 }

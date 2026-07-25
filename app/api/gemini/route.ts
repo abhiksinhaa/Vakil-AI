@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         .eq('id', userId)
         .single();
         
-      if (profile?.plan !== 'premium') {
+      if (profile?.plan !== 'basic') {
         const { count } = await supabaseAdmin
           .from('drafts')
           .select('*', { count: 'exact', head: true })

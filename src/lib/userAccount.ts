@@ -10,7 +10,7 @@ export const FREE_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const FREE_CHAT_DAILY_LIMIT = 5;
 export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 10 free drafts. Upgrade to continue.";
-export const PRO_PRICE_PAISE = PLAN_CONFIG.premium.amount;
+export const PRO_PRICE_PAISE = PLAN_CONFIG.basic.amount;
 export const PRO_PRICE_INR = 149;
 
 export { getPlanConfig };
@@ -304,7 +304,7 @@ export async function checkDraftAllowance() {
   const planState = await syncProfilePlanState(user.id, profile);
   const isAdvocate = profile?.user_type !== 'individual';
   const plan = planState.plan ?? 'free';
-  const isPro = plan === 'premium' && planState.planExpiresAt != null && new Date(planState.planExpiresAt) > new Date();
+  const isPro = plan === 'basic' && planState.planExpiresAt != null && new Date(planState.planExpiresAt) > new Date();
   
   if (isPro) {
     return {

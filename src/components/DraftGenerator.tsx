@@ -138,7 +138,7 @@ export default function DraftGenerator() {
       
     if (profile) {
       setDraftsUsed(count ?? 0)
-      setDraftLimit(profile.plan === 'premium' ? 999999 : 10)
+      setDraftLimit(profile.plan === 'basic' ? 999999 : 10)
       setPlan(profile.plan || 'free')
     }
   }
@@ -365,7 +365,7 @@ export default function DraftGenerator() {
           if (currentProfile) {
             freshUsed = draftsUsed; // Use the draftsUsed we already fetched via refreshDraftCount, not the stale profile.drafts_used
             currentPlan = currentProfile.plan || 'free';
-            freshLimit = currentPlan === 'premium' ? 999999 : 10;
+            freshLimit = currentPlan === 'basic' ? 999999 : 10;
             
             setDraftLimit(freshLimit);
             setPlan(currentPlan);

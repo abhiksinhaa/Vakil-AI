@@ -8,7 +8,7 @@ export interface Profile {
   advocate_name: string;
   bar_council_number: string;
   court_jurisdiction: string;
-  plan?: 'free' | 'premium';
+  plan?: 'free' | 'basic';
   drafts_limit?: number;
   drafts_used?: number;
   plan_expires_at?: string | null;
@@ -65,7 +65,7 @@ export interface Profile {
 
 export interface Subscription {
   id?: string;
-  plan: 'free' | 'premium';
+  plan: 'free' | 'basic';
   drafts_used: number;
   created_at?: string;
   chat_day_key: string;

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 30)
 
-  const planName = 'premium';
+  const planName = 'basic';
   const draftsLimit = null;
 
   const db = adminDb()

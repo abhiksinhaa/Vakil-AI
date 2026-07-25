@@ -21,7 +21,7 @@ async function grantReferralRewards(referrerId: string) {
   const total = count ?? 0;
   if (total >= 5) {
     const { error: upsertError } = await db.from('subscriptions').upsert(
-      buildSubscriptionPayload({ id: referrerId, plan: 'premium' }),
+      buildSubscriptionPayload({ id: referrerId, plan: 'basic' }),
       { onConflict: 'id' }
     );
 

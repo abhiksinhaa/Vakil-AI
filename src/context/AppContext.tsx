@@ -204,7 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setFontSizeMode,
       profile,
       subscription,
-      isPro: isProActive(subscription) || (profile?.plan === 'premium' && profile?.plan_expires_at != null && new Date(profile.plan_expires_at) > new Date()),
+      isPro: isProActive(subscription) || (profile?.plan === 'basic' && profile?.plan_expires_at != null && new Date(profile.plan_expires_at) > new Date()),
       accountLoading,
       refreshAccount,
       setProfile,

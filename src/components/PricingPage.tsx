@@ -56,7 +56,7 @@ const PLANS = [
     features: ['10 lifetime drafts total', 'Standard generation speed'] 
   },
   { 
-    key: 'premium', 
+    key: 'basic', 
     label: 'Basic', 
     price: '₹149/month', 
     drafts: 'Unlimited drafts',
@@ -97,7 +97,7 @@ export default function PricingPage() {
     setCurrentPlan(isPro ? 'Basic' : 'Free');
   }, [isPro]);
 
-  const handleSubscribe = async (plan: 'premium') => {
+  const handleSubscribe = async (plan: 'basic') => {
     if (!session?.user?.id) {
       setError('Please sign in to purchase.');
       return;
@@ -158,7 +158,7 @@ export default function PricingPage() {
 
           <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
             {PLANS.map((plan) => {
-              const isActive = isPro ? plan.key === 'premium' : plan.key === 'free';
+              const isActive = isPro ? plan.key === 'basic' : plan.key === 'free';
               return (
                 <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)] flex flex-col">
                   <div className="flex items-center justify-between">
@@ -166,7 +166,7 @@ export default function PricingPage() {
                     {isActive ? <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span> : null}
                   </div>
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
-                  {plan.key === 'premium' ? (
+                  {plan.key === 'basic' ? (
                     discountData.discountAvailable ? (
                       <div style={{ marginBottom: '8px', marginTop: '16px' }}>
                         <span style={{
@@ -217,7 +217,7 @@ export default function PricingPage() {
                   </ul>
                   {plan.key !== 'free' ? (
                     <button
-                      onClick={() => void handleSubscribe(plan.key as 'premium')}
+                      onClick={() => void handleSubscribe(plan.key as 'basic')}
                       disabled={loadingPlan === plan.key || isActive}
                       className={`mt-8 w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition ${isActive ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40 cursor-not-allowed' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
                     >
@@ -255,7 +255,7 @@ export default function PricingPage() {
                       razorpay_order_id: 'test_order_123',
                       razorpay_payment_id: 'test_payment_123',
                       razorpay_signature: 'test_skip',
-                      plan: 'premium',
+                      plan: 'basic',
                       userId: session.user.id,
                     }),
                   })
