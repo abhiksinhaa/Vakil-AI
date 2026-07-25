@@ -267,7 +267,7 @@ async function normalizeSubscription(sub: Subscription): Promise<Subscription> {
 
 export function isProActive(sub: Subscription | null) {
   if (!sub) return false;
-  return sub.plan !== 'free';
+  return String(sub.plan).toLowerCase() !== 'free';
 }
 
 export async function fetchSubscription(): Promise<Subscription | null> {

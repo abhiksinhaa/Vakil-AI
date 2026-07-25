@@ -354,6 +354,9 @@ export default function DraftPreview({
     }
   };
 
+  const isPremium = profile?.plan && ['basic', 'standard', 'pro'].includes(String(profile.plan).toLowerCase());
+  console.log('RENDER: isPremium value at render time:', isPremium, 'profile:', profile);
+
   return (
     <div className="card h-full flex flex-col min-h-[400px] lg:min-h-0">
       {showProfileModal && (
@@ -504,7 +507,7 @@ export default function DraftPreview({
 
       {draft && !isGenerating && !error && (
         <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-          {profile?.plan && ['basic', 'standard', 'pro'].includes(profile.plan) ? (
+          {isPremium ? (
             isEditing ? (
               <>
                 <button type="button" onClick={saveEdits} className="btn-primary text-sm">
