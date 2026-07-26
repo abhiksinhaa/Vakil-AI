@@ -182,7 +182,7 @@ export default function PricingPage() {
               let badge = null;
               if (plan.key === 'free' && pPlan === 'free') {
                 badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span>;
-              } else if (plan.key === 'basic' && (pPlan === 'basic' || pPlan === 'starter' || pPlan === 'standard' || pPlan === 'pro')) {
+              } else if (plan.key === 'basic' && pPlan === 'basic') {
                 badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Current Plan</span>;
               }
 

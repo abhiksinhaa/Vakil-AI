@@ -22,8 +22,13 @@ export async function POST(req: Request) {
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 30)
 
-  const planName = 'basic';
-  const draftsLimit = null;
+  let planName = 'basic';
+  let draftsLimit = 999999;
+  
+  if (amount === 14900 || amount === 9900) {
+    planName = 'basic';
+    draftsLimit = 999999;
+  }
 
   const db = adminDb()
   const { error } = await db

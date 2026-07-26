@@ -15,7 +15,7 @@ export const SUBSCRIPTION_MONTHS = 1;
 
 export function normalizePlan(plan?: string | null): PlanKey {
   const key = String(plan || 'free').toLowerCase();
-  if (key === 'premium' || key === 'basic' || key === 'starter' || key === 'pro' || key === 'standard') return 'basic';
+  if (key === 'premium' || key === 'basic') return 'basic';
   return 'free';
 }
 
@@ -31,7 +31,7 @@ export function getPaidPlanFromAmount(amountPaise: number): PaidPlan | null {
 
 export function parsePlanFromReceipt(receipt?: string | null): PaidPlan | null {
   if (!receipt) return null;
-  const match = receipt.match(/^draftee_(premium|starter|standard|pro)_/);
+  const match = receipt.match(/^draftee_(premium|basic)_/);
   return match ? 'basic' : null;
 }
 
