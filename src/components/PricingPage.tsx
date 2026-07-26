@@ -243,22 +243,20 @@ export default function PricingPage() {
                     {plan.features.map(f => <li key={f}>• {f}</li>)}
                   </ul>
                   {plan.key !== 'free' ? (
-                    showBuyNow ? (
+                    <div className="mt-8 flex flex-col gap-3 w-full">
+                      {!showBuyNow && (
+                        <div className="w-full rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-center text-emerald-300">
+                          Current Plan
+                        </div>
+                      )}
                       <button
                         onClick={() => void handleSubscribe(plan.key as 'basic')}
                         disabled={loadingPlan === plan.key}
-                        className="mt-8 w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition bg-gold text-[#020b14] hover:bg-[#ffd966]"
+                        className="w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition bg-gold text-[#020b14] hover:bg-[#ffd966]"
                       >
                         {loadingPlan === plan.key ? 'Processing...' : 'Buy Now'}
                       </button>
-                    ) : (
-                      <button
-                        disabled
-                        className="mt-8 w-full rounded-full border border-emerald-500/40 px-4 py-3 text-sm font-semibold transition bg-emerald-500/10 text-emerald-300 cursor-not-allowed"
-                      >
-                        Current Plan
-                      </button>
-                    )
+                    </div>
                   ) : (
                     <div className="mt-8 w-full px-4 py-3 text-sm font-semibold text-center text-cream/50 h-[46px]">
                       {pPlan === 'free' ? 'Current Plan' : ''}
