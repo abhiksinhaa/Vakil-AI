@@ -354,7 +354,7 @@ export default function DraftPreview({
     }
   };
 
-  const isPremium = profile?.plan && profile.plan !== 'free';
+  const isPremium = profile?.plan === 'basic';
   console.log('User plan:', profile?.plan);
   console.log('RENDER: isPremium value at render time:', isPremium, 'profile:', profile);
 
