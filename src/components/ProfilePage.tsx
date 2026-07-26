@@ -59,7 +59,6 @@ export default function ProfilePage() {
           whatsapp_number: data.whatsapp_number || '',
         });
         setBio(data.bio || '');
-        setCurrentPlan(data.plan || 'free');
         setGlobalProfile(data); // Sync global context
       }
     } catch (err) {
@@ -90,9 +89,26 @@ export default function ProfilePage() {
     }
   };
 
+  const fetchPlan = async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan, drafts_used, drafts_limit')
+        .eq('user_id', session.user.id)
+        .single();
+      if (data) {
+        setCurrentPlan(data.plan || 'free');
+      }
+    } catch (err) {
+      console.error('Failed to fetch plan:', err);
+    }
+  };
+
   useEffect(() => {
     if (session?.user?.id) {
       fetchProfile();
+      fetchPlan();
       fetchDrafts();
     } else {
       setLoadingProfile(false);

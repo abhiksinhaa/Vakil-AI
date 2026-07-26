@@ -94,8 +94,24 @@ export default function PricingPage() {
 
   // Calculate formatted plan for display
   useEffect(() => {
-    setCurrentPlan(isPro ? 'Basic' : 'Free');
-  }, [isPro]);
+    const fetchFreshPlan = async () => {
+      if (!session?.user?.id) return;
+      try {
+        const { data } = await createClient()
+          .from('profiles')
+          .select('plan, drafts_used, drafts_limit')
+          .eq('user_id', session.user.id)
+          .single();
+        if (data) {
+          const planStr = data.plan || 'free';
+          setCurrentPlan(planStr === 'free' ? 'Free' : planStr.charAt(0).toUpperCase() + planStr.slice(1));
+        }
+      } catch (err) {
+        console.error('Failed to fetch fresh plan', err);
+      }
+    };
+    fetchFreshPlan();
+  }, [session?.user?.id]);
 
   const handleSubscribe = async (plan: 'basic') => {
     if (!session?.user?.id) {
