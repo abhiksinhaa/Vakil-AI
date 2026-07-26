@@ -354,7 +354,7 @@ export default function DraftPreview({
     }
   };
 
-  const isPremium = ['starter', 'standard', 'pro', 'basic'].includes(profile?.plan);
+  const isPremium = profile?.plan !== 'free' && profile?.plan != null;
   console.log('RENDER: isPremium value at render time:', isPremium, 'profile:', profile);
 
   return (

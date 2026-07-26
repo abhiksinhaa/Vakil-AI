@@ -71,6 +71,7 @@ export default function PricingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
+  const [dbPlan, setDbPlan] = useState<string>('free');
 
   const [discountData, setDiscountData] = useState({
     discountAvailable: false,
@@ -99,11 +100,12 @@ export default function PricingPage() {
       try {
         const { data } = await createClient()
           .from('profiles')
-          .select('plan, drafts_used, drafts_limit')
+          .select('plan, drafts_limit')
           .eq('user_id', session.user.id)
           .single();
         if (data) {
           const planStr = data.plan || 'free';
+          setDbPlan(planStr);
           setCurrentPlan(planStr === 'free' ? 'Free' : planStr.charAt(0).toUpperCase() + planStr.slice(1));
         }
       } catch (err) {
@@ -174,12 +176,21 @@ export default function PricingPage() {
 
           <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
             {PLANS.map((plan) => {
-              const isActive = isPro ? plan.key === 'basic' : plan.key === 'free';
+              const pPlan = dbPlan || 'free';
+              const showBuyNow = pPlan === 'free';
+              
+              let badge = null;
+              if (plan.key === 'free' && pPlan === 'free') {
+                badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span>;
+              } else if (plan.key === 'basic' && (pPlan === 'basic' || pPlan === 'starter' || pPlan === 'standard' || pPlan === 'pro')) {
+                badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Current Plan</span>;
+              }
+
               return (
                 <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)] flex flex-col">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold text-gold">{plan.label}</h2>
-                    {isActive ? <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span> : null}
+                    {badge}
                   </div>
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
                   {plan.key === 'basic' ? (
@@ -232,16 +243,25 @@ export default function PricingPage() {
                     {plan.features.map(f => <li key={f}>• {f}</li>)}
                   </ul>
                   {plan.key !== 'free' ? (
-                    <button
-                      onClick={() => void handleSubscribe(plan.key as 'basic')}
-                      disabled={loadingPlan === plan.key || isActive}
-                      className={`mt-8 w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition ${isActive ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40 cursor-not-allowed' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
-                    >
-                      {loadingPlan === plan.key ? 'Processing...' : isActive ? 'Current Plan' : 'Buy Now'}
-                    </button>
+                    showBuyNow ? (
+                      <button
+                        onClick={() => void handleSubscribe(plan.key as 'basic')}
+                        disabled={loadingPlan === plan.key}
+                        className="mt-8 w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition bg-gold text-[#020b14] hover:bg-[#ffd966]"
+                      >
+                        {loadingPlan === plan.key ? 'Processing...' : 'Buy Now'}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="mt-8 w-full rounded-full border border-emerald-500/40 px-4 py-3 text-sm font-semibold transition bg-emerald-500/10 text-emerald-300 cursor-not-allowed"
+                      >
+                        Current Plan
+                      </button>
+                    )
                   ) : (
                     <div className="mt-8 w-full px-4 py-3 text-sm font-semibold text-center text-cream/50 h-[46px]">
-                      {isActive ? 'Current Plan' : ''}
+                      {pPlan === 'free' ? 'Current Plan' : ''}
                     </div>
                   )}
                 </div>
