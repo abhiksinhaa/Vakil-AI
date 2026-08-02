@@ -63,7 +63,7 @@ export async function POST(req: Request) {
           .eq('user_id', userId);
           
         const used = count || 0;
-        const limit = 10;
+        const limit = 5;
         
         if (used >= limit) {
           return Response.json(

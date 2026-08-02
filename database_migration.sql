@@ -61,7 +61,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='drafts_limit') THEN
-    ALTER TABLE profiles ADD COLUMN drafts_limit integer default 3;
+    ALTER TABLE profiles ADD COLUMN drafts_limit integer default 5;
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='drafts_used') THEN

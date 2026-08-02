@@ -52,8 +52,8 @@ const PLANS = [
     key: 'free', 
     label: 'Free', 
     price: '₹0', 
-    drafts: '10 lifetime drafts',
-    features: ['10 lifetime drafts total', 'Standard generation speed'] 
+    drafts: '5 lifetime drafts',
+    features: ['5 lifetime drafts total', 'Standard generation speed'] 
   },
   { 
     key: 'basic', 
