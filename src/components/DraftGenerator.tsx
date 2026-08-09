@@ -152,6 +152,14 @@ export default function DraftGenerator() {
   }, [draftsUsed, feedbackThreshold, feedbackSubmittedThisSession, isGenerating, actionBusy]);
 
   useEffect(() => {
+    if (isGenerating && plan === 'free') {
+      try {
+        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({})
+      } catch (e) {}
+    }
+  }, [isGenerating, plan]);
+
+  useEffect(() => {
     if (profile) {
       setForm((prev) => ({
         ...prev,
@@ -854,6 +862,18 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
           </div>
 
           <div className="lg:w-[60%] flex-1 min-h-[400px] lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)]">
+            {isGenerating && plan === 'free' && (
+              <div className="w-full my-4">
+                <ins
+                  className="adsbygoogle"
+                  style={{ display: 'block' }}
+                  data-ad-client="ca-pub-5703020537510580"
+                  data-ad-slot="2265299701"
+                  data-ad-format="auto"
+                  data-full-width-responsive="true"
+                />
+              </div>
+            )}
             <DraftPreview
               draft={draft}
               draftId={draftId}
