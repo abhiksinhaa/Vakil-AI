@@ -63,14 +63,24 @@ export async function POST(req: Request) {
         .maybeSingle();
 
       const userPlan = subscription?.plan || profile?.plan || 'free';
-      const isPro = userPlan === 'pro' || userPlan === 'basic' || userPlan === 'standard' || userPlan === 'premium';
+      const isPro = ['basic', 'pro', 'standard', 'premium', 'starter'].includes(userPlan);
 
-      if (!isPro) {
+      console.log('User ID:', userId);
+      console.log('Profile plan:', profile?.plan);
+      console.log('Subscription plan:', subscription?.plan);
+      console.log('isPro:', isPro);
+
+      if (isPro) {
+        // Skip all limit checks
+        // Proceed to generate draft
+      } else {
         const { count } = await supabaseAdmin
           .from('drafts')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId);
           
+        console.log('Draft count:', count);
+        
         const used = count || 0;
         if (used >= 5) {
           return Response.json(
