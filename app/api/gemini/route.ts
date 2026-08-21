@@ -52,22 +52,29 @@ export async function POST(req: Request) {
       
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('plan, drafts_limit, drafts_used')
+        .select('plan, drafts_limit')
         .eq('id', userId)
-        .single();
-        
-      if (profile?.plan !== 'basic') {
+        .maybeSingle();
+
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('plan')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const userPlan = subscription?.plan || profile?.plan || 'free';
+      const isPro = userPlan === 'pro' || userPlan === 'basic' || userPlan === 'standard' || userPlan === 'premium';
+
+      if (!isPro) {
         const { count } = await supabaseAdmin
           .from('drafts')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId);
           
         const used = count || 0;
-        const limit = 5;
-        
-        if (used >= limit) {
+        if (used >= 5) {
           return Response.json(
-            { error: 'Draft limit reached. Please upgrade.' },
+            { error: 'Draft limit reached. Please upgrade to Pro.' },
             { status: 403 }
           );
         }
