@@ -104,10 +104,7 @@ export default function DraftGenerator() {
   const [actionBusy, setActionBusy] = useState(false);
   const feedbackTimeoutRef = useRef<number | null>(null);
 
-  const isPremium = profile?.plan === 'basic' || 
-                    profile?.plan === 'starter' ||
-                    profile?.plan === 'pro' ||
-                    profile?.plan === 'standard'
+  const isPremium = ['basic', 'starter', 'pro', 'standard'].includes(profile?.plan as string);
 
   // Feedback popup tracking (separate from rate limiting - uses localStorage)
   const THRESHOLD_KEY = 'draftee_feedback_threshold';
