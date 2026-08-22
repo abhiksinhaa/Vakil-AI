@@ -9,6 +9,7 @@ import { fetchRecentDrafts } from '../lib/db';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { useApp } from '../context/AppContext';
 import { FREE_DRAFT_LIMIT } from '../lib/userAccount';
+import { createClient } from '../lib/supabase';
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-IN', {
@@ -80,12 +81,32 @@ export default function Dashboard() {
     if (!paymentSuccess) return;
 
     setShowPaymentSuccess(true);
+
+    const checkPlanTimer = setTimeout(async () => {
+      if (session?.user?.id) {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (data?.plan === 'free') {
+          alert('Your payment was received but plan activation ' +
+            'is pending. Contact drafteebusiness@gmail.com');
+        }
+      }
+    }, 3000);
+
     const timer = window.setTimeout(() => {
       setShowPaymentSuccess(false);
     }, 5000);
 
-    return () => window.clearTimeout(timer);
-  }, [paymentSuccess]);
+    return () => {
+      window.clearTimeout(timer);
+      clearTimeout(checkPlanTimer);
+    };
+  }, [paymentSuccess, session?.user?.id]);
 
   return (
     <div className="min-h-screen bg-navy">

@@ -3,7 +3,7 @@ interface CheckoutOptions {
   userId: string;
   userEmail?: string | null;
   userName?: string | null;
-  onSuccess?: () => Promise<void> | void;
+  onSuccess?: (response?: any) => Promise<void> | void;
 }
 
 declare global {
@@ -84,10 +84,13 @@ export async function startCheckout({ plan, userId, userEmail, userName, onSucce
           const verifyData = await verifyRes.json();
           console.log('Verify result:', verifyData);
           if (!verifyRes.ok || !verifyData.success) {
-            throw new Error(verifyData?.error || 'Payment verification failed');
+            alert('Payment successful but plan activation failed. ' +
+              'Please contact support at drafteebusiness@gmail.com ' +
+              'with your payment ID: ' + response.razorpay_payment_id);
+            return;
           }
           
-          await onSuccess?.();
+          await onSuccess?.(response);
           resolve(response);
         } catch (err) {
           reject(err);

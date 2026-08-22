@@ -131,9 +131,9 @@ export default function PricingPage() {
         userId: session.user.id,
         userEmail: session.user.email,
         userName: profile?.full_name || session.user.email,
-        onSuccess: async () => {
+        onSuccess: async (response: any) => {
           await refreshAccount();
-          window.location.href = '/dashboard?payment=success';
+          window.location.href = '/dashboard?payment=success&pid=' + (response?.razorpay_payment_id || '');
         },
       });
     } catch (err: any) {
