@@ -104,9 +104,35 @@ export default function DraftGenerator() {
   const [actionBusy, setActionBusy] = useState(false);
   const feedbackTimeoutRef = useRef<number | null>(null);
 
+  const isPremium = profile?.plan === 'basic' || 
+                    profile?.plan === 'starter' ||
+                    profile?.plan === 'pro' ||
+                    profile?.plan === 'standard'
+
   // Feedback popup tracking (separate from rate limiting - uses localStorage)
   const THRESHOLD_KEY = 'draftee_feedback_threshold';
   const SESSION_SUBMITTED_KEY = 'draftee_feedback_submitted_session';
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('plan, drafts_used, drafts_limit, full_name, advocate_name')
+        .eq('id', user.id)
+        .single()
+      
+      console.log('Fetched profile:', data, 'Error:', error)
+      
+      if (data) {
+        setProfile(data)
+      }
+    }
+    
+    fetchProfile()
+  }, [])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
