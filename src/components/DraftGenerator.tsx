@@ -381,39 +381,6 @@ export default function DraftGenerator() {
         console.log('Starting draft generation...');
         console.log('[RATE-LIMIT] Fetching fresh draft allowance from Supabase...');
         
-        const { data: { user } } = await supabase.auth.getUser();
-        let freshLimit = draftLimit;
-        let freshUsed = draftsUsed;
-        let currentPlan = plan;
-
-        if (user) {
-          const { data: currentProfile } = await supabase
-            .from('profiles')
-            .select('plan, drafts_used, drafts_limit')
-            .eq('id', user.id)
-            .single();
-            
-          if (currentProfile) {
-            freshUsed = draftsUsed; // Use the draftsUsed we already fetched via refreshDraftCount, not the stale profile.drafts_used
-            currentPlan = currentProfile.plan || 'free';
-            freshLimit = currentPlan === 'basic' ? 999999 : 5;
-            
-            setDraftLimit(freshLimit);
-            setPlan(currentPlan);
-            setProfile((prev) => prev ? { ...prev, plan: currentPlan as any, drafts_limit: freshLimit } : prev);
-          }
-        }
-        
-        if (currentPlan === 'free' && freshUsed >= freshLimit) {
-          setIsGenerating(false);
-          setError(`You've used all ${freshLimit} free drafts. Upgrade to continue.`);
-          return;
-        } else if (freshUsed >= freshLimit) {
-          setIsGenerating(false);
-          setError("You have reached your draft limit. Upgrade to continue.");
-          return;
-        }
-        
         const allowance = await checkDraftAllowance();
         
         if (!allowance.allowed) {

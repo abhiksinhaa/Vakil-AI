@@ -305,53 +305,40 @@ export async function checkDraftAllowance() {
   }
 
   const profile = await fetchProfile();
-  const sub = await fetchSubscription();
-  const planState = await syncProfilePlanState(user.id, profile);
-  const isAdvocate = profile?.user_type !== 'individual';
-  const plan = planState.plan ?? 'free';
-  const isPro = plan === 'basic' && planState.planExpiresAt != null && new Date(planState.planExpiresAt) > new Date();
   
+  // A user is considered Pro if their drafts_limit is 999999 (unlimited) 
+  // or if their plan is one of the paid plans.
+  const limit = profile?.drafts_limit ?? FREE_DRAFT_LIMIT;
+  const userPlan = profile?.plan || 'free';
+  const isPro = limit >= 999999 || ['basic', 'pro', 'premium', 'standard', 'starter'].includes(userPlan);
+
   if (isPro) {
     return {
       allowed: true,
       isPro: true,
       reason: 'ok',
       message: null,
-      used: 0,
-      limit: null,
-      remaining: null,
+      used: profile?.drafts_used || 0,
+      limit: limit,
+      remaining: 999999,
       userType: profile?.user_type || 'advocate',
     };
   }
 
-  // Count lifetime drafts from the drafts table directly
+  // For free users, count lifetime drafts from the drafts table directly
   const { count } = await supabase
     .from('drafts')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
     
   const used = count || 0;
-  const limit = FREE_DRAFT_LIMIT;
   const remaining = Math.max(0, limit - used);
-
-  if (!isAdvocate && plan === 'free') {
-    return {
-      allowed: remaining > 0,
-      isPro: false,
-      reason: remaining > 0 ? 'ok' : 'plan_limit',
-      message: remaining > 0 ? null : 'Your monthly draft quota has been used. Upgrade to continue.',
-      used,
-      limit: FREE_DRAFT_LIMIT,
-      remaining,
-      userType: profile?.user_type || 'advocate',
-    };
-  }
 
   return {
     allowed: remaining > 0,
-    isPro,
+    isPro: false,
     reason: remaining > 0 ? 'ok' : 'plan_limit',
-    message: remaining > 0 ? null : DAILY_DRAFT_LIMIT_MESSAGE,
+    message: remaining > 0 ? null : `You have reached your limit of ${limit} drafts. Upgrade to continue.`,
     used,
     limit,
     remaining,
