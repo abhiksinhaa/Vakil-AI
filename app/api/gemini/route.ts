@@ -52,43 +52,30 @@ export async function POST(req: Request) {
       
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('plan, drafts_limit')
+        .select('plan, drafts_limit, drafts_used')
         .eq('id', userId)
-        .maybeSingle();
+        .maybeSingle()
 
-      const { data: subscription } = await supabaseAdmin
-        .from('subscriptions')
-        .select('plan')
-        .eq('id', userId)
-        .maybeSingle();
+      const userPlan = profile?.plan || 'free'
+      const draftsLimit = profile?.drafts_limit || 5
+      const isPro = userPlan === 'basic' || userPlan === 'pro' || userPlan === 'premium'
 
-      const userPlan = subscription?.plan || profile?.plan || 'free';
-      const isPro = ['basic', 'pro', 'standard', 'premium', 'starter'].includes(userPlan);
-
-      console.log('User ID:', userId);
-      console.log('Profile plan:', profile?.plan);
-      console.log('Subscription plan:', subscription?.plan);
-      console.log('isPro:', isPro);
-
-      if (isPro) {
-        // Skip all limit checks
-        // Proceed to generate draft
-      } else {
+      // Skip ALL limit checks for pro users
+      if (!isPro) {
         const { count } = await supabaseAdmin
           .from('drafts')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId);
-          
-        console.log('Draft count:', count);
+          .eq('user_id', userId)
         
-        const used = count || 0;
-        if (used >= 5) {
+        if ((count ?? 0) >= draftsLimit) {
           return Response.json(
             { error: 'Draft limit reached. Please upgrade to Pro.' },
             { status: 403 }
-          );
+          )
         }
       }
+
+      // Pro users skip directly to draft generation - no limit check at all
     }
     
     delete body.model; // Don't send this to Gemini API
