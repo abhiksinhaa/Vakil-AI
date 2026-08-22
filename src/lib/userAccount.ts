@@ -107,6 +107,11 @@ async function getProfileRow(userId: string): Promise<Profile | null> {
     .eq('user_id', userId)
     .maybeSingle();
 
+  const authUserResp = await supabase.auth.getUser();
+  console.log('[DEBUG] Auth user at fetch time:', authUserResp.data?.user);
+  console.log('[DEBUG] Fetch error (if any):', userIdError);
+  console.log('[DEBUG] Fetch result data:', byUserId);
+
   if (userIdError) {
     console.warn('Profile lookup by user_id failed', userIdError);
   }

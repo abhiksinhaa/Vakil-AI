@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type TouchEvent as ReactTouchEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
@@ -348,7 +348,7 @@ export default function DraftGenerator() {
     await runGenerate();
   };
 
-  const handleDraftTypeSelect = (data: { matterId: string; draftTypeId: string; structure: string[]; label: string }) => {
+  const handleDraftTypeSelect = useCallback((data: { matterId: string; draftTypeId: string; structure: string[]; label: string }) => {
     let style = 'include';
     if (data.draftTypeId === 'affidavit') style = 'simple';
 
@@ -364,7 +364,7 @@ export default function DraftGenerator() {
         : {},
     }));
     setSaveSuccess(false);
-  };
+  }, []);
 
 
   const runGenerate = async () => {
