@@ -15,17 +15,8 @@ export async function POST(req: Request) {
   }
   const { plan, userId } = await req.json()
   
-  const { count } = await supabaseAdmin
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .neq('plan', 'free')
-    .not('plan', 'is', null)
-
-  const paidCount = count ?? 0
-  const discountAvailable = paidCount < 100
-
   const PLANS: Record<string, {amount: number; drafts: number}> = {
-    basic:    { amount: discountAvailable ? 9900 : 14900, drafts: -1 },
+    basic:    { amount: 14900, drafts: -1 },
   }
 
   if (!PLANS[plan]) {
@@ -42,6 +33,5 @@ export async function POST(req: Request) {
     orderId: order.id, 
     amount: order.amount, 
     plan,
-    discountApplied: discountAvailable && plan === 'basic',
   })
 }

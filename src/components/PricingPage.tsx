@@ -73,20 +73,6 @@ export default function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
   const [dbPlan, setDbPlan] = useState<string>('free');
 
-  const [discountData, setDiscountData] = useState({
-    discountAvailable: false,
-    remaining: 0,
-    discountPrice: 99,
-    originalPrice: 149,
-  });
-
-  useEffect(() => {
-    fetch('/api/discount')
-      .then(r => r.json())
-      .then(data => setDiscountData(data))
-      .catch(err => console.error('Failed to fetch discount', err));
-  }, []);
-
   useEffect(() => {
     if (session?.user) {
       refreshAccount().catch(err => console.error('Failed to refresh account on pricing page mount', err));
@@ -194,48 +180,9 @@ export default function PricingPage() {
                   </div>
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
                   {plan.key === 'basic' ? (
-                    discountData.discountAvailable ? (
-                      <div style={{ marginBottom: '8px', marginTop: '16px' }}>
-                        <span style={{
-                          textDecoration: 'line-through',
-                          color: '#ff4444',
-                          fontSize: '1.2rem',
-                          marginRight: '8px',
-                        }}>
-                          ₹149
-                        </span>
-                        <span style={{
-                          fontSize: '2.4rem',
-                          fontWeight: 800,
-                          color: '#c9a84c',
-                        }}>
-                          ₹99
-                        </span>
-                        <span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
-                        <div style={{
-                          background: '#ff4444',
-                          color: 'white',
-                          borderRadius: '20px',
-                          padding: '4px 12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          display: 'inline-block',
-                          marginLeft: '8px',
-                        }}>
-                          34% OFF
-                        </div>
-                        <p style={{ 
-                          color: '#c9a84c', fontSize: '0.78rem', 
-                          marginTop: '6px', fontWeight: 600 
-                        }}>
-                          ⚡ Only {discountData.remaining} spots left at this price!
-                        </p>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
-                        ₹149<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
-                      </div>
-                    )
+                    <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
+                      ₹149<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
+                    </div>
                   ) : (
                     <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
                   )}
