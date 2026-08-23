@@ -130,7 +130,7 @@ export default function PrivacyContent() {
           <li><strong>Portability:</strong> Request your draft history in a downloadable format</li>
           <li><strong>Objection:</strong> Object to certain uses of your data</li>
         </ul>
-        <p>To exercise any of these rights, contact us at: <strong><a href="mailto:abhiksinha1523@gmail.com" className="text-gold hover:underline">abhiksinha1523@gmail.com</a></strong></p>
+        <p>To exercise any of these rights, contact us at: <strong><a href="mailto:drafteesupport@gmail.com" className="text-gold hover:underline">drafteesupport@gmail.com</a></strong></p>
       </section>
 
       <hr className="border-border" />
@@ -151,7 +151,7 @@ export default function PrivacyContent() {
 
       <section>
         <h2 className="text-xl font-display text-gold mb-3">11. Children’s Privacy</h2>
-        <p>Draftee is not intended for users under 18 years of age. We do not knowingly collect personal information from minors. If you believe a minor has provided us with personal data, contact us at <a href="mailto:abhiksinha1523@gmail.com" className="text-gold hover:underline">abhiksinha1523@gmail.com</a> and we will delete it promptly.</p>
+        <p>Draftee is not intended for users under 18 years of age. We do not knowingly collect personal information from minors. If you believe a minor has provided us with personal data, contact us at <a href="mailto:drafteesupport@gmail.com" className="text-gold hover:underline">drafteesupport@gmail.com</a> and we will delete it promptly.</p>
       </section>
 
       <hr className="border-border" />
@@ -186,7 +186,7 @@ export default function PrivacyContent() {
         <h2 className="text-xl font-display text-gold mb-3">15. Contact Us</h2>
         <p className="mb-2">For any privacy-related questions, concerns, or requests:</p>
         <p><strong>Draftee</strong><br/>
-        Email: <a href="mailto:abhiksinha1523@gmail.com" className="text-gold hover:underline">abhiksinha1523@gmail.com</a><br/>
+        Email: <a href="mailto:drafteesupport@gmail.com" className="text-gold hover:underline">drafteesupport@gmail.com</a><br/>
         Website: draftee.in</p>
         <p className="mt-4">We will respond to all privacy requests within <strong>30 days</strong>.</p>
       </section>

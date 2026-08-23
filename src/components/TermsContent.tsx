@@ -58,7 +58,7 @@ export default function TermsContent() {
         <ul className="list-disc pl-5 space-y-2">
           <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
           <li>You are responsible for all activities that occur under your account.</li>
-          <li>You must notify us immediately at <a href="mailto:abhiksinha1523@gmail.com" className="text-gold hover:underline">abhiksinha1523@gmail.com</a> if you suspect any unauthorized use of your account.</li>
+          <li>You must notify us immediately at <a href="mailto:drafteesupport@gmail.com" className="text-gold hover:underline">drafteesupport@gmail.com</a> if you suspect any unauthorized use of your account.</li>
           <li>Draftee reserves the right to terminate accounts that violate these Terms.</li>
         </ul>
       </section>
@@ -127,7 +127,7 @@ export default function TermsContent() {
           <li>We do not sell your personal data to third parties.</li>
           <li>Your draft content is stored securely via Supabase.</li>
           <li>By using Draftee, you consent to the collection and processing of your data as described above.</li>
-          <li>For data deletion requests, contact: <a href="mailto:abhiksinha1523@gmail.com" className="text-gold hover:underline">abhiksinha1523@gmail.com</a></li>
+          <li>For data deletion requests, contact: <a href="mailto:drafteesupport@gmail.com" className="text-gold hover:underline">drafteesupport@gmail.com</a></li>
         </ul>
       </section>
 
@@ -187,7 +187,7 @@ export default function TermsContent() {
         <h2 className="text-xl font-display text-gold mb-3">16. Contact Us</h2>
         <p className="mb-2">For any questions, concerns, or legal notices regarding these Terms, please contact:</p>
         <p><strong>Draftee</strong><br/>
-        Email: <a href="mailto:abhiksinha1523@gmail.com" className="text-gold hover:underline">abhiksinha1523@gmail.com</a><br/>
+        Email: <a href="mailto:drafteesupport@gmail.com" className="text-gold hover:underline">drafteesupport@gmail.com</a><br/>
         Website: draftee.in</p>
       </section>
 

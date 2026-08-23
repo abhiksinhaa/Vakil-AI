@@ -97,7 +97,7 @@ export default function SettingsPage() {
 
   const handleSendBugReport = () => {
     if (!bugText.trim()) return;
-    const mailtoLink = `mailto:abhiksinha1523@gmail.com?subject=Bug%20Report%20-%20Draftee&body=${encodeURIComponent(bugText)}`;
+    const mailtoLink = `mailto:drafteesupport@gmail.com?subject=Bug%20Report%20-%20Draftee&body=${encodeURIComponent(bugText)}`;
     window.location.href = mailtoLink;
     setShowBugSuccess(true);
     setTimeout(() => {

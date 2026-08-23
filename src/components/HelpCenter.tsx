@@ -52,7 +52,7 @@ const HELP_DATA = [
       },
       {
         question: "How to delete my account",
-        answer: 'To delete your account and all associated data, send an email to abhiksinha1523@gmail.com with subject "Account Deletion Request" and your registered email address. We will process your request within 30 days.'
+        answer: 'To delete your account and all associated data, send an email to drafteesupport@gmail.com with subject "Account Deletion Request" and your registered email address. We will process your request within 30 days.'
       }
     ]
   },
@@ -69,7 +69,7 @@ const HELP_DATA = [
       },
       {
         question: "Terms of Use and Privacy Policy",
-        answer: "You can read our full Terms of Use and Privacy Policy in Settings under Legal section. For any legal queries contact abhiksinha1523@gmail.com."
+        answer: "You can read our full Terms of Use and Privacy Policy in Settings under Legal section. For any legal queries contact drafteesupport@gmail.com."
       }
     ]
   }
@@ -174,7 +174,7 @@ export default function HelpCenter() {
         <div className="mt-12 pt-8 border-t border-border text-center">
           <p className="text-cream/60 text-sm mb-4">Still need help?</p>
           <a 
-            href="mailto:abhiksinha1523@gmail.com" 
+            href="mailto:drafteesupport@gmail.com" 
             className="btn-primary inline-flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
