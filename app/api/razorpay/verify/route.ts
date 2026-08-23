@@ -1,19 +1,28 @@
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
-import { adminDb } from '@/lib/supabaseAdmin'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(req: Request) {
-  const { razorpay_order_id, razorpay_payment_id,
-          razorpay_signature, plan, userId, amount } = await req.json()
+  console.log('=== VERIFY CALLED ===')
+  console.log('SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+  console.log('SERVICE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+  console.log('RAZORPAY_SECRET:', !!process.env.RAZORPAY_KEY_SECRET)
 
-  console.log('=== VERIFY API CALLED ===')
-  console.log('userId received:', userId)
+  const body = await req.json()
+  console.log('Full body received:', body)
+  const { razorpay_order_id, razorpay_payment_id, 
+          razorpay_signature, plan, userId, amount } = body
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   if (razorpay_signature !== 'test_skip') {
-    const body = razorpay_order_id + '|' + razorpay_payment_id
+    const signatureBody = razorpay_order_id + '|' + razorpay_payment_id
     const expected = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-      .update(body).digest('hex')
+      .update(signatureBody).digest('hex')
     if (expected !== razorpay_signature) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
@@ -30,8 +39,7 @@ export async function POST(req: Request) {
     draftsLimit = 999999;
   }
 
-  const db = adminDb()
-  const { error } = await db
+  const { data, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update({
       plan: planName,
@@ -41,15 +49,19 @@ export async function POST(req: Request) {
       razorpay_payment_id,
     })
     .eq('id', userId)
+    .select()
 
-  console.log('Plan update error:', error)
-  console.log('Plan updated for:', userId)
+  console.log('Update result:', { data, error: updateError })
 
-  if (error) {
-    return NextResponse.json({ error: 'Update failed', details: error }, { status: 500 })
+  if (updateError) {
+    console.error('Supabase update FAILED:', updateError)
+    return NextResponse.json({ 
+      success: false,
+      error: updateError.message 
+    }, { status: 500 })
   }
 
-  const { error: paymentError } = await db
+  const { error: paymentError } = await supabaseAdmin
     .from('payments')
     .insert({
       user_id: userId,
