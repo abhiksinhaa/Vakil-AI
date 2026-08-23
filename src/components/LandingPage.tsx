@@ -106,6 +106,7 @@ export default function LandingPage() {
           <a href="#features" className="landing-nav-link" onClick={() => setMobileMenuOpen(false)}>Features</a>
           <a href="#how-it-works" className="landing-nav-link" onClick={() => setMobileMenuOpen(false)}>How it Works</a>
           <a href="#testimonials" className="landing-nav-link" onClick={() => setMobileMenuOpen(false)}>Testimonials</a>
+          <Link href="/resources" className="landing-nav-link" onClick={() => setMobileMenuOpen(false)}>Resources</Link>
         </div>
         <div className={`landing-nav-links ${mobileMenuOpen ? 'mobile-open' : ''}`}>
           <button onClick={toggleTheme} className="landing-btn-ghost p-2 rounded-full" aria-label="Toggle Theme">

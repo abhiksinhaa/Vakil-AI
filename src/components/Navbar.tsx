@@ -239,6 +239,7 @@ export default function Navbar() {
                   { href: '/generate', label: '📝  Create New Draft' },
                   { href: '/history',  label: '📂  Draft History' },
                   { href: '/profile',  label: '👤  My Profile' },
+                  { href: '/resources', label: '📚  Free Resources' },
                   { href: '/help',     label: '❓  Help Center' },
                   { href: '/refer',    label: '🎁  Refer & Earn' },
                   { href: '/pricing',  label: '⭐  Unlock Premium' },
