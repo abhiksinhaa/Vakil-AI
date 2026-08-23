@@ -92,13 +92,20 @@ export default function ProfilePage() {
   const fetchPlan = async () => {
     if (!session?.user?.id) return;
     try {
-      const { data } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('plan, drafts_used, drafts_limit')
+        .select('plan, drafts_used, drafts_limit, plan_expires_at')
         .eq('user_id', session.user.id)
         .single();
-      if (data) {
-        setCurrentPlan(data.plan || 'free');
+      if (profile) {
+        if (profile.plan !== 'free' && profile.plan_expires_at) {
+          const expired = new Date(profile.plan_expires_at) < new Date();
+          if (expired) {
+            setCurrentPlan('free');
+            return;
+          }
+        }
+        setCurrentPlan(profile.plan || 'free');
       }
     } catch (err) {
       console.error('Failed to fetch plan:', err);

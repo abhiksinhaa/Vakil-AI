@@ -52,9 +52,43 @@ export async function POST(req: Request) {
       
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('plan, drafts_limit, drafts_used')
+        .select('plan, drafts_limit, drafts_used, plan_expires_at')
         .eq('id', userId)
         .maybeSingle()
+
+      // TODO: Run this SQL in Supabase to fix expired users:
+      // UPDATE profiles 
+      // SET plan = 'free', drafts_limit = 10, drafts_used = 0
+      // WHERE plan != 'free' 
+      // AND plan_expires_at IS NOT NULL 
+      // AND plan_expires_at < NOW();
+
+      const now = new Date()
+      const expiresAt = profile?.plan_expires_at 
+        ? new Date(profile.plan_expires_at) 
+        : null
+
+      // If plan expired, downgrade to free
+      if (
+        profile?.plan !== 'free' && 
+        expiresAt && 
+        expiresAt < now
+      ) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ 
+            plan: 'free',
+            drafts_limit: 10,
+            drafts_used: 0,
+          })
+          .eq('id', userId)
+        
+        // Continue as free user
+        if (profile) {
+          profile.plan = 'free'
+          profile.drafts_limit = 10
+        }
+      }
 
       const userPlan = profile?.plan || 'free'
       const draftsLimit = profile?.drafts_limit || 5
