@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60s execution on Vercel
 
 import { createClient } from '@supabase/supabase-js';
+import { calculateDraftAllowance } from '../../../src/lib/userAccount';
 
 const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 
@@ -52,16 +53,9 @@ export async function POST(req: Request) {
       
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('plan, drafts_limit, drafts_used, plan_expires_at')
+        .select('plan, drafts_limit, drafts_used, plan_expires_at, org_id, organizations(*)')
         .eq('id', userId)
         .maybeSingle()
-
-      // TODO: Run this SQL in Supabase to fix expired users:
-      // UPDATE profiles 
-      // SET plan = 'free', drafts_limit = 10, drafts_used = 0
-      // WHERE plan != 'free' 
-      // AND plan_expires_at IS NOT NULL 
-      // AND plan_expires_at < NOW();
 
       const now = new Date()
       const expiresAt = profile?.plan_expires_at 
@@ -90,41 +84,13 @@ export async function POST(req: Request) {
         }
       }
 
-      const userPlan = profile?.plan || 'free'
-      const draftsLimit = profile?.drafts_limit || 5
-      const isPro = ['basic', 'pro', 'premium', 'standard', 'starter'].includes(userPlan);
-
-      if (isPro) {
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-
-        const { count } = await supabaseAdmin
-          .from('drafts')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .gte('created_at', startOfMonth.toISOString());
-
-        const draftsUsed = count || 0;
-
-        if (draftsUsed >= draftsLimit) {
-          return Response.json(
-            { error: `Monthly limit of ${draftsLimit} drafts reached. Please upgrade to continue.` },
-            { status: 403 }
-          )
-        }
-      } else {
-        const { count } = await supabaseAdmin
-          .from('drafts')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-        
-        if ((count ?? 0) >= draftsLimit) {
-          return Response.json(
-            { error: 'Draft limit reached. Please upgrade to Pro.' },
-            { status: 403 }
-          )
-        }
+      const allowance = await calculateDraftAllowance(profile as any, userId, supabaseAdmin);
+      
+      if (!allowance.allowed) {
+        return Response.json(
+          { error: allowance.message || 'Draft limit reached. Please upgrade to continue.' },
+          { status: 403 }
+        )
       }
     }
     

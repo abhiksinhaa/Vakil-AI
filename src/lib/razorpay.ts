@@ -1,5 +1,5 @@
 interface CheckoutOptions {
-  plan: 'basic' | 'pro';
+  plan: 'basic' | 'pro' | 'firm' | 'firm_seat';
   billingCycle?: 'monthly' | 'annual';
   userId: string;
   userEmail?: string | null;

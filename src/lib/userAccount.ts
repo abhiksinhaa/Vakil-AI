@@ -103,7 +103,7 @@ function getDailyDraftState(profile: Partial<Profile> | null | undefined) {
 async function getProfileRow(userId: string): Promise<Profile | null> {
   const { data: byUserId, error: userIdError } = await supabase
     .from('profiles')
-    .select('*')
+    .select('*, organizations(*)')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -119,7 +119,7 @@ async function getProfileRow(userId: string): Promise<Profile | null> {
 
   const { data: byId, error: idError } = await supabase
     .from('profiles')
-    .select('*')
+    .select('*, organizations(*)')
     .eq('id', userId)
     .maybeSingle();
 
@@ -174,6 +174,25 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
       throw insertProfile.error;
     }
     profile = { ...(newProfile as Profile) };
+  }
+
+  // Auto-accept pending organization invitations
+  if (!profile.org_id && user.email) {
+    const { data: invite } = await supabase
+      .from('organization_members')
+      .select('id, org_id')
+      .eq('invited_email', user.email.toLowerCase())
+      .eq('status', 'invited')
+      .maybeSingle();
+
+    if (invite) {
+      await supabase.from('profiles').update({ org_id: invite.org_id }).eq('id', user.id);
+      await supabase.from('organization_members').update({ 
+        user_id: user.id, 
+        status: 'active' 
+      }).eq('id', invite.id);
+      profile.org_id = invite.org_id;
+    }
   }
 
   const subRes = await supabase.from('subscriptions').select('*').eq('id', user.id).maybeSingle();
@@ -289,6 +308,70 @@ export async function fetchSubscription(): Promise<Subscription | null> {
   return data ? normalizeSubscription(data as Subscription) : null;
 }
 
+export async function calculateDraftAllowance(profile: Profile, userId: string, supabaseClient: any = supabase) {
+  let limit = profile?.drafts_limit ?? FREE_DRAFT_LIMIT;
+  const userPlan = profile?.plan || 'free';
+  const isPro = ['basic', 'pro', 'premium', 'standard', 'starter', 'firm'].includes(userPlan);
+  let isPooled = false;
+  let queryIds = [userId];
+
+  if (profile?.org_id && profile?.organizations) {
+    const orgData: any = profile.organizations;
+    const orgLimit = Array.isArray(orgData) ? orgData[0]?.drafts_limit : orgData?.drafts_limit;
+    if (orgLimit) limit = orgLimit;
+    isPooled = true;
+    const { data: orgUsers } = await supabaseClient.from('profiles').select('id').eq('org_id', profile.org_id);
+    if (orgUsers) {
+      queryIds = orgUsers.map((u: any) => u.id);
+    }
+  }
+
+  if (isPro || isPooled) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count } = await supabaseClient
+      .from('drafts')
+      .select('*', { count: 'exact', head: true })
+      .in('user_id', queryIds)
+      .gte('created_at', startOfMonth.toISOString());
+
+    const used = count || 0;
+    const remaining = Math.max(0, limit - used);
+    return {
+      allowed: remaining > 0,
+      isPro: true,
+      reason: remaining > 0 ? 'ok' : 'plan_limit',
+      message: remaining > 0 ? null : `You have reached your ${isPooled ? "team's " : ""}monthly limit of ${limit} drafts. Upgrade to continue.`,
+      used,
+      limit,
+      remaining,
+      userType: profile?.user_type || 'advocate',
+    };
+  }
+
+  // For free users, count lifetime drafts from the drafts table directly
+  const { count } = await supabaseClient
+    .from('drafts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+    
+  const used = count || 0;
+  const remaining = Math.max(0, limit - used);
+  
+  return {
+    allowed: remaining > 0,
+    isPro: false,
+    reason: remaining > 0 ? 'ok' : 'plan_limit',
+    message: remaining > 0 ? null : `You have reached your limit of ${limit} drafts. Upgrade to continue.`,
+    used,
+    limit,
+    remaining,
+    userType: profile?.user_type || 'advocate',
+  };
+}
+
 export async function checkDraftAllowance() {
   const user = await getCurrentUser();
   if (!user) {
@@ -305,55 +388,9 @@ export async function checkDraftAllowance() {
   }
 
   const profile = await fetchProfile();
+  if (!profile) throw new Error('Profile not found');
   
-  const limit = profile?.drafts_limit ?? FREE_DRAFT_LIMIT;
-  const userPlan = profile?.plan || 'free';
-  const isPro = ['basic', 'pro', 'premium', 'standard', 'starter'].includes(userPlan);
-
-  if (isPro) {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const { count } = await supabase
-      .from('drafts')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', startOfMonth.toISOString());
-
-    const used = count || 0;
-    const remaining = Math.max(0, limit - used);
-    return {
-      allowed: remaining > 0,
-      isPro: true,
-      reason: remaining > 0 ? 'ok' : 'plan_limit',
-      message: remaining > 0 ? null : `You have reached your monthly limit of ${limit} drafts. Upgrade to continue.`,
-      used,
-      limit,
-      remaining,
-      userType: profile?.user_type || 'advocate',
-    };
-  }
-
-  // For free users, count lifetime drafts from the drafts table directly
-  const { count } = await supabase
-    .from('drafts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-    
-  const used = count || 0;
-  const remaining = Math.max(0, limit - used);
-
-  return {
-    allowed: remaining > 0,
-    isPro: false,
-    reason: remaining > 0 ? 'ok' : 'plan_limit',
-    message: remaining > 0 ? null : `You have reached your limit of ${limit} drafts. Upgrade to continue.`,
-    used,
-    limit,
-    remaining,
-    userType: profile?.user_type || 'advocate',
-  };
+  return calculateDraftAllowance(profile, user.id, supabase);
 }
 
 export async function consumeDraftAllowance() {

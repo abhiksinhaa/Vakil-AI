@@ -8,10 +8,19 @@ export interface Profile {
   advocate_name: string;
   bar_council_number: string;
   court_jurisdiction: string;
-  plan?: 'free' | 'basic';
+  plan?: 'free' | 'basic' | 'firm';
   drafts_limit?: number;
   drafts_used?: number;
   plan_expires_at?: string | null;
+  org_id?: string | null;
+  organizations?: {
+    id: string;
+    name: string;
+    owner_id: string;
+    seats_total: number;
+    drafts_limit: number;
+    plan_expires_at: string | null;
+  } | null;
   razorpay_payment_id?: string | null;
   referral_code: string;
   referred_by: string | null;

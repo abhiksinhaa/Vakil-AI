@@ -44,31 +44,75 @@ export async function POST(req: Request) {
       monthly: { amount: 39900, drafts_limit: 175, plan_name: 'pro' },
       annual:  { amount: 399900, drafts_limit: 175, plan_name: 'pro' },
     },
+    firm: {
+      monthly: { amount: 99900, drafts_limit: 500, plan_name: 'firm' },
+      annual:  { amount: 999900, drafts_limit: 500, plan_name: 'firm' },
+    },
+    firm_seat: {
+      monthly: { amount: 29900, plan_name: 'firm_seat' },
+      annual:  { amount: 29900, plan_name: 'firm_seat' },
+    }
   };
 
   const selectedPlanCycle = (PLANS[plan] || PLANS.basic)[billingCycle === 'annual' ? 'annual' : 'monthly'];
   let planName = selectedPlanCycle.plan_name;
   let draftsLimit = selectedPlanCycle.drafts_limit;
 
-  const { data, error: updateError } = await supabaseAdmin
-    .from('profiles')
-    .update({
-      plan: planName,
-      drafts_limit: draftsLimit,
+  if (plan === 'firm_seat') {
+    const { data: profile } = await supabaseAdmin.from('profiles').select('org_id').eq('id', userId).single();
+    if (profile?.org_id) {
+      const { data: org } = await supabaseAdmin.from('organizations').select('seats_total').eq('id', profile.org_id).single();
+      if (org) {
+        await supabaseAdmin.from('organizations').update({ seats_total: (org.seats_total || 3) + 1 }).eq('id', profile.org_id);
+      }
+    }
+  } else if (plan === 'firm') {
+    const orgName = `Firm - ${userId.substring(0, 5)}`;
+    const { data: newOrg, error: orgError } = await supabaseAdmin.from('organizations').insert({
+      name: orgName,
+      owner_id: userId,
+      seats_total: 3,
+      drafts_limit: 500,
       plan_expires_at: expiresAt.toISOString(),
-      razorpay_payment_id,
-    })
-    .eq('id', userId)
-    .select()
+    }).select().single();
 
-  console.log('Update result:', { data, error: updateError })
+    if (orgError) {
+      console.error('Failed to create organization:', orgError);
+      return NextResponse.json({ success: false, error: orgError.message }, { status: 500 });
+    }
 
-  if (updateError) {
-    console.error('Supabase update FAILED:', updateError)
-    return NextResponse.json({ 
-      success: false,
-      error: updateError.message 
-    }, { status: 500 })
+    await supabaseAdmin.from('organization_members').insert({
+      org_id: newOrg.id,
+      user_id: userId,
+      invited_email: 'owner@local',
+      role: 'admin',
+      status: 'active'
+    });
+
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        plan: planName,
+        drafts_limit: draftsLimit,
+        plan_expires_at: expiresAt.toISOString(),
+        razorpay_payment_id,
+        org_id: newOrg.id,
+      })
+      .eq('id', userId);
+
+    if (updateError) console.error('Supabase update FAILED:', updateError);
+  } else {
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        plan: planName,
+        drafts_limit: draftsLimit,
+        plan_expires_at: expiresAt.toISOString(),
+        razorpay_payment_id,
+      })
+      .eq('id', userId);
+
+    if (updateError) console.error('Supabase update FAILED:', updateError);
   }
 
   const { error: paymentError } = await supabaseAdmin

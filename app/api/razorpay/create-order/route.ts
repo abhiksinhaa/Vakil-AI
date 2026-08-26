@@ -24,6 +24,14 @@ export async function POST(req: Request) {
       monthly: { amount: 39900, drafts_limit: 175 },
       annual:  { amount: 399900, drafts_limit: 175 },
     },
+    firm: {
+      monthly: { amount: 99900, drafts_limit: 500 },
+      annual:  { amount: 999900, drafts_limit: 500 },
+    },
+    firm_seat: {
+      monthly: { amount: 29900 },
+      annual:  { amount: 29900 },
+    }
   };
 
   if (!PLANS[plan] || !PLANS[plan][billingCycle]) {

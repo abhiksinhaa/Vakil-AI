@@ -204,7 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setFontSizeMode,
       profile,
       subscription,
-      isPro: isProActive(subscription) || (['basic', 'pro', 'premium'].includes(profile?.plan || '') && profile?.plan_expires_at != null && new Date(profile.plan_expires_at) > new Date()),
+      isPro: isProActive(subscription) || (['basic', 'pro', 'premium', 'firm'].includes(profile?.plan || '') && profile?.plan_expires_at != null && new Date(profile.plan_expires_at) > new Date()) || (profile?.org_id != null && (Array.isArray(profile.organizations) ? profile.organizations[0]?.plan_expires_at : profile.organizations?.plan_expires_at) != null && new Date((Array.isArray(profile.organizations) ? profile.organizations[0]?.plan_expires_at : profile.organizations?.plan_expires_at) as string) > new Date()),
       accountLoading,
       refreshAccount,
       setProfile,

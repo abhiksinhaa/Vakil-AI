@@ -72,6 +72,14 @@ const PLANS = [
     features: ['175 drafts/month', 'Draft History', 'PDF Downloads', 'Priority generation speed'],
     isPopular: true
   },
+  {
+    key: 'firm',
+    label: 'Firm',
+    monthlyPrice: '₹999/mo',
+    annualPrice: '₹9,999/yr',
+    drafts: '500 shared drafts/month',
+    features: ['500 pooled drafts/month', '3 Member Seats included', 'Admin Dashboard', 'Priority generation speed']
+  }
 ] as const;
 
 export default function PricingPage() {
@@ -112,7 +120,7 @@ export default function PricingPage() {
     fetchFreshPlan();
   }, [session?.user?.id]);
 
-  const handleSubscribe = async (plan: 'basic' | 'pro') => {
+  const handleSubscribe = async (plan: 'basic' | 'pro' | 'firm') => {
     if (!session?.user?.id) {
       setError('Please sign in to purchase.');
       return;
