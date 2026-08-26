@@ -35,6 +35,7 @@ export interface Profile {
   state?: string;
   city?: string;
   email?: string;
+  court_level?: string;
   whatsapp_number?: string;
   whatsapp_verified?: boolean;
 

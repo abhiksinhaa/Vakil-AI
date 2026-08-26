@@ -5,6 +5,125 @@ export const maxDuration = 60; // Allow up to 60s execution on Vercel
 import { createClient } from '@supabase/supabase-js';
 import { calculateDraftAllowance } from '../../../src/lib/userAccount';
 
+function buildJurisdictionPrompt(state: string, courtLevel: string): string {
+  const courtFormats: Record<string, string> = {
+    'Supreme Court of India': `
+COURT FORMAT: SUPREME COURT OF INDIA
+- Cause Title: "IN THE SUPREME COURT OF INDIA"
+- "CIVIL/CRIMINAL APPELLATE/ORIGINAL JURISDICTION"
+- Case: "CIVIL APPEAL/SPECIAL LEAVE PETITION (CIVIL) NO. ___ OF ____"
+- Parties: "BETWEEN: [Appellant] ...Appellant(s) AND [Respondent] ...Respondent(s)"
+- Opening: "MOST RESPECTFULLY SHOWETH:"
+- Prayer must begin: "It is, therefore, most respectfully prayed..."
+- Follow Supreme Court Rules, 2013
+- Use refined formal legal English throughout
+- Attach list of dates if applicable
+- Index of documents required`,
+
+    'High Court': `
+COURT FORMAT: HIGH COURT
+- Cause Title: "IN THE HIGH COURT OF ${state?.toUpperCase() || 'JUDICATURE'}"
+- Include bench details if applicable (Division Bench / Single Bench)
+- Use proper writ petition format if applicable (Article 226/227)
+- Follow respective High Court Rules
+- Formal legal English required
+- Include proper index if petition
+${state === 'Maharashtra' ? '- Follow Bombay High Court Original Side Rules\n- Proper pagination and indexing required' : ''}
+${state === 'Delhi' ? '- Follow Delhi High Court Rules, 2021\n- Include proper synopsis and list of dates for writ petitions' : ''}
+${state === 'Tamil Nadu' ? '- Follow Madras High Court Original Side Rules\n- Include proper cause title format as per Madras HC practice' : ''}
+${state === 'West Bengal' ? '- Follow Calcutta High Court Rules\n- Include proper format as per Calcutta HC practice' : ''}
+${state === 'Karnataka' ? '- Follow Karnataka High Court Rules\n- Dharwad/Gulbarga Bench format if applicable' : ''}
+${state === 'Uttar Pradesh' ? '- Follow Allahabad High Court Rules\n- Lucknow Bench format if applicable' : ''}
+${state === 'Gujarat' ? '- Follow Gujarat High Court Rules' : ''}
+${state === 'Rajasthan' ? '- Follow Rajasthan High Court Rules\n- Jaipur/Jodhpur Bench format as applicable' : ''}
+${state === 'Assam' ? '- Follow Gauhati High Court Rules\n- Applicable for Northeast states' : ''}
+${state === 'Madhya Pradesh' ? '- Follow MP High Court Rules\n- Jabalpur/Indore/Gwalior Bench as applicable' : ''}`,
+
+    'District Court / Sessions Court': `
+COURT FORMAT: DISTRICT COURT / SESSIONS COURT
+- Cause Title: "IN THE COURT OF [DESIGNATION OF JUDGE], [CITY/DISTRICT]"
+- Standard district court format for ${state || 'India'}
+- Use CPC format for civil matters
+- Use BNSS format for criminal matters  
+- Local bar conventions for ${state || 'India'} to be followed
+- Simple, clear legal English preferred
+- Avoid overly complex language`,
+
+    'Consumer Court (DCDRC/SCDRC/NCDRC)': `
+COURT FORMAT: CONSUMER COURT
+- For DCDRC (District): "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, [DISTRICT]"
+- For SCDRC (State): "BEFORE THE STATE CONSUMER DISPUTES REDRESSAL COMMISSION, ${state?.toUpperCase()}"
+- For NCDRC (National): "BEFORE THE NATIONAL CONSUMER DISPUTES REDRESSAL COMMISSION, NEW DELHI"
+- Follow Consumer Protection Act, 2019
+- Include: Complaint under Section 35 (DCDRC) / Section 47 (SCDRC) / Section 58 (NCDRC)
+- Prayer must include: compensation, replacement/refund, litigation costs
+- Attach: purchase proof, warranty card, correspondence with company`,
+
+    'Family Court': `
+COURT FORMAT: FAMILY COURT
+- Cause Title: "IN THE FAMILY COURT AT [CITY]"
+- Follow Family Courts Act, 1984
+- State applicable personal law (Hindu Marriage Act / Special Marriage Act / Muslim Personal Law etc.)
+- Sensitive and dignified language required
+- Include proper prayer for relief sought
+- ${state || 'Local'}-specific family court rules to be followed`,
+
+    'Magistrate Court': `
+COURT FORMAT: MAGISTRATE COURT
+- "IN THE COURT OF JUDICIAL MAGISTRATE [FIRST/SECOND CLASS], [CITY]"
+- OR "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, [DISTRICT]"
+- Follow BNSS, 2023 for criminal matters
+- Simple clear language
+- Include proper prayer for relief`,
+
+    'Tribunal': `
+COURT FORMAT: TRIBUNAL
+- Specify the exact tribunal name
+- Follow tribunal-specific rules and procedures
+- Include proper cause title as per tribunal format
+- ${state || 'Local'}-based tribunal rules to be followed`,
+
+    'Lok Adalat': `
+COURT FORMAT: LOK ADALAT
+- "BEFORE THE LOK ADALAT ORGANIZED BY [ORGANIZING BODY]"
+- Follow Legal Services Authorities Act, 1987
+- Conciliatory language preferred
+- Focus on settlement terms
+- Simple clear language`,
+
+    'Revenue Court': `
+COURT FORMAT: REVENUE COURT
+- Follow ${state || 'Local'} Land Revenue Code/Act
+- Include Survey numbers, Khasra numbers as applicable
+- Revenue court specific terminology
+- Follow local revenue laws of ${state || 'India'}`
+  };
+
+  const courtInstruction = courtFormats[courtLevel] || courtFormats['District Court / Sessions Court'];
+
+  return `
+=== JURISDICTION INSTRUCTIONS (MANDATORY — FOLLOW STRICTLY) ===
+
+State/UT: ${state || 'India (General)'}
+Court: ${courtLevel || 'District Court'}
+
+${courtInstruction}
+
+GENERAL INSTRUCTIONS:
+- Generate the draft EXACTLY as it would appear when filed in the above court
+- Use the correct cause title format for this court
+- Number all paragraphs correctly
+- Include proper prayer/relief section
+- Add verification/affidavit if required by this court
+- Do NOT use IPC sections — use BNS 2023 sections
+- Do NOT use CrPC sections — use BNSS 2023 sections  
+- Do NOT use Indian Evidence Act — use BSA 2023
+
+=== END JURISDICTION INSTRUCTIONS ===
+
+`;
+}
+
 const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 
 /** gemini-1.5-flash was removed from the Generative Language API (404). */
@@ -94,8 +213,18 @@ export async function POST(req: Request) {
       }
     }
     
+    const state = body.state;
+    const courtLevel = body.court_level;
+    
     delete body.model; // Don't send this to Gemini API
     delete body.userId; // Don't send this to Gemini API
+    delete body.state;
+    delete body.court_level;
+
+    if (body.systemInstruction?.parts?.[0]?.text) {
+      const jurisdictionPrompt = buildJurisdictionPrompt(state, courtLevel);
+      body.systemInstruction.parts[0].text = jurisdictionPrompt + body.systemInstruction.parts[0].text;
+    }
     
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
       apiKey

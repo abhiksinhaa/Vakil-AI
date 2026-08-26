@@ -224,6 +224,8 @@ Generate the complete ${draftType} now:`;
       const requestPayload = {
         userId: formData.userId,
         model: currentModel,
+        state: formData.state,
+        court_level: formData.courtLevel,
         systemInstruction: {
           parts: [{ text: finalSystemPrompt }],
         },

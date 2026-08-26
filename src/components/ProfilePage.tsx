@@ -8,6 +8,30 @@ import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
 import { isProfileComplete } from '../lib/isProfileComplete';
 
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
+  'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh',
+  'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra',
+  'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+  'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli',
+  'Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh',
+  'Lakshadweep', 'Puducherry'
+];
+
+const COURT_LEVELS = [
+  'District Court / Sessions Court',
+  'High Court',
+  'Supreme Court of India',
+  'Consumer Court (DCDRC/SCDRC/NCDRC)',
+  'Family Court',
+  'Tribunal',
+  'Lok Adalat',
+  'Magistrate Court',
+  'Revenue Court',
+];
+
 export default function ProfilePage() {
   const router = useRouter();
   const { session, setProfile: setGlobalProfile } = useApp();
@@ -22,6 +46,7 @@ export default function ProfilePage() {
     city: '',
     email: '',
     whatsapp_number: '',
+    court_level: '',
   });
   
   const [bio, setBio] = useState('');
@@ -57,6 +82,7 @@ export default function ProfilePage() {
           city: data.city || '',
           email: data.email || '',
           whatsapp_number: data.whatsapp_number || '',
+          court_level: data.court_level || '',
         });
         setBio(data.bio || '');
         setGlobalProfile(data); // Sync global context
@@ -137,6 +163,7 @@ export default function ProfilePage() {
         city: form.city,
         email: form.email,
         whatsapp_number: form.whatsapp_number,
+        court_level: form.court_level,
         updated_at: new Date().toISOString(),
       };
 
@@ -348,15 +375,35 @@ export default function ProfilePage() {
                 />
               </label>
 
-              <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
-                <span>State</span>
-                <input
-                  className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white placeholder:text-white/20"
-                  placeholder="Maharashtra"
-                  value={form.state}
-                  onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
-                />
-              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
+                  <span>State</span>
+                  <select
+                    className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white appearance-none focus:outline-none focus:border-[#c9a84c]/50 transition"
+                    value={form.state}
+                    onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
+                  >
+                    <option value="">Select State</option>
+                    {INDIAN_STATES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
+                  <span>Default Court Level</span>
+                  <select
+                    className="w-full rounded-2xl border border-[#1e2a3a] bg-[#0a0f1e] px-4 py-3 text-white appearance-none focus:outline-none focus:border-[#c9a84c]/50 transition"
+                    value={form.court_level}
+                    onChange={(e) => setForm((prev) => ({ ...prev, court_level: e.target.value }))}
+                  >
+                    <option value="">Select Court Level</option>
+                    {COURT_LEVELS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               <label className="block space-y-2 text-sm text-[#e8e0d0]/80">
                 <span>City</span>

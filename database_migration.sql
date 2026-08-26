@@ -130,3 +130,6 @@ BEGIN
     ALTER TABLE payments ADD COLUMN plan text;
   END IF;
 END $$;
+
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS court_level text;

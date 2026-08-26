@@ -43,6 +43,30 @@ const AFFIDAVIT_SUB_TYPES = [
   "Court Affidavit (Evidence/Reply/Rejoinder Affidavit)"
 ];
 
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
+  'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh',
+  'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra',
+  'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+  'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli',
+  'Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh',
+  'Lakshadweep', 'Puducherry'
+];
+
+const COURT_LEVELS = [
+  'District Court / Sessions Court',
+  'High Court',
+  'Supreme Court of India',
+  'Consumer Court (DCDRC/SCDRC/NCDRC)',
+  'Family Court',
+  'Tribunal',
+  'Lok Adalat',
+  'Magistrate Court',
+  'Revenue Court',
+];
+
 const INITIAL_FORM = {
   matterId: 'civil',
   draftType: 'plaint',
@@ -60,6 +84,8 @@ const INITIAL_FORM = {
   situation: '',
   language: 'English',
   incidentTiming: 'after',
+  state: '',
+  courtLevel: '',
   dynamicFields: {} as Record<string, string>,
 };
 
@@ -183,6 +209,15 @@ export default function DraftGenerator() {
   }, [isGenerating, plan]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedState = window.localStorage.getItem('draft_state');
+      const savedCourt = window.localStorage.getItem('draft_court');
+      if (savedState) setForm(prev => ({ ...prev, state: savedState }));
+      if (savedCourt) setForm(prev => ({ ...prev, courtLevel: savedCourt }));
+    }
+  }, []);
+
+  useEffect(() => {
     if (profile) {
       setForm((prev) => ({
         ...prev,
@@ -190,6 +225,8 @@ export default function DraftGenerator() {
         barCouncilNumber: profile.bar_council_number || prev.barCouncilNumber,
         advocateCity: profile.court_jurisdiction || prev.advocateCity,
         language: profile.preferred_draft_language || profile.language || prev.language || 'English',
+        state: prev.state || profile.state || '',
+        courtLevel: prev.courtLevel || profile.court_level || '',
       }));
       setProfileFilled(isUserProfileComplete(profile));
 
@@ -619,6 +656,46 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                 ))}
               </select>
               <p className="text-xs text-cream/50 mt-2">This will be saved as your default draft language.</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 mb-4">
+              <div>
+                <label className="block text-[#c9a84c] text-[0.9rem] font-medium mb-2">
+                  Jurisdiction State <span className="text-sm font-sans text-cream/50">(Optional)</span>
+                </label>
+                <select
+                  value={form.state}
+                  onChange={(e) => {
+                    update('state', e.target.value);
+                    if (typeof window !== 'undefined') window.localStorage.setItem('draft_state', e.target.value);
+                  }}
+                  className="w-full text-base py-3"
+                >
+                  <option value="">Select State</option>
+                  {INDIAN_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#c9a84c] text-[0.9rem] font-medium mb-2">
+                  Court Level <span className="text-sm font-sans text-cream/50">(Optional)</span>
+                </label>
+                <select
+                  value={form.courtLevel}
+                  onChange={(e) => {
+                    update('courtLevel', e.target.value);
+                    if (typeof window !== 'undefined') window.localStorage.setItem('draft_court', e.target.value);
+                  }}
+                  className="w-full text-base py-3"
+                >
+                  <option value="">Select Court Level</option>
+                  {COURT_LEVELS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0 mt-4">
