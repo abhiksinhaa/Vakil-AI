@@ -20,11 +20,12 @@ export default function BottomNav() {
       ),
     },
     {
-      href: '/pricing',
+      href: '/matters',
       icon: (active) => (
         <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? '#c9a84c' : 'none'}
-          stroke={active ? '#c9a84c' : 'currentColor'} strokeWidth="2">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          stroke={active ? '#c9a84c' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+          <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
         </svg>
       ),
     },
@@ -46,12 +47,20 @@ export default function BottomNav() {
       ),
     },
     {
-      href: '/profile',
+      href: '/pricing',
       icon: (active) => (
         <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? '#c9a84c' : 'none'}
           stroke={active ? '#c9a84c' : 'currentColor'} strokeWidth="2">
-          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      ),
+    },
+    {
+      href: '/library',
+      icon: (active) => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? '#c9a84c' : 'none'}
+          stroke={active ? '#c9a84c' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
         </svg>
       ),
     },

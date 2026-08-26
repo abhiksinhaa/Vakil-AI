@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
+import NotificationBell from './NotificationBell';
 
 function getUserInitials(session, profile) {
   const name =
@@ -107,8 +108,10 @@ export default function Navbar() {
             style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
         </Link>
 
-        {/* Right: theme → profile → hamburger */}
+        {/* Right: notifications → theme → profile → hamburger */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {session && <NotificationBell />}
+
           {/* 1. Theme toggle */}
           <button
             type="button"

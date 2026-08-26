@@ -96,6 +96,7 @@ export interface DraftRecord {
   amount: string | null;
   generated_draft: string;
   created_at: string;
+  matter_id?: string;
 }
 
 export interface DraftInput {
@@ -111,6 +112,7 @@ export interface DraftInput {
   schema?: any; // The DocumentSchema
   amount?: string;
   generatedDraft: string;
+  matterId?: string;
 }
 
 export interface SessionUser {
@@ -121,4 +123,43 @@ export interface SessionUser {
 
 export interface Session {
   user: SessionUser;
+}
+
+export interface Matter {
+  id: string;
+  user_id: string;
+  title: string;
+  case_type?: string;
+  description?: string;
+  status: 'active' | 'closed' | 'archived';
+  next_hearing_date?: string;
+  court_name?: string;
+  case_number?: string;
+  opposite_party?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Task {
+  id: string;
+  user_id: string;
+  matter_id?: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  status: 'pending' | 'completed';
+  priority: 'normal' | 'high';
+  created_at?: string;
+}
+
+export interface Hearing {
+  id: string;
+  user_id: string;
+  matter_id: string;
+  hearing_date: string;
+  hearing_time?: string;
+  court_name?: string;
+  notes?: string;
+  status: 'upcoming' | 'completed';
+  created_at?: string;
 }

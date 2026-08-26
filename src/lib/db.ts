@@ -27,6 +27,7 @@ function mapDraft(id: string, data: Record<string, unknown>): DraftRecord {
     amount: (data.amount as string) ?? null,
     generated_draft: String(data.draft_content ?? data.draftContent ?? data.generated_draft ?? ''),
     created_at: tsToIso(data.created_at ?? data.createdAt),
+    matter_id: (data.matter_id as string) ?? undefined,
   };
 }
 
@@ -116,6 +117,7 @@ export async function saveDraft(draft: DraftInput, options?: { trackUsage?: bool
     amount: extractedAmount,
     generated_draft: draft.generatedDraft,
     created_at: now,
+    ...(draft.matterId ? { matter_id: draft.matterId } : {}),
   };
 
   console.log('Saving draft row:', draftRow);

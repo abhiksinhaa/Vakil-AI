@@ -5,64 +5,35 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from './Navbar';
 import CourtNewsCarousel from './CourtNewsCarousel';
-import { fetchRecentDrafts } from '../lib/db';
-import { stripMarkdown } from '../lib/stripMarkdown';
 import { useApp } from '../context/AppContext';
-import { FREE_DRAFT_LIMIT } from '../lib/userAccount';
 import { createClient } from '../lib/supabase';
+import type { Matter } from '../lib/types';
+import MatterCard from './MatterCard';
+import AddTaskModal from './AddTaskModal';
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function DraftModal({ draft, onClose }) {
-  if (!draft) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="card max-w-3xl w-full max-h-[85vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-border">
-          <div>
-            <h3 className="font-display text-lg text-gold">{draft.draft_type}</h3>
-            <p className="text-sm text-cream/50 mt-1">{formatDate(draft.created_at)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-cream/50 hover:text-cream text-2xl leading-none"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
-        <pre className="flex-1 overflow-auto whitespace-pre-wrap text-sm text-cream/90 leading-relaxed">
-          {stripMarkdown(draft.generated_draft)}
-        </pre>
-      </div>
-    </div>
-  );
+function getGreetingTime() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 export default function Dashboard() {
   const searchParams = useSearchParams();
-  const { session, subscription, isPro, profile } = useApp();
-  const [drafts, setDrafts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedDraft, setSelectedDraft] = useState(null);
-  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const { session } = useApp();
+  
+  const [pendingTasksCount, setPendingTasksCount] = useState(0);
+  const [hearingsCount, setHearingsCount] = useState(0);
+  const [draftsCount, setDraftsCount] = useState(0);
+  const [deadlinesCount, setDeadlinesCount] = useState(0);
+  const [matters, setMatters] = useState<Matter[]>([]);
+  
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const paymentSuccess = searchParams.get('payment') === 'success';
 
   const displayName =
@@ -71,138 +42,240 @@ export default function Dashboard() {
     'Advocate';
 
   useEffect(() => {
-    fetchRecentDrafts(5)
-      .then(setDrafts)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    if (!paymentSuccess) return;
+    setShowPaymentSuccess(true);
+    const timer = window.setTimeout(() => setShowPaymentSuccess(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [paymentSuccess]);
+
+  const loadDashboardData = async () => {
+    if (!session?.user?.id) return;
+    const supabase = createClient();
+    const userId = session.user.id;
+
+    // Fetch active matters (limit 3)
+    const { data: mattersData } = await supabase
+      .from('matters')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(3);
+    if (mattersData) setMatters(mattersData as Matter[]);
+
+    // Fetch counts
+    const { count: tasksCount } = await supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'pending');
+    if (tasksCount !== null) setPendingTasksCount(tasksCount);
+
+    const { count: dCount } = await supabase
+      .from('drafts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    if (dCount !== null) setDraftsCount(dCount);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const { count: hCount } = await supabase
+      .from('hearings')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('hearing_date', todayStr);
+    if (hCount !== null) setHearingsCount(hCount);
+
+    const { count: dlCount } = await supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .in('due_date', [todayStr, tomorrowStr]);
+    if (dlCount !== null) setDeadlinesCount(dlCount);
+  };
 
   useEffect(() => {
-    if (!paymentSuccess) return;
+    loadDashboardData();
+  }, [session?.user?.id]);
 
-    setShowPaymentSuccess(true);
-
-    const checkPlanTimer = setTimeout(async () => {
-      if (session?.user?.id) {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('profiles')
-          .select('plan')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        if (data?.plan === 'free') {
-          alert('Your payment was received but plan activation ' +
-            'is pending. Contact drafteebusiness@gmail.com');
-        }
-      }
-    }, 3000);
-
-    const timer = window.setTimeout(() => {
-      setShowPaymentSuccess(false);
-    }, 5000);
-
-    return () => {
-      window.clearTimeout(timer);
-      clearTimeout(checkPlanTimer);
-    };
-  }, [paymentSuccess, session?.user?.id]);
+  const handleSaveNote = async () => {
+    if (!noteText.trim() || !session?.user?.id) return;
+    setSavingNote(true);
+    const supabase = createClient();
+    await supabase.from('tasks').insert([{
+      user_id: session.user.id,
+      title: noteText,
+      status: 'pending',
+      priority: 'normal'
+    }]);
+    setNoteText('');
+    setShowNoteInput(false);
+    setSavingNote(false);
+    loadDashboardData(); // Refresh tasks count
+  };
 
   return (
-    <div className="min-h-screen bg-navy">
+    <div className="min-h-screen bg-navy pb-24">
       <Navbar />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {showPaymentSuccess ? (
           <div className="mb-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-200">
             🎉 Welcome to Premium! Your plan is now active.
           </div>
         ) : null}
-        <header className="mb-10">
-          <p className="text-gold/80 text-sm font-medium mb-1">Welcome,</p>
+        
+        {/* Greeting Section */}
+        <header className="mb-8">
           <h1 className="font-display text-3xl sm:text-4xl text-cream mb-2">
-            {displayName}
+            {getGreetingTime()}, {displayName} 👋
           </h1>
           <p className="text-cream/50 text-sm">
-            What draft would you like to create today? Fill the form, and AI will prepare it instantly.
+            Let's get your legal work done.
           </p>
         </header>
 
-        <Link
-          href="/generate"
-          className="card flex items-center justify-between gap-4 mb-10 group hover:border-gold/40 transition-colors"
-        >
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-3 mb-1">
-              <h2 className="font-display text-xl text-gold">Create New Draft</h2>
-              {subscription && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isPro ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-cream/10 text-cream/80 border border-cream/20'}`}>
-                  {isPro ? `${profile?.plan ? profile.plan.charAt(0).toUpperCase() + profile.plan.slice(1) : 'Premium'} plan active` : `${Math.max(0, FREE_DRAFT_LIMIT - (profile?.drafts_used || subscription.drafts_used || 0))} free drafts left`}
-                </span>
+        {/* Stats Cards Row */}
+        <div className="flex gap-4 overflow-x-auto pb-4 mb-8 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
+          <Link href="/tasks" className="shrink-0 group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
+              <div className="text-2xl font-bold text-gold mb-1">{pendingTasksCount}</div>
+              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">My Tasks</div>
+            </div>
+          </Link>
+          <Link href="/matters" className="shrink-0 group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
+              <div className="text-2xl font-bold text-gold mb-1">{hearingsCount}</div>
+              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">Hearings</div>
+            </div>
+          </Link>
+          <Link href="/library" className="shrink-0 group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
+              <div className="text-2xl font-bold text-gold mb-1">{draftsCount}</div>
+              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">Recent Drafts</div>
+            </div>
+          </Link>
+          <Link href="/tasks" className="shrink-0 group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
+              <div className="text-2xl font-bold text-gold mb-1">{deadlinesCount}</div>
+              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">Deadlines</div>
+            </div>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Quick Actions */}
+          <section>
+            <h2 className="font-display text-xl text-cream mb-4">Quick Actions</h2>
+            <div className="space-y-2">
+              <Link href="/generate" className="block group">
+                <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📝</span>
+                    <span className="text-cream font-medium text-sm">Create Draft</span>
+                  </div>
+                  <span className="text-gold group-hover:translate-x-1 transition-transform">›</span>
+                </div>
+              </Link>
+              
+              <Link href="/generate" className="block group">
+                <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📄</span>
+                    <span className="text-cream font-medium text-sm">Upload Document</span>
+                  </div>
+                  <span className="text-gold group-hover:translate-x-1 transition-transform">›</span>
+                </div>
+              </Link>
+              
+              <button onClick={() => setShowAddTask(true)} className="w-full text-left group">
+                <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">✓</span>
+                    <span className="text-cream font-medium text-sm">Add Task</span>
+                  </div>
+                  <span className="text-gold group-hover:translate-x-1 transition-transform">›</span>
+                </div>
+              </button>
+              
+              <button onClick={() => setShowNoteInput(!showNoteInput)} className="w-full text-left group">
+                <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📌</span>
+                    <span className="text-cream font-medium text-sm">Add Note</span>
+                  </div>
+                  <span className={`text-gold transition-transform ${showNoteInput ? 'rotate-90' : ''}`}>›</span>
+                </div>
+              </button>
+              
+              {showNoteInput && (
+                <div className="mt-2 p-3 bg-navy border border-border rounded-lg flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Type a quick note..."
+                    className="flex-1 bg-transparent text-sm text-cream outline-none"
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveNote()}
+                  />
+                  <button 
+                    disabled={savingNote || !noteText.trim()}
+                    onClick={handleSaveNote}
+                    className="text-gold text-sm font-medium hover:underline disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
               )}
             </div>
-            <p className="text-cream/50 text-sm">
-              Legal Notice, Rent Agreement, Affidavit and more
-            </p>
-          </div>
-          <span className="btn-primary shrink-0 group-hover:bg-gold/90">Start →</span>
-        </Link>
+          </section>
 
-        <CourtNewsCarousel />
-
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg text-cream">Recent Drafts</h2>
-            {drafts.length > 0 && (
-              <Link href="/history" className="text-sm text-gold hover:underline">
+          {/* My Matters */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl text-cream">My Matters</h2>
+              <Link href="/matters" className="text-sm text-gold hover:underline">
                 View all
               </Link>
-            )}
-          </div>
-
-          {loading && (
-            <div className="card text-center py-8 text-cream/50 text-sm">Loading…</div>
-          )}
-
-          {!loading && drafts.length === 0 && (
-            <div className="card text-center py-10">
-              <p className="text-cream/50 text-sm mb-4">No drafts saved yet</p>
-              <Link href="/generate" className="btn-primary text-sm">
-                Create Your First Draft
-              </Link>
             </div>
-          )}
+            
+            <div className="space-y-3">
+              {matters.length === 0 ? (
+                <div className="card text-center py-8">
+                  <p className="text-cream/50 text-sm mb-4">No matters yet. Add your first matter.</p>
+                  <Link href="/matters" className="btn-primary text-sm inline-block">
+                    Add Matter
+                  </Link>
+                </div>
+              ) : (
+                matters.map((matter) => (
+                  <MatterCard key={matter.id} matter={matter} />
+                ))
+              )}
+            </div>
+          </section>
+        </div>
 
-          {!loading && drafts.length > 0 && (
-            <ul className="space-y-3">
-              {drafts.map((draft) => (
-                <li key={draft.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDraft(draft)}
-                    className="card w-full text-left hover:border-gold/30 transition-colors"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-cream">{draft.draft_type}</p>
-                        <p className="text-sm text-cream/50 mt-1">
-                          {draft.party1_name}
-                          {draft.party2_name ? ` vs ${draft.party2_name}` : ''}
-                        </p>
-                      </div>
-                      <span className="text-xs text-cream/40 shrink-0">
-                        {formatDate(draft.created_at)}
-                      </span>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* Existing Carousel (optional but preserving it) */}
+        <div className="mt-12">
+          <CourtNewsCarousel />
+        </div>
       </main>
 
-      <DraftModal draft={selectedDraft} onClose={() => setSelectedDraft(null)} />
+      {showAddTask && (
+        <AddTaskModal 
+          onClose={() => setShowAddTask(false)} 
+          onSuccess={loadDashboardData}
+        />
+      )}
     </div>
   );
 }
