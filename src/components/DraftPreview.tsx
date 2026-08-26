@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Copy, FileText, Download, MessageCircle, Mail, X, Send, Edit2, Save, RefreshCw } from 'lucide-react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
 import { stripMarkdown } from '../lib/stripMarkdown';
 import { openEmailDraft, openWhatsAppShare } from '../lib/shareDraft';
@@ -52,7 +53,10 @@ export default function DraftPreview({
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', barCouncilNumber: '', cityCourt: '' });
   const [pendingAction, setPendingAction] = useState<null | 'copy' | 'pdf' | 'whatsapp' | 'email'>(null);
-  const { setProfile } = useApp();
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const { setProfile, isPro } = useApp();
   const router = useRouter();
 
   const displayDraft = useMemo(
@@ -234,7 +238,7 @@ export default function DraftPreview({
     onActionBusyChange?.(true);
     setIsPdfLoading(true);
     try {
-      await downloadDraftPdf(displayDraft, formData);
+      await downloadDraftPdf(displayDraft, formData, isPro);
     } catch (err) {
       console.error('PDF export failed:', err);
       setPdfError('PDF could not be downloaded. Please try again.');
@@ -267,6 +271,40 @@ export default function DraftPreview({
     }
   };
 
+  const handleEmailSend = async () => {
+    if (!emailRecipient.trim() || !displayDraft) return;
+    
+    setEmailSending(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      
+      const res = await fetch('/api/email-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draftContent: displayDraft,
+          draftType: formData?.draftType,
+          recipientEmail: emailRecipient,
+          userId,
+        }),
+      });
+      
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to send email');
+      }
+      
+      alert('Email sent successfully!');
+      setShowEmailModal(false);
+    } catch (err: any) {
+      console.error('Email send failed:', err);
+      alert(err.message || 'Could not send email');
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   const handleEmail = async () => {
     if (!displayDraft) return;
 
@@ -282,15 +320,8 @@ export default function DraftPreview({
     const canProceed = await ensureProfileForAction('email');
     if (!canProceed) return;
 
-    onActionBusyChange?.(true);
-    try {
-      openEmailDraft({
-        body: displayDraft,
-        draftType: formData?.draftType,
-      });
-    } finally {
-      onActionBusyChange?.(false);
-    }
+    setEmailRecipient(userData?.user?.email || '');
+    setShowEmailModal(true);
   };
 
   const handleSaveWrapper = () => {
@@ -308,7 +339,7 @@ export default function DraftPreview({
       } else if (pendingAction === 'pdf') {
         setIsPdfLoading(true);
         try {
-          await downloadDraftPdf(text, formData);
+          await downloadDraftPdf(text, formData, isPro);
         } catch (err) {
           console.error('PDF export failed after profile save:', err);
           setPdfError('PDF could not be downloaded. Please try again.');
@@ -318,7 +349,9 @@ export default function DraftPreview({
       } else if (pendingAction === 'whatsapp') {
         openWhatsAppShare(text);
       } else if (pendingAction === 'email') {
-        openEmailDraft({ body: text, draftType: formData?.draftType });
+        const { data: userData } = await supabase.auth.getUser();
+        setEmailRecipient(userData?.user?.email || '');
+        setShowEmailModal(true);
       }
     } finally {
       setPendingAction(null);
@@ -354,12 +387,44 @@ export default function DraftPreview({
     }
   };
 
-  const isPremium = profile?.plan === 'basic';
+  const isPremium = isPro;
   console.log('User plan:', profile?.plan);
   console.log('RENDER: isPremium value at render time:', isPremium, 'profile:', profile);
 
   return (
     <div className="card h-full flex flex-col min-h-[400px] lg:min-h-0">
+      {showEmailModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
+          <div className="card max-w-sm w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg text-cream">Email Draft</h3>
+              <button onClick={() => setShowEmailModal(false)} className="text-cream/50 hover:text-cream">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div>
+              <label className="text-sm text-cream/80 block mb-2">Recipient Email</label>
+              <input
+                type="email"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+                placeholder="Enter email address..."
+                className="w-full"
+              />
+            </div>
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={handleEmailSend}
+                disabled={emailSending || !emailRecipient}
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
+                {emailSending ? 'Sending…' : <><Send className="w-4 h-4" /> Send Email</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showProfileModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
           <div className="card max-w-md w-full space-y-4">
@@ -507,7 +572,7 @@ export default function DraftPreview({
       )}
 
       {draft && !isGenerating && !error && (
-        <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
+        <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border">
           {isPremium ? (
             isEditing ? (
               <>
@@ -520,39 +585,43 @@ export default function DraftPreview({
               </>
             ) : (
               <>
-                <button type="button" onClick={startEdit} className="btn-secondary text-sm">
-                  Edit draft
+                <button type="button" onClick={startEdit} title="Edit Draft" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                  <Edit2 className="w-4 h-4" />
                 </button>
-                <button type="button" onClick={handleCopy} className="btn-secondary text-sm">
-                  {copied ? 'Copied! ✓' : 'Copy'}
+                <button type="button" onClick={handleCopy} title="Copy to clipboard" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                  {copied ? <span className="text-emerald-400 text-xs font-bold px-1">✓</span> : <Copy className="w-4 h-4" />}
                 </button>
-                <button type="button" onClick={handleDownloadTxt} className="btn-secondary text-sm">
-                  .txt
+                <button type="button" onClick={handleDownloadTxt} title="Download .txt" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                  <FileText className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleDownloadPdf}
                   disabled={isPdfLoading}
-                  className="btn-secondary text-sm"
+                  title="Download PDF"
+                  className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all disabled:opacity-50"
                 >
-                  {isPdfLoading ? 'PDF…' : 'PDF'}
+                  {isPdfLoading ? <span className="w-4 h-4 border-2 border-gold/30 border-t-gold rounded-full animate-spin inline-block" /> : <Download className="w-4 h-4" />}
                 </button>
-                <button type="button" onClick={handleWhatsApp} className="btn-secondary text-sm">
-                  WhatsApp
+                <button type="button" onClick={handleWhatsApp} title="Share on WhatsApp" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-[#25D366]/20 hover:text-[#25D366] hover:border-[#25D366]/30 transition-all">
+                  <MessageCircle className="w-4 h-4" />
                 </button>
-                <button type="button" onClick={handleEmail} className="btn-secondary text-sm">
-                  Email
+                <button type="button" onClick={handleEmail} title="Email Draft" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                  <Mail className="w-4 h-4" />
                 </button>
+                
+                <div className="flex-1" />
+                
                 <button
                   type="button"
                   onClick={handleSaveWrapper}
                   disabled={isSaving || saveSuccess}
-                  className="btn-secondary text-sm"
+                  className="btn-secondary text-sm flex items-center gap-2"
                 >
-                  {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : 'Save'}
+                  {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : <><Save className="w-4 h-4" /> Save</>}
                 </button>
-                <button type="button" onClick={onRegenerate} className="btn-primary text-sm ml-auto">
-                  Regenerate
+                <button type="button" onClick={onRegenerate} className="btn-primary text-sm flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" /> Regenerate
                 </button>
               </>
             )
