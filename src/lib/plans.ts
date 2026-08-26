@@ -1,4 +1,4 @@
-export type PaidPlan = 'basic';
+export type PaidPlan = 'basic' | 'pro';
 export type PlanKey = 'free' | PaidPlan;
 
 export const PLAN_CONFIG = {
@@ -6,8 +6,14 @@ export const PLAN_CONFIG = {
   basic: {
     label: 'Basic',
     amount: 14900,
-    draftsLimit: null as any,
+    draftsLimit: 90,
     planId: process.env.RAZORPAY_PLAN_BASIC || 'plan_TDWCGXaopCTWZw',
+  },
+  pro: {
+    label: 'Pro',
+    amount: 39900,
+    draftsLimit: 175,
+    planId: process.env.RAZORPAY_PLAN_PRO || '',
   },
 } as const;
 
@@ -16,6 +22,7 @@ export const SUBSCRIPTION_MONTHS = 1;
 export function normalizePlan(plan?: string | null): PlanKey {
   const key = String(plan || 'free').toLowerCase();
   if (key === 'premium' || key === 'basic') return 'basic';
+  if (key === 'pro') return 'pro';
   return 'free';
 }
 
@@ -31,8 +38,9 @@ export function getPaidPlanFromAmount(amountPaise: number): PaidPlan | null {
 
 export function parsePlanFromReceipt(receipt?: string | null): PaidPlan | null {
   if (!receipt) return null;
-  const match = receipt.match(/^draftee_(premium|basic)_/);
-  return match ? 'basic' : null;
+  const match = receipt.match(/^draftee_(premium|basic|pro)_/);
+  if (!match) return null;
+  return normalizePlan(match[1]) as PaidPlan;
 }
 
 export function resolvePaidPlanFromOrder(order: { amount?: number; receipt?: string | null }): PaidPlan | null {

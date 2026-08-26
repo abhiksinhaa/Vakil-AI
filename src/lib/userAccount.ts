@@ -306,21 +306,31 @@ export async function checkDraftAllowance() {
 
   const profile = await fetchProfile();
   
-  // A user is considered Pro if their drafts_limit is 999999 (unlimited) 
-  // or if their plan is one of the paid plans.
   const limit = profile?.drafts_limit ?? FREE_DRAFT_LIMIT;
   const userPlan = profile?.plan || 'free';
-  const isPro = limit >= 999999 || ['basic', 'pro', 'premium', 'standard', 'starter'].includes(userPlan);
+  const isPro = ['basic', 'pro', 'premium', 'standard', 'starter'].includes(userPlan);
 
   if (isPro) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count } = await supabase
+      .from('drafts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', startOfMonth.toISOString());
+
+    const used = count || 0;
+    const remaining = Math.max(0, limit - used);
     return {
-      allowed: true,
+      allowed: remaining > 0,
       isPro: true,
-      reason: 'ok',
-      message: null,
-      used: profile?.drafts_used || 0,
-      limit: limit,
-      remaining: 999999,
+      reason: remaining > 0 ? 'ok' : 'plan_limit',
+      message: remaining > 0 ? null : `You have reached your monthly limit of ${limit} drafts. Upgrade to continue.`,
+      used,
+      limit,
+      remaining,
       userType: profile?.user_type || 'advocate',
     };
   }
@@ -395,7 +405,7 @@ export async function incrementDraftUsage() {
   const limit = plan !== 'free' ? Number(planState.draftsLimit || getPlanConfig(plan).draftsLimit) : FREE_DRAFT_LIMIT;
   const used = Math.max(0, Number(planState.draftsUsed ?? sub?.drafts_used ?? 0));
 
-  if (used >= limit) {
+  if (plan !== 'free' && used >= limit) {
     return;
   }
 

@@ -92,10 +92,28 @@ export async function POST(req: Request) {
 
       const userPlan = profile?.plan || 'free'
       const draftsLimit = profile?.drafts_limit || 5
-      const isPro = userPlan === 'basic' || userPlan === 'pro' || userPlan === 'premium'
+      const isPro = ['basic', 'pro', 'premium', 'standard', 'starter'].includes(userPlan);
 
-      // Skip ALL limit checks for pro users
-      if (!isPro) {
+      if (isPro) {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const { count } = await supabaseAdmin
+          .from('drafts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', startOfMonth.toISOString());
+
+        const draftsUsed = count || 0;
+
+        if (draftsUsed >= draftsLimit) {
+          return Response.json(
+            { error: `Monthly limit of ${draftsLimit} drafts reached. Please upgrade to continue.` },
+            { status: 403 }
+          )
+        }
+      } else {
         const { count } = await supabaseAdmin
           .from('drafts')
           .select('*', { count: 'exact', head: true })
@@ -108,8 +126,6 @@ export async function POST(req: Request) {
           )
         }
       }
-
-      // Pro users skip directly to draft generation - no limit check at all
     }
     
     delete body.model; // Don't send this to Gemini API
@@ -144,8 +160,7 @@ export async function POST(req: Request) {
     if (upstream.status !== 200) {
       console.error('[api/gemini] Gemini API error response:', data);
     } else if (userId !== 'unknown') {
-      // Drafts table is the source of truth now, no manual increment needed here.
-      // The client will call saveDraft which inserts a row into the drafts table.
+      // Drafts table is the single source of truth for counting. No manual increment needed.
     }
     
     return Response.json(data, { status: upstream.status });

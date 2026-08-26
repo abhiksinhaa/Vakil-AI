@@ -58,9 +58,17 @@ const PLANS = [
   { 
     key: 'basic', 
     label: 'Basic', 
-    price: '₹149/month', 
-    drafts: 'Unlimited drafts',
-    features: ['Unlimited drafts', 'Draft History', 'PDF Downloads', 'Future features included'] 
+    price: '₹149/mo', 
+    drafts: '90 drafts/month',
+    features: ['90 drafts/month', 'Draft History', 'PDF Downloads', 'Future features included'] 
+  },
+  { 
+    key: 'pro', 
+    label: 'Pro', 
+    price: '₹399/mo', 
+    drafts: '175 drafts/month',
+    features: ['175 drafts/month', 'Draft History', 'PDF Downloads', 'Priority generation speed'],
+    isPopular: true
   },
 ] as const;
 
@@ -101,7 +109,7 @@ export default function PricingPage() {
     fetchFreshPlan();
   }, [session?.user?.id]);
 
-  const handleSubscribe = async (plan: 'basic') => {
+  const handleSubscribe = async (plan: 'basic' | 'pro') => {
     if (!session?.user?.id) {
       setError('Please sign in to purchase.');
       return;
@@ -160,53 +168,60 @@ export default function PricingPage() {
           {message ? <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</div> : null}
           {error ? <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div> : null}
 
-          <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+          <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
             {PLANS.map((plan) => {
               const pPlan = dbPlan || 'free';
-              const showBuyNow = pPlan === 'free';
+              const isActivePlan = pPlan === plan.key;
               
               let badge = null;
-              if (plan.key === 'free' && pPlan === 'free') {
-                badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Active</span>;
-              } else if (plan.key === 'basic' && pPlan === 'basic') {
+              if (isActivePlan) {
                 badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Current Plan</span>;
+              } else if ('isPopular' in plan && plan.isPopular) {
+                badge = <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">Most Popular</span>;
               }
 
               return (
-                <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)] flex flex-col">
+                <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)] flex flex-col relative overflow-hidden">
+                  {isActivePlan && <div className="absolute inset-0 border-2 border-emerald-500/50 rounded-3xl pointer-events-none" />}
+                  
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold text-gold">{plan.label}</h2>
                     {badge}
                   </div>
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
-                  {plan.key === 'basic' ? (
-                    <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
-                      ₹149<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
-                    </div>
-                  ) : (
+                  
+                  {plan.key === 'free' ? (
                     <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
+                  ) : (
+                    <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
+                      {plan.price.split('/')[0]}<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
+                    </div>
                   )}
+
                   <ul className="mt-6 space-y-2 text-sm text-cream/70 flex-1">
                     {plan.features.map(f => <li key={f}>• {f}</li>)}
                   </ul>
+                  
                   {plan.key !== 'free' ? (
                     <div className="mt-8 flex flex-col gap-3 w-full">
-                      {!showBuyNow && (
+                      {isActivePlan && (
                         <div className="w-full rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-center text-emerald-300">
                           Current Plan
                         </div>
                       )}
-                      <button
-                        onClick={() => void handleSubscribe(plan.key as 'basic')}
-                        disabled={loadingPlan === plan.key}
-                        className="w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition bg-gold text-[#020b14] hover:bg-[#ffd966]"
-                      >
-                        {loadingPlan === plan.key ? 'Processing...' : 'Buy Now'}
-                      </button>
+                      {!isActivePlan && (
+                        <button
+                          onClick={() => void handleSubscribe(plan.key as 'basic' | 'pro')}
+                          disabled={loadingPlan === plan.key}
+                          className="w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition bg-gold text-[#020b14] hover:bg-[#ffd966]"
+                        >
+                          {loadingPlan === plan.key ? 'Processing...' : 'Buy Now'}
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-8 w-full px-4 py-3 text-sm font-semibold text-center text-cream/50 h-[46px]">
-                      {pPlan === 'free' ? 'Current Plan' : ''}
+                      {isActivePlan ? 'Current Plan' : ''}
                     </div>
                   )}
                 </div>

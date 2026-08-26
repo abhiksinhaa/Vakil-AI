@@ -16,7 +16,8 @@ export async function POST(req: Request) {
   const { plan, userId } = await req.json()
   
   const PLANS: Record<string, {amount: number; drafts: number}> = {
-    basic:    { amount: 14900, drafts: -1 },
+    basic: { amount: 14900, drafts: 90 },
+    pro: { amount: 39900, drafts: 175 },
   }
 
   if (!PLANS[plan]) {
