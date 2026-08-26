@@ -1,5 +1,6 @@
 interface CheckoutOptions {
   plan: 'basic' | 'pro';
+  billingCycle?: 'monthly' | 'annual';
   userId: string;
   userEmail?: string | null;
   userName?: string | null;
@@ -27,14 +28,14 @@ function loadRazorpayScript(): Promise<any> {
   });
 }
 
-export async function startCheckout({ plan, userId, userEmail, userName, onSuccess }: CheckoutOptions) {
+export async function startCheckout({ plan, billingCycle = 'monthly', userId, userEmail, userName, onSuccess }: CheckoutOptions) {
   const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
   // 1. Create Order
   const orderRes = await fetch('/api/razorpay/create-order', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plan, userId }),
+    body: JSON.stringify({ plan, billingCycle, userId }),
   });
 
   const orderData = await orderRes.json();
@@ -76,6 +77,7 @@ export async function startCheckout({ plan, userId, userEmail, userName, onSucce
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               plan,
+              billingCycle,
               userId,
               amount: orderData.amount,
             }),

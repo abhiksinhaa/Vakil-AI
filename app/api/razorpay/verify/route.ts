@@ -35,14 +35,20 @@ export async function POST(req: Request) {
     expiresAt.setMonth(expiresAt.getMonth() + 1)
   }
 
-  const PLANS: Record<string, {amount: number; drafts_limit: number; plan_name: string}> = {
-    basic: { amount: 14900, drafts_limit: 90, plan_name: 'basic' },
-    pro: { amount: 39900, drafts_limit: 175, plan_name: 'pro' },
+  const PLANS: Record<string, any> = {
+    basic: {
+      monthly: { amount: 14900, drafts_limit: 90, plan_name: 'basic' },
+      annual:  { amount: 149900, drafts_limit: 90, plan_name: 'basic' },
+    },
+    pro: {
+      monthly: { amount: 39900, drafts_limit: 175, plan_name: 'pro' },
+      annual:  { amount: 399900, drafts_limit: 175, plan_name: 'pro' },
+    },
   };
 
-  const selectedPlan = PLANS[plan] || PLANS.basic;
-  let planName = selectedPlan.plan_name;
-  let draftsLimit = selectedPlan.drafts_limit;
+  const selectedPlanCycle = (PLANS[plan] || PLANS.basic)[billingCycle === 'annual' ? 'annual' : 'monthly'];
+  let planName = selectedPlanCycle.plan_name;
+  let draftsLimit = selectedPlanCycle.drafts_limit;
 
   const { data, error: updateError } = await supabaseAdmin
     .from('profiles')

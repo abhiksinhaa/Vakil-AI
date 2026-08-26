@@ -58,14 +58,16 @@ const PLANS = [
   { 
     key: 'basic', 
     label: 'Basic', 
-    price: '₹149/mo', 
+    monthlyPrice: '₹149/mo',
+    annualPrice: '₹1,499/yr', 
     drafts: '90 drafts/month',
     features: ['90 drafts/month', 'Draft History', 'PDF Downloads', 'Future features included'] 
   },
   { 
     key: 'pro', 
     label: 'Pro', 
-    price: '₹399/mo', 
+    monthlyPrice: '₹399/mo',
+    annualPrice: '₹3,999/yr', 
     drafts: '175 drafts/month',
     features: ['175 drafts/month', 'Draft History', 'PDF Downloads', 'Priority generation speed'],
     isPopular: true
@@ -80,6 +82,7 @@ export default function PricingPage() {
 
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
   const [dbPlan, setDbPlan] = useState<string>('free');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   useEffect(() => {
     if (session?.user) {
@@ -122,6 +125,7 @@ export default function PricingPage() {
     try {
       await startCheckout({
         plan,
+        billingCycle,
         userId: session.user.id,
         userEmail: session.user.email,
         userName: profile?.full_name || session.user.email,
@@ -165,6 +169,23 @@ export default function PricingPage() {
             Current plan: <span className="font-semibold text-gold">{currentPlan}</span>
           </div>
 
+          <div className="flex justify-center mb-8">
+            <div className="bg-[#07111f] p-1 rounded-full border border-gold/30 inline-flex">
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'monthly' ? 'bg-gold text-[#020b14]' : 'text-cream/70 hover:text-cream'}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle('annual')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'annual' ? 'bg-gold text-[#020b14]' : 'text-cream/70 hover:text-cream'}`}
+              >
+                Annual
+              </button>
+            </div>
+          </div>
+
           {message ? <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</div> : null}
           {error ? <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div> : null}
 
@@ -178,6 +199,8 @@ export default function PricingPage() {
                 badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Current Plan</span>;
               } else if ('isPopular' in plan && plan.isPopular) {
                 badge = <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">Most Popular</span>;
+              } else if (plan.key !== 'free' && billingCycle === 'annual') {
+                badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Save ~2 months</span>;
               }
 
               return (
@@ -191,10 +214,10 @@ export default function PricingPage() {
                   <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
                   
                   {plan.key === 'free' ? (
-                    <p className="mt-4 text-4xl font-semibold text-cream">{plan.price}</p>
+                    <p className="mt-4 text-4xl font-semibold text-cream">{'price' in plan ? plan.price : '₹0'}</p>
                   ) : (
                     <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
-                      {plan.price.split('/')[0]}<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
+                      {('monthlyPrice' in plan ? (billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice) : '').split('/')[0]}<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/{billingCycle === 'annual' ? 'yr' : 'mo'}</span>
                     </div>
                   )}
 

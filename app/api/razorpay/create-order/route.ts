@@ -13,19 +13,25 @@ export async function POST(req: Request) {
   if (!keyId || !keySecret) {
     return NextResponse.json({ error: 'Payment unavailable' }, { status: 500 })
   }
-  const { plan, userId } = await req.json()
+  const { plan, userId, billingCycle = 'monthly' } = await req.json()
   
-  const PLANS: Record<string, {amount: number; drafts: number}> = {
-    basic: { amount: 14900, drafts: 90 },
-    pro: { amount: 39900, drafts: 175 },
-  }
+  const PLANS: Record<string, any> = {
+    basic: {
+      monthly: { amount: 14900, drafts_limit: 90 },
+      annual:  { amount: 149900, drafts_limit: 90 },
+    },
+    pro: {
+      monthly: { amount: 39900, drafts_limit: 175 },
+      annual:  { amount: 399900, drafts_limit: 175 },
+    },
+  };
 
-  if (!PLANS[plan]) {
-    return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+  if (!PLANS[plan] || !PLANS[plan][billingCycle]) {
+    return NextResponse.json({ error: 'Invalid plan or billing cycle' }, { status: 400 })
   }
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
   const order = await razorpay.orders.create({
-    amount: PLANS[plan].amount,
+    amount: PLANS[plan][billingCycle].amount,
     currency: 'INR',
     receipt: `receipt_${Date.now()}`,
     notes: { plan, userId },
