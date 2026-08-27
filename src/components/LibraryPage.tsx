@@ -60,6 +60,7 @@ export default function LibraryPage() {
       .from('drafts')
       .select('*')
       .eq('user_id', session.user.id)
+      .neq('draft_type', '_TMP_UPLOAD_')
       .order('created_at', { ascending: false });
     
     if (data) setDrafts(data as unknown as DraftRecord[]);
