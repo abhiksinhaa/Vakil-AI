@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from './Navbar';
-import CourtNewsCarousel from './CourtNewsCarousel';
+import LegalInsightsCarousel from './LegalInsightsCarousel';
 import { useApp } from '../context/AppContext';
 import { createClient } from '../lib/supabase';
 import type { Matter } from '../lib/types';
@@ -246,35 +246,10 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* My Matters */}
+          {/* Legal Insights */}
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-lg text-cream font-semibold tracking-wide">My Matters</h2>
-              <Link href="/matters" className="text-xs text-gold hover:underline uppercase tracking-wider font-medium">
-                View all
-              </Link>
-            </div>
-            
-            <div className="space-y-2">
-              {matters.length === 0 ? (
-                <div className="card text-center py-8 rounded-xl border border-border bg-[#0f1525]">
-                  <p className="text-cream/50 text-sm mb-4">No matters yet. Add your first matter.</p>
-                  <Link href="/matters" className="btn-primary text-sm inline-block">
-                    Add Matter
-                  </Link>
-                </div>
-              ) : (
-                matters.map((matter) => (
-                  <MatterCard key={matter.id} matter={matter} />
-                ))
-              )}
-            </div>
+            <LegalInsightsCarousel />
           </section>
-        </div>
-
-        {/* Existing Carousel (optional but preserving it) */}
-        <div className="mt-12">
-          <CourtNewsCarousel />
         </div>
       </main>
 
