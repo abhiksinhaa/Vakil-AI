@@ -133,39 +133,47 @@ export default function Dashboard() {
         ) : null}
         
         {/* Greeting Section */}
-        <header className="mb-8">
-          <h1 className="font-display text-3xl sm:text-4xl text-cream mb-2">
+        <header className="mb-6 mt-2">
+          <h1 className="font-display text-xl sm:text-2xl text-cream font-semibold tracking-tight">
             {getGreetingTime()}, {displayName} 👋
           </h1>
-          <p className="text-cream/50 text-sm">
+          <p className="text-cream/60 text-sm mt-1">
             Let's get your legal work done.
           </p>
         </header>
 
         {/* Stats Cards Row */}
-        <div className="flex gap-4 overflow-x-auto pb-4 mb-8 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
-          <Link href="/tasks" className="shrink-0 group">
-            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
-              <div className="text-2xl font-bold text-gold mb-1">{pendingTasksCount}</div>
-              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">My Tasks</div>
+        <div className="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar snap-x">
+          <Link href="/tasks" className="shrink-0 snap-start group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '140px' }} className="group-hover:border-gold/40 transition-colors">
+              <svg className="w-5 h-5 text-gold mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div className="text-2xl font-bold text-cream mb-0.5">{pendingTasksCount}</div>
+              <div className="text-sm text-cream/80 font-medium">My Tasks</div>
+              <div className="text-xs text-gold mt-1 opacity-80">Pending</div>
             </div>
           </Link>
-          <Link href="/matters" className="shrink-0 group">
-            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
-              <div className="text-2xl font-bold text-gold mb-1">{hearingsCount}</div>
-              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">Hearings</div>
+          <Link href="/matters" className="shrink-0 snap-start group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '140px' }} className="group-hover:border-blue-400/40 transition-colors">
+              <svg className="w-5 h-5 text-blue-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <div className="text-2xl font-bold text-cream mb-0.5">{hearingsCount}</div>
+              <div className="text-sm text-cream/80 font-medium">Hearings</div>
+              <div className="text-xs text-blue-400 mt-1 opacity-80">Today</div>
             </div>
           </Link>
-          <Link href="/library" className="shrink-0 group">
-            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
-              <div className="text-2xl font-bold text-gold mb-1">{draftsCount}</div>
-              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">Recent Drafts</div>
+          <Link href="/library" className="shrink-0 snap-start group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '140px' }} className="group-hover:border-emerald-500/40 transition-colors">
+              <svg className="w-5 h-5 text-emerald-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+              <div className="text-2xl font-bold text-cream mb-0.5">{draftsCount}</div>
+              <div className="text-sm text-cream/80 font-medium">Recent Drafts</div>
+              <div className="text-xs text-emerald-500 mt-1 opacity-80">Edited recently</div>
             </div>
           </Link>
-          <Link href="/tasks" className="shrink-0 group">
-            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '120px' }} className="group-hover:border-gold/40 transition-colors">
-              <div className="text-2xl font-bold text-gold mb-1">{deadlinesCount}</div>
-              <div className="text-xs text-cream/50 font-medium uppercase tracking-wider">Deadlines</div>
+          <Link href="/tasks" className="shrink-0 snap-start group">
+            <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '16px', minWidth: '140px' }} className="group-hover:border-red-400/40 transition-colors">
+              <svg className="w-5 h-5 text-red-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div className="text-2xl font-bold text-cream mb-0.5">{deadlinesCount}</div>
+              <div className="text-sm text-cream/80 font-medium">Deadlines</div>
+              <div className="text-xs text-red-400 mt-1 opacity-80">Approaching</div>
             </div>
           </Link>
         </div>
@@ -173,12 +181,12 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Quick Actions */}
           <section>
-            <h2 className="font-display text-xl text-cream mb-4">Quick Actions</h2>
+            <h2 className="font-display text-lg text-cream mb-3 font-semibold tracking-wide">Quick Actions</h2>
             <div className="space-y-2">
               <Link href="/generate" className="block group">
                 <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">📝</span>
+                    <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     <span className="text-cream font-medium text-sm">Create Draft</span>
                   </div>
                   <span className="text-gold group-hover:translate-x-1 transition-transform">›</span>
@@ -188,7 +196,7 @@ export default function Dashboard() {
               <Link href="/generate" className="block group">
                 <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">📄</span>
+                    <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                     <span className="text-cream font-medium text-sm">Upload Document</span>
                   </div>
                   <span className="text-gold group-hover:translate-x-1 transition-transform">›</span>
@@ -198,7 +206,7 @@ export default function Dashboard() {
               <button onClick={() => setShowAddTask(true)} className="w-full text-left group">
                 <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">✓</span>
+                    <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span className="text-cream font-medium text-sm">Add Task</span>
                   </div>
                   <span className="text-gold group-hover:translate-x-1 transition-transform">›</span>
@@ -208,7 +216,7 @@ export default function Dashboard() {
               <button onClick={() => setShowNoteInput(!showNoteInput)} className="w-full text-left group">
                 <div style={{ background: '#0f1525', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="group-hover:border-gold/40 transition-colors">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">📌</span>
+                    <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     <span className="text-cream font-medium text-sm">Add Note</span>
                   </div>
                   <span className={`text-gold transition-transform ${showNoteInput ? 'rotate-90' : ''}`}>›</span>
@@ -216,7 +224,7 @@ export default function Dashboard() {
               </button>
               
               {showNoteInput && (
-                <div className="mt-2 p-3 bg-navy border border-border rounded-lg flex gap-2">
+                <div className="mt-2 p-3 bg-[#0a0f1e] border border-border rounded-lg flex gap-2">
                   <input 
                     type="text" 
                     placeholder="Type a quick note..."
@@ -240,16 +248,16 @@ export default function Dashboard() {
 
           {/* My Matters */}
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl text-cream">My Matters</h2>
-              <Link href="/matters" className="text-sm text-gold hover:underline">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display text-lg text-cream font-semibold tracking-wide">My Matters</h2>
+              <Link href="/matters" className="text-xs text-gold hover:underline uppercase tracking-wider font-medium">
                 View all
               </Link>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               {matters.length === 0 ? (
-                <div className="card text-center py-8">
+                <div className="card text-center py-8 rounded-xl border border-border bg-[#0f1525]">
                   <p className="text-cream/50 text-sm mb-4">No matters yet. Add your first matter.</p>
                   <Link href="/matters" className="btn-primary text-sm inline-block">
                     Add Matter
