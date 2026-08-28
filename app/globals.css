@@ -52,16 +52,16 @@ html.theme-transition * {
   }
 }
 
-/* Light mode — premium legal-tech design */
+/* Light mode — premium legal-tech design matching reference */
 html[data-theme='light'] body {
-  @apply bg-[#fafbfc] text-[#1f2937];
+  @apply bg-[#fefcf8] text-[#1f2937];
 }
 
 html[data-theme='light'] input,
 html[data-theme='light'] textarea,
 html[data-theme='light'] select {
-  @apply bg-white border border-[#e5e7eb] text-[#1f2937] placeholder:text-[#9ca3af]
-    focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/20 focus:border-[#8b5cf6]/40
+  @apply bg-white border border-[#e5ddd8] text-[#1f2937] placeholder:text-[#9ca3af]
+    focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed]/40
     transition-colors;
 }
 
@@ -70,20 +70,37 @@ html[data-theme='light'] label {
 }
 
 html[data-theme='light'] .card {
-  @apply bg-white border border-[#e5e7eb] shadow-sm rounded-xl;
+  @apply bg-white border border-[#e5ddd8] shadow-md rounded-2xl;
 }
 
 html[data-theme='light'] nav {
-  @apply bg-white border-b border-[#e5e7eb] shadow-sm;
+  @apply bg-white border-b border-[#e5ddd8] shadow-sm;
 }
 
 html[data-theme='light'] .btn-primary {
-  @apply bg-[#8b5cf6] text-white hover:bg-[#7c3aed] shadow-sm;
+  @apply bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-md;
 }
 
 html[data-theme='light'] .btn-secondary {
-  @apply border border-[#e5e7eb] text-[#374151] hover:border-[#8b5cf6]/50 hover:text-[#8b5cf6]
-    hover:bg-[#f3e8ff]/30;
+  @apply border border-[#e5ddd8] text-[#374151] hover:border-[#7c3aed]/50 hover:text-[#7c3aed]
+    hover:bg-[#f3e8ff]/40;
+}
+
+/* Pastel accent backgrounds for light mode */
+html[data-theme='light'] .bg-accent-lavender {
+  @apply bg-[#f3e8ff];
+}
+
+html[data-theme='light'] .bg-accent-blue {
+  @apply bg-[#dbeafe];
+}
+
+html[data-theme='light'] .bg-accent-green {
+  @apply bg-[#dcfce7];
+}
+
+html[data-theme='light'] .bg-accent-yellow {
+  @apply bg-[#fefce8];
 }
 
 /* Text color overrides for light mode */
@@ -121,12 +138,12 @@ html[data-theme='light'] .text-cream\/90 {
 
 /* Background overrides for light mode */
 html[data-theme='light'] .bg-navy {
-  @apply bg-[#fafbfc];
+  @apply bg-[#fefcf8];
 }
 
 html[data-theme='light'] .bg-navy\/40,
 html[data-theme='light'] .bg-navy\/50 {
-  background-color: rgb(250 251 252 / 0.7);
+  background-color: rgb(254 252 248 / 0.7);
 }
 
 html[data-theme='light'] .bg-card {
@@ -134,64 +151,64 @@ html[data-theme='light'] .bg-card {
 }
 
 html[data-theme='light'] .border-border {
-  @apply border-[#e5e7eb];
+  @apply border-[#e5ddd8];
 }
 
 html[data-theme='light'] .auth-page {
-  @apply bg-[#fafbfc];
+  @apply bg-[#fefcf8];
 }
 
-/* Brand color overrides for light mode */
+/* Brand color overrides for light mode — purple accent */
 html[data-theme='light'] .text-gold {
-  @apply text-[#8b5cf6];
+  @apply text-[#7c3aed];
 }
 
 html[data-theme='light'] .text-gold\/30 {
-  color: rgb(139 92 246 / 0.3);
+  color: rgb(124 58 237 / 0.3);
 }
 
 html[data-theme='light'] .text-gold\/40 {
-  color: rgb(139 92 246 / 0.4);
+  color: rgb(124 58 237 / 0.4);
 }
 
 html[data-theme='light'] .text-gold\/50 {
-  color: rgb(139 92 246 / 0.5);
+  color: rgb(124 58 237 / 0.5);
 }
 
 html[data-theme='light'] .bg-gold {
-  @apply bg-[#8b5cf6];
+  @apply bg-[#7c3aed];
 }
 
 html[data-theme='light'] .bg-gold\/10 {
-  @apply bg-[#ede9fe];
+  @apply bg-[#f3e8ff];
 }
 
 html[data-theme='light'] .bg-gold\/20 {
-  background-color: rgb(139 92 246 / 0.15);
+  background-color: rgb(124 58 237 / 0.15);
 }
 
 html[data-theme='light'] .border-gold {
-  @apply border-[#c4b5fd];
+  @apply border-[#ddd6fe];
 }
 
 /* Additional light mode component styles */
 html[data-theme='light'] .btn-primary {
-  @apply bg-[#8b5cf6] text-white hover:bg-[#7c3aed] shadow-sm;
+  @apply bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-md;
 }
 
 html[data-theme='light'] .btn-secondary {
-  @apply border-[#e5e7eb] text-[#374151] hover:border-[#8b5cf6] hover:text-[#8b5cf6] hover:bg-[#f3e8ff]/30;
+  @apply border-[#e5ddd8] text-[#374151] hover:border-[#7c3aed] hover:text-[#7c3aed] hover:bg-[#f3e8ff]/40;
 }
 
 /* Links and interactive elements */
 html[data-theme='light'] a {
-  @apply text-[#8b5cf6] hover:text-[#7c3aed];
+  @apply text-[#7c3aed] hover:text-[#6d28d9];
 }
 
 /* Badge/pill styles for light mode */
 html[data-theme='light'] .badge,
 html[data-theme='light'] .pill {
-  @apply bg-[#ede9fe] text-[#6d28d9] border border-[#c4b5fd];
+  @apply bg-[#f3e8ff] text-[#5b21b6] border border-[#ddd6fe];
 }
 
 /* Scrollbar for light mode */
@@ -201,7 +218,7 @@ html[data-theme='light'] ::-webkit-scrollbar {
 }
 
 html[data-theme='light'] ::-webkit-scrollbar-track {
-  @apply bg-[#fafbfc];
+  @apply bg-[#fefcf8];
 }
 
 html[data-theme='light'] ::-webkit-scrollbar-thumb {
