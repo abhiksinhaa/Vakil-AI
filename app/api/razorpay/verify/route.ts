@@ -37,8 +37,8 @@ export async function POST(req: Request) {
 
   const PLANS: Record<string, any> = {
     basic: {
-      monthly: { amount: 14900, drafts_limit: 90, plan_name: 'basic' },
-      annual:  { amount: 149900, drafts_limit: 90, plan_name: 'basic' },
+      monthly: { amount: 14900, promotionalAmount: 9900, drafts_limit: 90, plan_name: 'basic' },
+      annual:  { amount: 149900, promotionalAmount: 99900, drafts_limit: 90, plan_name: 'basic' },
     },
     pro: {
       monthly: { amount: 39900, drafts_limit: 175, plan_name: 'pro' },

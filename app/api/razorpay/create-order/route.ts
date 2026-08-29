@@ -17,8 +17,8 @@ export async function POST(req: Request) {
   
   const PLANS: Record<string, any> = {
     basic: {
-      monthly: { amount: 14900, drafts_limit: 90 },
-      annual:  { amount: 149900, drafts_limit: 90 },
+      monthly: { amount: 14900, drafts_limit: 90, promotionalAmount: 9900 },
+      annual:  { amount: 149900, drafts_limit: 90, promotionalAmount: 99900 },
     },
     pro: {
       monthly: { amount: 39900, drafts_limit: 175 },
@@ -37,16 +37,38 @@ export async function POST(req: Request) {
   if (!PLANS[plan] || !PLANS[plan][billingCycle]) {
     return NextResponse.json({ error: 'Invalid plan or billing cycle' }, { status: 400 })
   }
+
+  // Check if this is a basic plan and if we're within the first 100 paid users
+  let finalAmount = PLANS[plan][billingCycle].amount
+  let discountApplied = false
+
+  if (plan === 'basic' && PLANS[plan][billingCycle].promotionalAmount) {
+    // Count existing paid users (plan != 'free' and plan_expires_at is in future)
+    const now = new Date().toISOString()
+    const { count: paidUserCount, error: countError } = await supabaseAdmin
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .neq('plan', 'free')
+      .gt('plan_expires_at', now)
+
+    if (!countError && paidUserCount !== null && paidUserCount < 100) {
+      // We're within the first 100 paid users, apply discount
+      finalAmount = PLANS[plan][billingCycle].promotionalAmount
+      discountApplied = true
+    }
+  }
+
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
   const order = await razorpay.orders.create({
-    amount: PLANS[plan][billingCycle].amount,
+    amount: finalAmount,
     currency: 'INR',
     receipt: `receipt_${Date.now()}`,
-    notes: { plan, userId },
+    notes: { plan, userId, discountApplied: String(discountApplied) },
   })
   return NextResponse.json({ 
     orderId: order.id, 
     amount: order.amount, 
     plan,
+    discountApplied,
   })
 }
