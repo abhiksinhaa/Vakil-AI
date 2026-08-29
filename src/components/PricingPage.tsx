@@ -59,6 +59,9 @@ const PLANS = [
     key: 'basic', 
     label: 'Basic', 
     monthlyPrice: '₹149/mo',
+    discountedPrice: '₹99/mo',
+    discountPercent: '34% OFF',
+    limitedOffer: 'For First 100 Paying Users',
     annualPrice: '₹1,499/yr', 
     drafts: '90 drafts/month',
     features: ['90 drafts/month', 'Draft History', 'PDF Downloads', 'Future features included'] 
@@ -223,6 +226,27 @@ export default function PricingPage() {
                   
                   {plan.key === 'free' ? (
                     <p className="mt-4 text-4xl font-semibold text-cream">{'price' in plan ? plan.price : '₹0'}</p>
+                  ) : plan.key === 'basic' && 'discountedPrice' in plan ? (
+                    // Basic plan with discount
+                    <div className="mt-6">
+                      {/* Original price with strikethrough and discount badge */}
+                      <div className="flex items-center gap-3 mb-2">
+                        <span style={{ fontSize: '1.1rem', textDecoration: 'line-through', opacity: 0.6, color: '#c9a84c' }}>
+                          {'monthlyPrice' in plan ? plan.monthlyPrice : ''}
+                        </span>
+                        <span className="rounded-full border border-emerald-500/50 bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-300">
+                          {plan.discountPercent || ''}
+                        </span>
+                      </div>
+                      {/* Discounted price - main */}
+                      <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginBottom: '8px' }}>
+                        {plan.discountedPrice}<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
+                      </div>
+                      {/* Limited offer text */}
+                      <p style={{ fontSize: '0.85rem', opacity: 0.65, color: '#e8e0d0', fontStyle: 'italic' }}>
+                        {plan.limitedOffer || ''}
+                      </p>
+                    </div>
                   ) : (
                     <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
                       {('monthlyPrice' in plan ? (billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice) : '').split('/')[0]}<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/{billingCycle === 'annual' ? 'yr' : 'mo'}</span>
