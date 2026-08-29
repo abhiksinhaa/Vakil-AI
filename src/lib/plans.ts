@@ -6,6 +6,7 @@ export const PLAN_CONFIG = {
   basic: {
     label: 'Basic',
     amount: 14900,
+    promotionalAmount: 9900, // ₹99 - for first 100 paying users
     draftsLimit: 90,
     planId: process.env.RAZORPAY_PLAN_BASIC || 'plan_TDWCGXaopCTWZw',
   },

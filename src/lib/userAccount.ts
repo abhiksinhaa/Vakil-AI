@@ -11,7 +11,9 @@ export const FREE_CHAT_DAILY_LIMIT = 5;
 export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 5 free drafts. Upgrade to continue.";
 export const PRO_PRICE_PAISE = PLAN_CONFIG.basic.amount;
-export const PRO_PRICE_INR = 149;
+export const PRO_PRICE_INR = 149; // Regular Basic plan price (₹99 available for first 100 users)
+export const PROMO_PRICE_PAISE = PLAN_CONFIG.basic.promotionalAmount;
+export const PROMO_PRICE_INR = 99; // Launch promotional price for first 100 users
 
 export { getPlanConfig };
 
