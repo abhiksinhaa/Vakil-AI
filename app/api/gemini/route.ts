@@ -176,6 +176,27 @@ export async function POST(req: Request) {
         .eq('id', userId)
         .maybeSingle()
 
+      // Premium access check for Ask Draftee AI
+      if (profile) {
+        const isBasicPro = ['basic', 'standard', 'pro'].includes(profile?.plan || '') && 
+                          profile?.plan_expires_at && 
+                          new Date(profile.plan_expires_at) > new Date();
+                          
+        const orgData: any = profile?.organizations;
+        const orgExpiresAt = Array.isArray(orgData) ? orgData[0]?.plan_expires_at : orgData?.plan_expires_at;
+        const isFirmMember = profile?.org_id != null && 
+                             orgExpiresAt != null && 
+                             new Date(orgExpiresAt) > new Date();
+
+        const isPremium = isBasicPro || isFirmMember;
+
+        if (!isPremium) {
+          return Response.json({ 
+            error: 'Ask Draftee AI requires a Premium plan. Please upgrade.' 
+          }, { status: 403 });
+        }
+      }
+
       const now = new Date()
       const expiresAt = profile?.plan_expires_at 
         ? new Date(profile.plan_expires_at) 

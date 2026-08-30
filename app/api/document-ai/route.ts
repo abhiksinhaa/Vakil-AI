@@ -30,6 +30,33 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Premium access check for Ask Draftee AI
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('plan, plan_expires_at, org_id, organizations(*)')
+      .eq('id', userId)
+      .single();
+
+    if (profile) {
+      const isBasicPro = ['basic', 'standard', 'pro'].includes(profile?.plan || '') && 
+                        profile?.plan_expires_at && 
+                        new Date(profile.plan_expires_at) > new Date();
+                        
+      const orgData: any = profile?.organizations;
+      const orgExpiresAt = Array.isArray(orgData) ? orgData[0]?.plan_expires_at : orgData?.plan_expires_at;
+      const isFirmMember = profile?.org_id != null && 
+                           orgExpiresAt != null && 
+                           new Date(orgExpiresAt) > new Date();
+
+      const isPremium = isBasicPro || isFirmMember;
+
+      if (!isPremium) {
+        return Response.json({ 
+          error: 'Ask Draftee AI requires a Premium plan. Please upgrade.' 
+        }, { status: 403 });
+      }
+    }
+
     // 1. Fetch the document record from drafts
     const { data: draft, error: draftError } = await supabaseAdmin
       .from('drafts')

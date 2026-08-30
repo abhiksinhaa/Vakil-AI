@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, Send, Scale, BookOpen, Sparkles, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Search, Send, Scale, BookOpen, Sparkles, AlertCircle, Lock } from 'lucide-react';
 import { useApp } from '../../src/context/AppContext';
 
 const RESEARCH_PROMPT = `You are a specialized Legal Research AI for Indian Law.
@@ -24,6 +24,10 @@ export default function LegalResearchPage() {
   const [error, setError] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Premium access check
+  const hasPremiumAccess = ['basic', 'standard', 'pro'].includes(profile?.plan as string) || 
+                           (profile?.org_id !== null && profile?.org_id !== undefined);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,7 +61,10 @@ export default function LegalResearchPage() {
         })
       });
 
-      if (!res.ok) throw new Error('Research analysis failed. Please try again.');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.error || 'Research analysis failed. Please try again.');
+      }
       
       const data = await res.json();
       const parts = data.candidates?.[0]?.content?.parts ?? [];
@@ -77,6 +84,67 @@ export default function LegalResearchPage() {
       setIsLoading(false);
     }
   };
+
+  // If user is not premium, show upgrade screen
+  if (!hasPremiumAccess) {
+    return (
+      <div className="min-h-screen bg-[#080808] text-white flex flex-col font-sans">
+        <header className="shrink-0 px-6 py-4 flex items-center justify-between border-b border-white/5 bg-[#0a0a0a] sticky top-0 z-10">
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center border border-white/10">
+                <Scale className="w-5 h-5 text-[#a8b8d8]" />
+              </div>
+              <div>
+                <h1 className="text-xl font-medium tracking-tight">Legal Research</h1>
+                <p className="text-xs text-white/50">Powered by Gemini 2.5 Flash</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 24px',
+            background: '#0f1525',
+            border: '1px solid #1e2a3a',
+            borderRadius: '16px',
+            maxWidth: '500px',
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '16px' }}>⚖️</div>
+            <h2 style={{ color: '#c9a84c', marginBottom: '12px', fontSize: '20px', fontWeight: 600 }}>
+              Ask Draftee AI
+            </h2>
+            <p style={{ color: '#e8e0d0', opacity: 0.7, marginBottom: '24px', fontSize: '14px', lineHeight: '1.5' }}>
+              AI Legal Assistant is available for Premium plan users only.
+              Upgrade to get access to Legal Q&A, Case Research, 
+              Bare Act Assistant, Draft Improvement and more.
+            </p>
+            <a href="/pricing" style={{
+              display: 'inline-block',
+              background: 'linear-gradient(135deg, #c9a84c, #e3c47e)',
+              color: '#0a0f1e',
+              borderRadius: '10px',
+              padding: '14px 32px',
+              fontWeight: 700,
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9'}
+            onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}
+            >
+              Upgrade to Premium →
+            </a>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#080808] text-white flex flex-col font-sans">
