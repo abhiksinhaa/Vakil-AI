@@ -35,7 +35,7 @@ export default function LegalResearchPage() {
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !hasPremiumAccess) return;
 
     const userMsg = { id: `user-${Date.now()}`, role: 'user', content: input.trim() };
     const newMessages = [...messages, userMsg];
@@ -85,69 +85,8 @@ export default function LegalResearchPage() {
     }
   };
 
-  // If user is not premium, show upgrade screen
-  if (!hasPremiumAccess) {
-    return (
-      <div className="min-h-screen bg-[#080808] text-white flex flex-col font-sans">
-        <header className="shrink-0 px-6 py-4 flex items-center justify-between border-b border-white/5 bg-[#0a0a0a] sticky top-0 z-10">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1c3065] to-[#08122e] flex items-center justify-center border border-white/10">
-                <Scale className="w-5 h-5 text-[#a8b8d8]" />
-              </div>
-              <div>
-                <h1 className="text-xl font-medium tracking-tight">Legal Research</h1>
-                <p className="text-xs text-white/50">Powered by Gemini 2.5 Flash</p>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6">
-          <div style={{
-            textAlign: 'center',
-            padding: '40px 24px',
-            background: '#0f1525',
-            border: '1px solid #1e2a3a',
-            borderRadius: '16px',
-            maxWidth: '500px',
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '16px' }}>⚖️</div>
-            <h2 style={{ color: '#c9a84c', marginBottom: '12px', fontSize: '20px', fontWeight: 600 }}>
-              Ask Draftee AI
-            </h2>
-            <p style={{ color: '#e8e0d0', opacity: 0.7, marginBottom: '24px', fontSize: '14px', lineHeight: '1.5' }}>
-              AI Legal Assistant is available for Premium plan users only.
-              Upgrade to get access to Legal Q&A, Case Research, 
-              Bare Act Assistant, Draft Improvement and more.
-            </p>
-            <a href="/pricing" style={{
-              display: 'inline-block',
-              background: 'linear-gradient(135deg, #c9a84c, #e3c47e)',
-              color: '#0a0f1e',
-              borderRadius: '10px',
-              padding: '14px 32px',
-              fontWeight: 700,
-              textDecoration: 'none',
-              cursor: 'pointer',
-              transition: 'opacity 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.9'}
-            onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}
-            >
-              Upgrade to Premium →
-            </a>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#080808] text-white flex flex-col font-sans">
+    <div className="min-h-screen bg-[#080808] text-white flex flex-col font-sans relative">
       <header className="shrink-0 px-6 py-4 flex items-center justify-between border-b border-white/5 bg-[#0a0a0a] sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70">
@@ -247,14 +186,14 @@ export default function LegalResearchPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Search case laws, BNSS sections, or legal precedents..."
-              disabled={isLoading}
+              disabled={isLoading || !hasPremiumAccess}
               className="flex-1 bg-transparent border-none text-white placeholder:text-white/30 focus:ring-0 text-[15px] py-3 px-2 min-w-0"
               autoComplete="off"
             />
             <div className="pr-1">
               <button
                 type="submit"
-                disabled={isLoading || !input.trim()}
+                disabled={isLoading || !input.trim() || !hasPremiumAccess}
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
               >
                 <Send className="w-4 h-4 ml-0.5" />
@@ -263,6 +202,88 @@ export default function LegalResearchPage() {
           </form>
         </div>
       </main>
+
+      {/* Premium Lock Overlay */}
+      {!hasPremiumAccess && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(10, 15, 30, 0.92)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+          padding: '24px',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            background: '#0f1525',
+            border: '1px solid #c9a84c',
+            borderRadius: '20px',
+            padding: '40px 28px',
+            maxWidth: '360px',
+            width: '100%',
+          }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>⚖️</div>
+            <h2 style={{ 
+              color: '#c9a84c', 
+              fontSize: '1.4rem',
+              fontWeight: 700,
+              marginBottom: '12px' 
+            }}>
+              Ask Draftee AI
+            </h2>
+            <p style={{ 
+              color: '#e8e0d0', 
+              opacity: 0.75, 
+              fontSize: '0.92rem',
+              lineHeight: 1.6,
+              marginBottom: '12px' 
+            }}>
+              Your AI Legal Assistant for Indian Law.
+            </p>
+            <ul style={{ 
+              textAlign: 'left',
+              color: '#e8e0d0',
+              opacity: 0.8,
+              fontSize: '0.88rem',
+              marginBottom: '28px',
+              lineHeight: 2,
+              listStyle: 'none',
+              padding: 0,
+            }}>
+              <li>⚖️ Legal Q&A</li>
+              <li>🔎 Case Law Research</li>
+              <li>📚 Bare Act Assistant</li>
+              <li>✍️ Draft Improvement</li>
+              <li>📄 Document Analysis</li>
+            </ul>
+            <a href="/pricing" style={{
+              display: 'block',
+              background: 'linear-gradient(135deg, #c9a84c, #e3c47e)',
+              color: '#0a0f1e',
+              borderRadius: '12px',
+              padding: '14px 32px',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textDecoration: 'none',
+              marginBottom: '12px',
+              cursor: 'pointer',
+            }}>
+              Upgrade to Premium →
+            </a>
+            <p style={{ 
+              color: '#e8e0d0', 
+              opacity: 0.45, 
+              fontSize: '0.78rem' 
+            }}>
+              Starting at ₹149/month
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
