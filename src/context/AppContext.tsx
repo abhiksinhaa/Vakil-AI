@@ -155,6 +155,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'visible') {
+        refreshAccount().catch((err) => console.error('Account refresh failed:', err));
+      }
+    };
+    const interval = window.setInterval(refreshOnReturn, 30000);
+    window.addEventListener('focus', refreshOnReturn);
+    document.addEventListener('visibilitychange', refreshOnReturn);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshOnReturn);
+      document.removeEventListener('visibilitychange', refreshOnReturn);
+    };
+  }, [user, refreshAccount]);
+
   const toggleTheme = useCallback(async () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     applyTheme(next);
