@@ -100,6 +100,10 @@ Sensitive writes — activating Pro after a verified payment and granting referr
 5. Deploy. The `/api/*` endpoints are served as Next.js route handlers automatically — no `vercel.json` needed.
 6. Add your Vercel domain to your Supabase Authentication settings, if required.
 
+### Razorpay refund webhooks
+
+Configure a Razorpay webhook for `https://your-domain.com/api/razorpay/webhook`, enable the `payment.refunded` event, and set its secret as `RAZORPAY_WEBHOOK_SECRET` in the deployment environment. This secret is separate from `RAZORPAY_KEY_SECRET`.
+
 ---
 
 *Draftee — Built for Indian Lawyers*

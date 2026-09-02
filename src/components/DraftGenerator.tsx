@@ -428,13 +428,10 @@ export default function DraftGenerator() {
         }
         console.log('[RATE-LIMIT] Generation allowed, proceeding...', { used: allowance.used, limit: allowance.limit });
       } catch (allowanceErr: any) {
-        // If offline or Supabase fails, we allow generation to proceed
-        if (allowanceErr.message?.includes('offline') || allowanceErr.code === 'unavailable') {
-          console.warn('Offline mode: Bypassing allowance check.');
-        } else {
-          console.error('Allowance check failed:', allowanceErr);
-          console.warn('Proceeding with generation anyway (allowance check failed)');
-        }
+        console.error('Allowance check failed; blocking generation:', allowanceErr);
+        setIsGenerating(false);
+        setError('Could not verify your draft allowance. Please try again.');
+        return;
       }
 
       setGeneratingStatus('Generating Document...');

@@ -122,13 +122,14 @@ export async function POST(req: Request) {
       razorpay_order_id: razorpay_order_id,
       razorpay_payment_id: razorpay_payment_id,
       plan: planName,
-      amount: amount || 0,
+      amount_paise: amount || 0,
       status: 'success',
       created_at: new Date().toISOString()
     })
 
   if (paymentError) {
     console.error('Payment record insert error:', paymentError)
+    return NextResponse.json({ success: false, error: 'Payment record could not be saved' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

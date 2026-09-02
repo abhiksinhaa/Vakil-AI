@@ -311,8 +311,8 @@ export async function fetchSubscription(): Promise<Subscription | null> {
 }
 
 export async function calculateDraftAllowance(profile: Profile, userId: string, supabaseClient: any = supabase) {
-  let limit = profile?.drafts_limit ?? FREE_DRAFT_LIMIT;
   const userPlan = profile?.plan || 'free';
+  let limit = userPlan === 'free' ? FREE_DRAFT_LIMIT : (profile?.drafts_limit ?? FREE_DRAFT_LIMIT);
   const isPro = ['basic', 'pro', 'premium', 'standard', 'starter', 'firm'].includes(userPlan);
   let isPooled = false;
   let queryIds = [userId];

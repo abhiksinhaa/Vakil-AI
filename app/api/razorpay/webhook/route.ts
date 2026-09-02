@@ -35,8 +35,9 @@ export async function POST(req: Request) {
 
     const paymentEntity = payload?.payload?.payment?.entity;
     const orderId = paymentEntity?.order_id;
-    if (!orderId) {
-      return NextResponse.json({ error: 'Refund event missing order ID' }, { status: 400 });
+    const paymentId = paymentEntity?.id;
+    if (!orderId && !paymentId) {
+      return NextResponse.json({ error: 'Refund event missing payment identifiers' }, { status: 400 });
     }
 
     const amount = Number(paymentEntity.amount);
@@ -50,13 +51,25 @@ export async function POST(req: Request) {
     }
 
     const db = adminDb();
-    const { data: payment, error: paymentLookupError } = await db
+    let paymentQuery = db
       .from('payments')
-      .select('user_id, created_at, plan, status')
-      .eq('razorpay_order_id', orderId)
+      .select('id, user_id, created_at, plan, status')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    let { data: payment, error: paymentLookupError } = orderId
+      ? await paymentQuery.eq('razorpay_order_id', orderId).maybeSingle()
+      : await paymentQuery.eq('razorpay_payment_id', paymentId).maybeSingle();
+
+    if (!payment && !paymentLookupError && paymentId && orderId) {
+      ({ data: payment, error: paymentLookupError } = await db
+        .from('payments')
+        .select('id, user_id, created_at, plan, status')
+        .eq('razorpay_payment_id', paymentId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle());
+    }
 
     if (paymentLookupError) {
       console.error('[razorpay/webhook] Payment lookup failed:', paymentLookupError);
@@ -64,14 +77,14 @@ export async function POST(req: Request) {
     }
 
     if (!payment?.user_id) {
-      console.warn('[razorpay/webhook] No payment found for refunded order:', orderId);
+      console.warn('[razorpay/webhook] No payment found for refunded payment:', { orderId, paymentId });
       return NextResponse.json({ received: true, reverted: false });
     }
 
     const { error: paymentUpdateError } = await db
       .from('payments')
       .update({ status: 'refunded' })
-      .eq('razorpay_order_id', orderId);
+      .eq('id', payment.id);
 
     if (paymentUpdateError) {
       console.error('[razorpay/webhook] Payment status update failed:', paymentUpdateError);
@@ -83,7 +96,7 @@ export async function POST(req: Request) {
       .select('id')
       .eq('user_id', payment.user_id)
       .in('status', ['success', 'paid'])
-      .neq('razorpay_order_id', orderId)
+      .neq('id', payment.id)
       .gt('created_at', payment.created_at)
       .order('created_at', { ascending: false })
       .limit(1)
