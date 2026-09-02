@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Copy, FileText, Download, MessageCircle, Mail, X, Send, Edit2, Save, RefreshCw } from 'lucide-react';
 import { downloadDraftPdf } from '../lib/exportDraftPdf';
@@ -56,7 +56,7 @@ export default function DraftPreview({
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailRecipient, setEmailRecipient] = useState('');
   const [emailSending, setEmailSending] = useState(false);
-  const { setProfile, isPro } = useApp();
+  const { setProfile } = useApp();
   const router = useRouter();
 
   const displayDraft = useMemo(
@@ -238,7 +238,7 @@ export default function DraftPreview({
     onActionBusyChange?.(true);
     setIsPdfLoading(true);
     try {
-      await downloadDraftPdf(displayDraft, formData, isPro);
+      await downloadDraftPdf(displayDraft, formData, isPremium);
     } catch (err) {
       console.error('PDF export failed:', err);
       setPdfError('PDF could not be downloaded. Please try again.');
@@ -339,7 +339,7 @@ export default function DraftPreview({
       } else if (pendingAction === 'pdf') {
         setIsPdfLoading(true);
         try {
-          await downloadDraftPdf(text, formData, isPro);
+          await downloadDraftPdf(text, formData, isPremium);
         } catch (err) {
           console.error('PDF export failed after profile save:', err);
           setPdfError('PDF could not be downloaded. Please try again.');
@@ -387,9 +387,16 @@ export default function DraftPreview({
     }
   };
 
-  const isPremium = isPro;
-  console.log('User plan:', profile?.plan);
-  console.log('RENDER: isPremium value at render time:', isPremium, 'profile:', profile);
+  const isPremium = profile?.plan === 'basic' ||
+                    profile?.plan === 'pro' ||
+                    profile?.plan === 'premium' ||
+                    profile?.plan === 'firm' ||
+                    (profile?.org_id !== null && profile?.org_id !== undefined);
+
+  useEffect(() => {
+    console.log('DraftPreview received profile:', profile);
+    console.log('isPremium calculated:', isPremium);
+  }, [profile, isPremium]);
 
   return (
     <div className="card h-full flex flex-col min-h-[400px] lg:min-h-0">

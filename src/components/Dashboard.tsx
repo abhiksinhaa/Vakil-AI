@@ -20,7 +20,7 @@ function getGreetingTime() {
 
 export default function Dashboard() {
   const searchParams = useSearchParams();
-  const { session } = useApp();
+  const { session, refreshAccount } = useApp();
   
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [hearingsCount, setHearingsCount] = useState(0);
@@ -43,10 +43,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!paymentSuccess) return;
+    refreshAccount().catch((error) => console.error('Failed to refresh account after payment', error));
     setShowPaymentSuccess(true);
     const timer = window.setTimeout(() => setShowPaymentSuccess(false), 5000);
     return () => window.clearTimeout(timer);
-  }, [paymentSuccess]);
+  }, [paymentSuccess, refreshAccount]);
 
   const loadDashboardData = async () => {
     if (!session?.user?.id) return;

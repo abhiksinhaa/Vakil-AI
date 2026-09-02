@@ -17,21 +17,20 @@ export async function POST(req: Request) {
     // Server-side Premium Check
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('plan, plan_expires_at, org_id, organizations(*)')
+      .select('plan, org_id, organizations(*)')
       .eq('id', userId)
       .single();
 
-    const isBasicPro = ['basic', 'pro', 'premium', 'firm'].includes(profile?.plan || '') && 
-                      profile?.plan_expires_at && 
-                      new Date(profile.plan_expires_at) > new Date();
-                      
-    const orgData: any = profile?.organizations;
-    const orgExpiresAt = Array.isArray(orgData) ? orgData[0]?.plan_expires_at : orgData?.plan_expires_at;
-    const isFirmMember = profile?.org_id != null && 
-                         orgExpiresAt != null && 
-                         new Date(orgExpiresAt) > new Date();
+    const { data: subscription } = await supabaseAdmin
+      .from('subscriptions')
+      .select('plan')
+      .eq('id', userId)
+      .maybeSingle();
 
-    const isPremium = isBasicPro || isFirmMember;
+    const premiumPlans = ['basic', 'pro', 'premium', 'firm'];
+    const isPremium = premiumPlans.includes(profile?.plan || '') ||
+                      premiumPlans.includes(subscription?.plan || '') ||
+                      (profile?.org_id !== null && profile?.org_id !== undefined);
 
     if (!isPremium) {
       return NextResponse.json({ error: 'Premium feature.' }, { status: 403 });
