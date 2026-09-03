@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60s execution on Vercel
 
 import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
 import { calculateDraftAllowance } from '../../../src/lib/userAccount';
 
 function buildJurisdictionPrompt(state: string, courtLevel: string): string {
@@ -135,29 +136,34 @@ function resolveModel(requested?: string) {
 export async function POST(req: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  console.log('[api/gemini] POST request received');
-  console.log('[api/gemini] GEMINI_API_KEY env var exists:', !!apiKey);
-  console.log('[api/gemini] GEMINI_API_KEY value length:', apiKey?.length);
-
-  if (!apiKey || String(apiKey).includes('your_gemini_api_key')) {
-    console.error('[api/gemini] API key not configured');
-    return Response.json(
-      {
-        error: {
-          message:
-            'Gemini API key not configured. Add GEMINI_API_KEY in your environment variables.',
-        },
-      },
-      { status: 500 }
-    );
-  }
-
   let body: any;
   let userId: string = 'unknown';
 
   try {
     body = await req.json();
     userId = body.userId || 'unknown';
+    const documentType = body.documentType || body.document_type || body.draftType;
+
+    console.log('Generate request received:', {
+      userId,
+      documentType,
+      hasApiKey: !!apiKey,
+    });
+    console.log('[api/gemini] GEMINI_API_KEY value length:', apiKey?.length);
+
+    if (!apiKey || String(apiKey).includes('your_gemini_api_key')) {
+      console.error('[api/gemini] API key not configured');
+      return Response.json(
+        {
+          error: {
+            message:
+              'Gemini API key not configured. Add GEMINI_API_KEY in your environment variables.',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
     console.log('[api/gemini] Request body received, model:', body.model);
     
     const requestedModel = body.model || process.env.GEMINI_MODEL;
@@ -222,6 +228,13 @@ export async function POST(req: Request) {
         }
       }
 
+      console.log('Draft check:', {
+        plan: profile?.plan,
+        draftsUsed: profile?.drafts_used,
+        draftsLimit: profile?.drafts_limit,
+        orgId: profile?.org_id,
+      });
+
       const allowance = await calculateDraftAllowance(profile as any, userId, supabaseAdmin);
       
       if (!allowance.allowed) {
@@ -249,15 +262,50 @@ export async function POST(req: Request) {
       apiKey
     )}`;
 
-    console.log('[api/gemini] Making request to Gemini API...');
-    const upstream = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    
-    console.log('[api/gemini] Gemini API response status:', upstream.status);
-    const data = await upstream.json();
+    let upstream: Response;
+    let data: any;
+
+    try {
+      console.log('[api/gemini] Making request to Gemini API...');
+      upstream = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      console.log('[api/gemini] Gemini API response status:', upstream.status);
+      data = await upstream.json();
+
+      if (!upstream.ok) {
+        const apiError = new Error(data?.error?.message || `Gemini API returned status ${upstream.status}`) as Error & {
+          status?: number;
+          code?: string | number;
+        };
+        apiError.status = upstream.status;
+        apiError.code = data?.error?.status || data?.error?.code;
+        throw apiError;
+      }
+    } catch (error: any) {
+      console.error('Gemini API error:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+      });
+
+      if (error.message?.includes('quota')) {
+        return NextResponse.json({
+          error: 'AI service is temporarily busy. Please try again in a moment.',
+        }, { status: 429 });
+      }
+      if (error.message?.includes('API key')) {
+        return NextResponse.json({
+          error: 'Service configuration error. Please contact support.',
+        }, { status: 500 });
+      }
+      return NextResponse.json({
+        error: 'Generation failed. Please try again.',
+      }, { status: 500 });
+    }
     
     const outputTokens = data?.usageMetadata?.candidatesTokenCount || 0;
     
