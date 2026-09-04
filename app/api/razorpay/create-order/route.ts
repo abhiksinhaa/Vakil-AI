@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     amount: finalAmount,
     currency: 'INR',
     receipt: `receipt_${Date.now()}`,
-    notes: { plan, userId, discountApplied: String(discountApplied) },
+    notes: { plan, userId, billingCycle, discountApplied: String(discountApplied) },
   })
   return NextResponse.json({ 
     orderId: order.id, 

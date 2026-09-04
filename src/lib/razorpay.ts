@@ -30,6 +30,11 @@ function loadRazorpayScript(): Promise<any> {
 
 export async function startCheckout({ plan, billingCycle = 'monthly', userId, userEmail, userName, onSuccess }: CheckoutOptions) {
   const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const supabase = (await import('./supabase')).createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Please sign in again before paying.');
+  }
 
   // 1. Create Order
   const orderRes = await fetch('/api/razorpay/create-order', {
@@ -71,7 +76,10 @@ export async function startCheckout({ plan, billingCycle = 'monthly', userId, us
           console.log('Calling verify API...');
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
             body: JSON.stringify({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,

@@ -19,7 +19,14 @@ export async function fetchRazorpayOrder(orderId: string) {
     throw new Error(data?.error?.description || 'Unable to fetch Razorpay order');
   }
 
-  return data as { id: string; amount: number; currency: string; receipt?: string; status?: string };
+  return data as {
+    id: string;
+    amount: number;
+    currency: string;
+    receipt?: string;
+    status?: string;
+    notes?: { plan?: string; userId?: string; billingCycle?: string };
+  };
 }
 
 export function getRazorpayAuthHeader() {
