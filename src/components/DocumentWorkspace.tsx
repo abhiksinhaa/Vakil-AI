@@ -486,7 +486,7 @@ export default function DocumentWorkspace({ draftId }: { draftId: string }) {
 
       {/* Ask AI Chat Modal */}
       {isChatOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-navy/80 backdrop-blur-sm sm:p-4">
+        <div className="fixed inset-x-0 top-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-50 flex justify-end bg-navy/80 backdrop-blur-sm sm:inset-0 sm:p-4">
           <div className="w-full sm:w-[400px] h-full bg-card sm:rounded-3xl border-l sm:border-y sm:border-r border-border shadow-2xl flex flex-col animate-slide-in-right">
             
             {/* Chat Header */}
@@ -534,7 +534,7 @@ export default function DocumentWorkspace({ draftId }: { draftId: string }) {
             </div>
 
             {/* Chat Input */}
-            <div className="p-4 border-t border-border bg-card sm:rounded-b-3xl">
+            <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border bg-card sm:rounded-b-3xl sm:pb-4">
               <div className="relative flex items-center">
                 <input
                   type="text"
