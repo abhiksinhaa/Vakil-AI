@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const paymentEntity = payload?.payload?.payment?.entity;
     const orderId = paymentEntity?.order_id;
     const paymentId = paymentEntity?.id;
-    if (!orderId && !paymentId) {
+    if (!paymentId) {
       return NextResponse.json({ error: 'Refund event missing payment identifiers' }, { status: 400 });
     }
 
@@ -51,25 +51,11 @@ export async function POST(req: Request) {
     }
 
     const db = adminDb();
-    let paymentQuery = db
+    const { data: payment, error: paymentLookupError } = await db
       .from('payments')
-      .select('id, user_id, created_at, plan, status')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    let { data: payment, error: paymentLookupError } = orderId
-      ? await paymentQuery.eq('razorpay_order_id', orderId).maybeSingle()
-      : await paymentQuery.eq('razorpay_payment_id', paymentId).maybeSingle();
-
-    if (!payment && !paymentLookupError && paymentId && orderId) {
-      ({ data: payment, error: paymentLookupError } = await db
-        .from('payments')
-        .select('id, user_id, created_at, plan, status')
-        .eq('razorpay_payment_id', paymentId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle());
-    }
+      .select('id, user_id, razorpay_order_id, razorpay_payment_id, created_at, plan, status')
+      .eq('razorpay_payment_id', paymentId)
+      .maybeSingle();
 
     if (paymentLookupError) {
       console.error('[razorpay/webhook] Payment lookup failed:', paymentLookupError);
@@ -91,24 +77,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Could not update payment' }, { status: 500 });
     }
 
-    const { data: newerPayment, error: newerPaymentError } = await db
+    const { data: otherValidPayments, error: newerPaymentError } = await db
       .from('payments')
-      .select('id')
+      .select('id, razorpay_payment_id')
       .eq('user_id', payment.user_id)
       .in('status', ['success', 'paid'])
       .neq('id', payment.id)
-      .gt('created_at', payment.created_at)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
 
     if (newerPaymentError) {
       console.error('[razorpay/webhook] Newer payment lookup failed:', newerPaymentError);
       return NextResponse.json({ error: 'Could not verify current payment' }, { status: 500 });
     }
 
-    if (newerPayment) {
-      return NextResponse.json({ received: true, reverted: false, newerPayment: true });
+    const { data: profile, error: profileLookupError } = await db
+      .from('profiles')
+      .select('id, plan, razorpay_payment_id')
+      .eq('id', payment.user_id)
+      .maybeSingle();
+
+    if (profileLookupError) {
+      console.error('[razorpay/webhook] Profile lookup failed:', profileLookupError);
+      return NextResponse.json({ error: 'Could not verify profile entitlement' }, { status: 500 });
+    }
+
+    const paymentCurrentlyGrantsAccess = profile?.razorpay_payment_id === payment.razorpay_payment_id &&
+      String(profile?.plan || 'free').toLowerCase() !== 'free';
+
+    if (otherValidPayments?.length || !paymentCurrentlyGrantsAccess) {
+      return NextResponse.json({
+        received: true,
+        reverted: false,
+        reason: otherValidPayments?.length ? 'another_valid_payment' : 'refunded_payment_not_current_entitlement',
+      });
     }
 
     const { error: profileUpdateError } = await db
@@ -118,9 +119,12 @@ export async function POST(req: Request) {
         drafts_limit: 5,
         drafts_used: 0,
         plan_expires_at: null,
+        razorpay_payment_id: null,
         org_id: null,
       })
-      .eq('id', payment.user_id);
+      .eq('id', payment.user_id)
+      .eq('razorpay_payment_id', payment.razorpay_payment_id)
+      .neq('plan', 'free');
 
     if (profileUpdateError) {
       console.error('[razorpay/webhook] Profile update failed:', profileUpdateError);
