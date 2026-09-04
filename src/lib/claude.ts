@@ -1,6 +1,7 @@
 import { stripMarkdown } from './stripMarkdown';
 import type { DocumentSchema } from './draftSchemas';
 import { DRAFT_TYPES } from '../data/legalDraftTypes';
+import { supabase } from './supabase';
 
 export function buildDraftPrompt(draftTypeId: string, userFactsText: string, structure: string[], language: string, incidentTiming: string) {
   const structureList = structure.map((s, i) => `${i + 1}. ${s}`).join('\n');
@@ -243,10 +244,16 @@ Generate the complete ${draftType} now:`;
       
       console.log('[Draft Generation] Request payload keys:', Object.keys(requestPayload));
 
+      const { data: { session: authSession }, error: authError } = await supabase.auth.getSession();
+      if (authError || !authSession?.access_token) {
+        throw new Error(authError?.message || 'You must be logged in to generate a draft.');
+      }
+
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${authSession.access_token}`,
         },
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
@@ -319,7 +326,9 @@ Generate the complete ${draftType} now:`;
            throw err;
         }
         
-        const err = new Error('Generation failed, please try again.');
+        const err = new Error(
+          data?.error?.message || data?.error || 'Generation failed, please try again.'
+        );
         (err as any).status = response.status;
         throw err;
       }

@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 const BASE_SYSTEM_PROMPT = `You are an expert Indian legal assistant. Answer only law, legal procedures, BNS (Bharatiya Nyaya Sanhita) 2023, BNSS (Bharatiya Nagarik Suraksha Sanhita) 2023, BSA (Bharatiya Sakshya Adhiniyam) 2023, court cases, and legal rights questions.
 
 For cases registered before 1 July 2024, use old IPC/CrPC/Evidence Act. For cases after 1 July 2024, use BNS/BNSS/BSA 2023. If the user has not stated when the incident occurred, ask whether it was before or after 1 July 2024 before citing criminal law sections.
@@ -104,15 +106,23 @@ function extractReply(data) {
 
 export async function sendLegalChatMessage(messages, options: { isPro?: boolean; draftMode?: boolean; signal?: AbortSignal; profile?: any } = {}) {
   const { isPro = false, draftMode = false, signal, profile } = options;
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+  if (authError || !session?.access_token) {
+    throw new Error(authError?.message || 'You must be logged in to use Ask Draftee AI.');
+  }
 
   const response = await fetch('/api/gemini', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
     signal,
     body: JSON.stringify({
       systemInstruction: {
         parts: [{ text: buildSystemPrompt({ isPro, draftMode, profile }) }],
       },
+      actionType: 'chat',
       contents: toGeminiContents(messages),
       generationConfig: {
         maxOutputTokens: isPro ? 4096 : 2048,

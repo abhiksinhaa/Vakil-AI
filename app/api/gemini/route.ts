@@ -5,6 +5,7 @@ export const maxDuration = 60; // Allow up to 60s execution on Vercel
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { calculateDraftAllowance } from '../../../src/lib/userAccount';
+import { requireUser } from '../../../src/lib/supabaseAdmin';
 
 function buildJurisdictionPrompt(state: string, courtLevel: string): string {
   const courtFormats: Record<string, string> = {
@@ -137,11 +138,12 @@ export async function POST(req: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   let body: any;
-  let userId: string = 'unknown';
+  let userId = 'unknown';
 
   try {
+    const authenticatedUser = await requireUser(req);
+    userId = authenticatedUser.id;
     body = await req.json();
-    userId = body.userId || 'unknown';
     const documentType = body.documentType || body.document_type || body.draftType;
 
     console.log('Generate request received:', {
@@ -170,48 +172,57 @@ export async function POST(req: Request) {
     const model = resolveModel(requestedModel);
     console.log('[api/gemini] Using model:', model);
 
-    if (userId !== 'unknown') {
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-      
-      const { data: profile } = await supabaseAdmin
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .select('plan, drafts_limit, drafts_used, plan_expires_at, org_id, organizations(*)')
         .eq('id', userId)
-        .maybeSingle()
+        .maybeSingle();
 
-      // Premium access check for Ask Draftee AI
-      if (profile) {
-        const { data: subscription } = await supabaseAdmin
-          .from('subscriptions')
-          .select('plan')
-          .eq('id', userId)
-          .maybeSingle();
-        const premiumPlans = ['basic', 'pro', 'premium', 'firm'];
-        const isPremium = premiumPlans.includes(profile?.plan || '') ||
-                          premiumPlans.includes(subscription?.plan || '') ||
-                          (profile?.org_id !== null && profile?.org_id !== undefined);
+    if (profileError) {
+      console.error('[api/gemini] Profile lookup failed:', profileError);
+      return Response.json({ error: 'Unable to verify account entitlement.' }, { status: 500 });
+    }
 
-        if (!isPremium) {
-          return Response.json({ 
-            error: 'Ask Draftee AI requires a Premium plan. Please upgrade.' 
-          }, { status: 403 });
-        }
+    if (!profile) {
+      return Response.json({ error: 'User profile not found.' }, { status: 403 });
+    }
+
+    const isChatRequest = body.actionType === 'chat';
+    const { data: subscription } = await supabaseAdmin
+      .from('subscriptions')
+      .select('plan')
+      .eq('id', userId)
+      .maybeSingle();
+    // Ask Draftee AI is premium-only; draft generation uses the configured draft allowance.
+    if (isChatRequest) {
+      const premiumPlans = ['basic', 'pro', 'premium', 'firm'];
+      const isPremium = premiumPlans.includes(profile.plan || '') ||
+                        premiumPlans.includes(subscription?.plan || '') ||
+                        (profile.org_id !== null && profile.org_id !== undefined);
+
+      if (!isPremium) {
+        return Response.json({
+          error: 'Ask Draftee AI requires a Premium plan. Please upgrade.'
+        }, { status: 403 });
       }
+    }
 
-      const now = new Date()
-      const expiresAt = profile?.plan_expires_at 
-        ? new Date(profile.plan_expires_at) 
+    const now = new Date()
+    const expiresAt = profile.plan_expires_at
+        ? new Date(profile.plan_expires_at)
         : null
 
-      // If plan expired, downgrade to free
-      if (
-        profile?.plan !== 'free' && 
+    // If plan expired, preserve the existing downgrade behavior.
+    if (
+        profile.plan !== 'free' &&
         expiresAt && 
         expiresAt < now
-      ) {
+    ) {
         await supabaseAdmin
           .from('profiles')
           .update({ 
@@ -221,22 +232,20 @@ export async function POST(req: Request) {
           })
           .eq('id', userId)
         
-        // Continue as free user
-        if (profile) {
-          profile.plan = 'free'
-          profile.drafts_limit = 10
-        }
-      }
+        profile.plan = 'free'
+        profile.drafts_limit = 10
+    }
 
-      console.log('Draft check:', {
-        plan: profile?.plan,
-        draftsUsed: profile?.drafts_used,
-        draftsLimit: profile?.drafts_limit,
-        orgId: profile?.org_id,
-      });
+    console.log('Draft check:', {
+      plan: profile.plan,
+      draftsUsed: profile.drafts_used,
+      draftsLimit: profile.drafts_limit,
+      orgId: profile.org_id,
+    });
 
+    if (!isChatRequest) {
       const allowance = await calculateDraftAllowance(profile as any, userId, supabaseAdmin);
-      
+
       if (!allowance.allowed) {
         return Response.json(
           { error: allowance.message || 'Draft limit reached. Please upgrade to continue.' },
@@ -249,7 +258,8 @@ export async function POST(req: Request) {
     const courtLevel = body.court_level;
     
     delete body.model; // Don't send this to Gemini API
-    delete body.userId; // Don't send this to Gemini API
+    delete body.userId; // Do not send client identity to Gemini API
+    delete body.actionType; // Route-only authorization metadata
     delete body.state;
     delete body.court_level;
 
@@ -327,6 +337,10 @@ export async function POST(req: Request) {
     
     return Response.json(data, { status: upstream.status });
   } catch (err) {
+    if ((err as any)?.message === 'Unauthorized' || (err as any)?.message === 'No token provided') {
+      return Response.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
     console.error(JSON.stringify({
       event: 'GEMINI_API_CALL',
       timestamp: new Date().toISOString(),
