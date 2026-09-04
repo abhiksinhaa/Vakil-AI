@@ -56,3 +56,23 @@ ON hearings FOR ALL USING (user_id = auth.uid());
 
 ALTER TABLE drafts ADD COLUMN IF NOT EXISTS 
   matter_id uuid REFERENCES matters(id);
+
+-- The "documents" bucket already exists. Keep it private; do not create another bucket.
+-- TODO: Run these policies in the Supabase SQL Editor:
+CREATE POLICY "Users can upload their own documents"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'documents'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+CREATE POLICY "Users can read their own documents"
+ON storage.objects
+FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'documents'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);

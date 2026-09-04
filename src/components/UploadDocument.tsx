@@ -96,20 +96,26 @@ export default function UploadDocument() {
   };
 
   const startUploadFlow = async (file: File) => {
-    if (!session?.user?.id) {
-      setErrorMessage('Please log in to upload documents.');
-      setUploadState('error');
-      return;
-    }
-
     setUploadState('uploading');
     setUploadProgress(10); // Start progress
 
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      console.log('Authenticated user:', user?.id);
+      if (userError) console.error('Auth error:', userError);
+
+      if (userError || !user) {
+        throw new Error(userError?.message || 'Please log in to upload documents.');
+      }
+
       // 1. Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const uniqueId = crypto.randomUUID();
-      const filePath = `${session.user.id}/${uniqueId}.${fileExt}`;
+      const filePath = `${user.id}/${uniqueId}.${fileExt}`;
 
       setUploadProgress(40);
       
@@ -117,14 +123,17 @@ export default function UploadDocument() {
         .from('documents')
         .upload(filePath, file);
 
-      if (uploadError) throw new Error('Failed to upload file to storage.');
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(uploadError.message);
+      }
 
       setUploadProgress(70);
       setUploadState('processing');
 
       // 2. Insert record into drafts table as '_TMP_UPLOAD_'
       const payload = {
-        user_id: session.user.id,
+        user_id: user.id,
         draft_type: '_TMP_UPLOAD_',
         party1_name: file.name, // original filename
         party2_name: formatBytes(file.size), // formatted size
