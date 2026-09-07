@@ -311,9 +311,10 @@ export async function fetchSubscription(): Promise<Subscription | null> {
 }
 
 export async function calculateDraftAllowance(profile: Profile, userId: string, supabaseClient: any = supabase) {
-  const userPlan = profile?.plan || 'free';
-  let limit = userPlan === 'free' ? FREE_DRAFT_LIMIT : (profile?.drafts_limit ?? FREE_DRAFT_LIMIT);
-  const isPro = ['basic', 'pro', 'premium', 'standard', 'starter', 'firm'].includes(userPlan);
+  const userPlan = String(profile?.plan || 'free').toLowerCase();
+  const paidPlanLimits: Record<string, number> = { basic: 90, pro: 175, firm: 500 };
+  const isPro = Object.prototype.hasOwnProperty.call(paidPlanLimits, userPlan);
+  let limit = isPro ? paidPlanLimits[userPlan] : FREE_DRAFT_LIMIT;
   let isPooled = false;
   let queryIds = [userId];
 
@@ -339,7 +340,7 @@ export async function calculateDraftAllowance(profile: Profile, userId: string, 
       .in('user_id', queryIds)
       .gte('created_at', startOfMonth.toISOString());
 
-    const used = count || 0;
+    const used = Math.max(0, Number(count ?? 0));
     const remaining = Math.max(0, limit - used);
     return {
       allowed: remaining > 0,
@@ -359,7 +360,7 @@ export async function calculateDraftAllowance(profile: Profile, userId: string, 
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
     
-  const used = count || 0;
+  const used = Math.max(0, Number(count ?? 0));
   const remaining = Math.max(0, limit - used);
   
   return {

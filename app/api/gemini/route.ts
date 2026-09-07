@@ -4,8 +4,14 @@ export const maxDuration = 60; // Allow up to 60s execution on Vercel
 
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { calculateDraftAllowance } from '../../../src/lib/userAccount';
+import { calculateDraftAllowance, FREE_DRAFT_LIMIT } from '../../../src/lib/userAccount';
 import { requireUser } from '../../../src/lib/supabaseAdmin';
+
+const PAID_DRAFT_LIMITS = {
+  basic: 90,
+  pro: 175,
+  firm: 500,
+} as const;
 
 function buildJurisdictionPrompt(state: string, courtLevel: string): string {
   const courtFormats: Record<string, string> = {
@@ -198,6 +204,20 @@ export async function POST(req: Request) {
       .select('plan')
       .eq('id', userId)
       .maybeSingle();
+
+    const profilePlan = String(profile.plan || '').toLowerCase();
+    const subscriptionPlan = String(subscription?.plan || '').toLowerCase();
+    const entitlementPlan = Object.prototype.hasOwnProperty.call(PAID_DRAFT_LIMITS, profilePlan)
+      ? profilePlan
+      : profilePlan === 'free' || !profilePlan
+        ? 'free'
+        : Object.prototype.hasOwnProperty.call(PAID_DRAFT_LIMITS, subscriptionPlan)
+          ? subscriptionPlan
+          : 'free';
+    profile.plan = entitlementPlan as any;
+    profile.drafts_limit = entitlementPlan === 'free'
+      ? FREE_DRAFT_LIMIT
+      : PAID_DRAFT_LIMITS[entitlementPlan as keyof typeof PAID_DRAFT_LIMITS];
     // Ask Draftee AI is premium-only; draft generation uses the configured draft allowance.
     if (isChatRequest) {
       const premiumPlans = ['basic', 'pro', 'premium', 'firm'];
@@ -248,7 +268,7 @@ export async function POST(req: Request) {
 
       if (!allowance.allowed) {
         return Response.json(
-          { error: allowance.message || 'Draft limit reached. Please upgrade to continue.' },
+          { error: 'You have reached your monthly draft limit. Upgrade your plan to continue.' },
           { status: 403 }
         )
       }
