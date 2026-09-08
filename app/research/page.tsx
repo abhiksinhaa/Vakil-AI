@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, Send, Scale, BookOpen, Sparkles, AlertCircle, Lock } from 'lucide-react';
-import { useApp } from '../../src/context/AppContext';
+import { supabase } from '../../src/lib/supabase';
 
 const RESEARCH_PROMPT = `You are a specialized Legal Research AI for Indian Law.
 Your primary focus is:
@@ -14,7 +14,7 @@ Always cite the exact sections and verifiable case laws. If unsure about a speci
 
 export default function LegalResearchPage() {
   const router = useRouter();
-  const { profile } = useApp();
+  const [profile, setProfile] = useState<{ plan?: string | null } | null>(null);
   
   const [messages, setMessages] = useState([
     { id: 'welcome', role: 'assistant', content: 'Welcome to the Legal Research Assistant. How can I help you analyze case laws, precedents, or understand the new BNS/BNSS/BSA laws today?' }
@@ -25,9 +25,35 @@ export default function LegalResearchPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Premium access check
-  const hasPremiumAccess = ['basic', 'standard', 'pro'].includes(profile?.plan as string) || 
-                           (profile?.org_id !== null && profile?.org_id !== undefined);
+  const isPremium =
+    profile?.plan !== 'free' &&
+    profile?.plan !== null &&
+    profile?.plan !== undefined;
+
+  useEffect(() => {
+    const fetchFreshProfile = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user?.id) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Fresh research profile fetch failed:', error);
+        return;
+      }
+
+      setProfile(data);
+    };
+
+    fetchFreshProfile();
+  }, []);
+
+  const hasPremiumAccess = isPremium;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -204,7 +230,7 @@ export default function LegalResearchPage() {
       </main>
 
       {/* Premium Lock Overlay */}
-      {!hasPremiumAccess && (
+      {!isPremium && (
         <div style={{
           position: 'fixed',
           inset: 0,
