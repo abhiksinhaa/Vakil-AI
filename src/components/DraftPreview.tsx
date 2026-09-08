@@ -238,7 +238,7 @@ export default function DraftPreview({
     onActionBusyChange?.(true);
     setIsPdfLoading(true);
     try {
-      await downloadDraftPdf(displayDraft, formData, isPremium);
+      await downloadDraftPdf(displayDraft, formData);
     } catch (err) {
       console.error('PDF export failed:', err);
       setPdfError('PDF could not be downloaded. Please try again.');
@@ -339,7 +339,7 @@ export default function DraftPreview({
       } else if (pendingAction === 'pdf') {
         setIsPdfLoading(true);
         try {
-          await downloadDraftPdf(text, formData, isPremium);
+          await downloadDraftPdf(text, formData);
         } catch (err) {
           console.error('PDF export failed after profile save:', err);
           setPdfError('PDF could not be downloaded. Please try again.');
@@ -386,37 +386,6 @@ export default function DraftPreview({
       setProfileSaving(false);
     }
   };
-
-  const isPremium = profile?.plan !== 'free' &&
-    profile?.plan !== null &&
-    profile?.plan !== undefined;
-
-  useEffect(() => {
-    const fetchFreshProfilePlan = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-      if (!user?.id) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('plan')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Fresh profile plan fetch failed:', error);
-        return;
-      }
-
-      setProfile((currentProfile) => ({ ...currentProfile, ...data } as any));
-    };
-
-    fetchFreshProfilePlan();
-  }, [setProfile]);
-
-  useEffect(() => {
-    console.log('User plan for buttons:', profile?.plan);
-  }, [profile, isPremium]);
 
   return (
     <div className="card h-full flex flex-col min-h-[400px] lg:min-h-0">
@@ -600,84 +569,56 @@ export default function DraftPreview({
 
       {draft && !isGenerating && !error && (
         <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border">
-          {isPremium ? (
-            isEditing ? (
-              <>
-                <button type="button" onClick={saveEdits} className="btn-primary text-sm">
-                  Save edits
-                </button>
-                <button type="button" onClick={cancelEdit} className="btn-secondary text-sm">
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button type="button" onClick={startEdit} title="Edit Draft" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button type="button" onClick={handleCopy} title="Copy to clipboard" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
-                  {copied ? <span className="text-emerald-400 text-xs font-bold px-1">✓</span> : <Copy className="w-4 h-4" />}
-                </button>
-                <button type="button" onClick={handleDownloadTxt} title="Download .txt" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
-                  <FileText className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadPdf}
-                  disabled={isPdfLoading}
-                  title="Download PDF"
-                  className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all disabled:opacity-50"
-                >
-                  {isPdfLoading ? <span className="w-4 h-4 border-2 border-gold/30 border-t-gold rounded-full animate-spin inline-block" /> : <Download className="w-4 h-4" />}
-                </button>
-                <button type="button" onClick={handleWhatsApp} title="Share on WhatsApp" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-[#25D366]/20 hover:text-[#25D366] hover:border-[#25D366]/30 transition-all">
-                  <MessageCircle className="w-4 h-4" />
-                </button>
-                <button type="button" onClick={handleEmail} title="Email Draft" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
-                  <Mail className="w-4 h-4" />
-                </button>
-                
-                <div className="flex-1" />
-                
-                <button
-                  type="button"
-                  onClick={handleSaveWrapper}
-                  disabled={isSaving || saveSuccess}
-                  className="btn-secondary text-sm flex items-center gap-2"
-                >
-                  {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : <><Save className="w-4 h-4" /> Save</>}
-                </button>
-                <button type="button" onClick={onRegenerate} className="btn-primary text-sm flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4" /> Regenerate
-                </button>
-              </>
-            )
+          {isEditing ? (
+            <>
+              <button type="button" onClick={saveEdits} className="btn-primary text-sm">
+                Save edits
+              </button>
+              <button type="button" onClick={cancelEdit} className="btn-secondary text-sm">
+                Cancel
+              </button>
+            </>
           ) : (
-            <div style={{
-              textAlign: 'center',
-              padding: '20px',
-              background: '#0f1525',
-              border: '1px solid #c9a84c',
-              borderRadius: '12px',
-              marginTop: '10px',
-              width: '100%',
-            }}>
-              <p style={{ color: '#e8e0d0', marginBottom: '12px', fontSize: '0.95rem' }}>
-                Upgrade to Pro to unlock these features
-              </p>
-              <a href="/pricing" style={{
-                display: 'inline-block',
-                background: 'linear-gradient(135deg, #c9a84c, #e3c47e)',
-                color: '#0a0f1e',
-                borderRadius: '10px',
-                padding: '12px 28px',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                textDecoration: 'none',
-              }}>
-                Upgrade Now →
-              </a>
-            </div>
+            <>
+              <button type="button" onClick={startEdit} title="Edit Draft" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button type="button" onClick={handleCopy} title="Copy to clipboard" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                {copied ? <span className="text-emerald-400 text-xs font-bold px-1">✓</span> : <Copy className="w-4 h-4" />}
+              </button>
+              <button type="button" onClick={handleDownloadTxt} title="Download .txt" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                <FileText className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isPdfLoading}
+                title="Download PDF"
+                className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all disabled:opacity-50"
+              >
+                {isPdfLoading ? <span className="w-4 h-4 border-2 border-gold/30 border-t-gold rounded-full animate-spin inline-block" /> : <Download className="w-4 h-4" />}
+              </button>
+              <button type="button" onClick={handleWhatsApp} title="Share on WhatsApp" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-[#25D366]/20 hover:text-[#25D366] hover:border-[#25D366]/30 transition-all">
+                <MessageCircle className="w-4 h-4" />
+              </button>
+              <button type="button" onClick={handleEmail} title="Email Draft" className="p-2.5 rounded-xl bg-navy/40 border border-border text-cream/70 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-all">
+                <Mail className="w-4 h-4" />
+              </button>
+
+              <div className="flex-1" />
+
+              <button
+                type="button"
+                onClick={handleSaveWrapper}
+                disabled={isSaving || saveSuccess}
+                className="btn-secondary text-sm flex items-center gap-2"
+              >
+                {saveSuccess ? 'Saved ✓' : isSaving ? 'Saving…' : <><Save className="w-4 h-4" /> Save</>}
+              </button>
+              <button type="button" onClick={onRegenerate} className="btn-primary text-sm flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" /> Regenerate
+              </button>
+            </>
           )}
         </div>
       )}
