@@ -387,15 +387,35 @@ export default function DraftPreview({
     }
   };
 
-  const isPremium = profile?.plan === 'basic' ||
-                    profile?.plan === 'pro' ||
-                    profile?.plan === 'premium' ||
-                    profile?.plan === 'firm' ||
-                    (profile?.org_id !== null && profile?.org_id !== undefined);
+  const isPremium = profile?.plan !== 'free' &&
+    profile?.plan !== null &&
+    profile?.plan !== undefined;
 
   useEffect(() => {
-    console.log('DraftPreview received profile:', profile);
-    console.log('isPremium calculated:', isPremium);
+    const fetchFreshProfilePlan = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user?.id) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Fresh profile plan fetch failed:', error);
+        return;
+      }
+
+      setProfile((currentProfile) => ({ ...currentProfile, ...data } as any));
+    };
+
+    fetchFreshProfilePlan();
+  }, [setProfile]);
+
+  useEffect(() => {
+    console.log('User plan for buttons:', profile?.plan);
   }, [profile, isPremium]);
 
   return (
@@ -643,7 +663,7 @@ export default function DraftPreview({
               width: '100%',
             }}>
               <p style={{ color: '#e8e0d0', marginBottom: '12px', fontSize: '0.95rem' }}>
-                ✨ Upgrade to Premium to download, share and edit drafts.
+                Upgrade to Pro to unlock these features
               </p>
               <a href="/pricing" style={{
                 display: 'inline-block',
