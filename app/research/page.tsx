@@ -72,6 +72,11 @@ export default function LegalResearchPage() {
     setError(null);
 
     try {
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      if (authError || !session?.access_token) {
+        throw new Error(authError?.message || 'Authentication required. Please sign in again.');
+      }
+
       const historyForApi = newMessages.filter(m => m.id !== 'welcome').map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }]
@@ -79,8 +84,13 @@ export default function LegalResearchPage() {
 
       const res = await fetch('/api/gemini', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
+          actionType: 'chat',
+          model: 'gemini-flash-lite-latest',
           systemInstruction: { parts: [{ text: RESEARCH_PROMPT }] },
           contents: historyForApi,
           generationConfig: { maxOutputTokens: 8192, temperature: 0.3 },
@@ -89,7 +99,14 @@ export default function LegalResearchPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData?.error || 'Research analysis failed. Please try again.');
+        const message = typeof errorData?.error === 'string'
+          ? errorData.error
+          : errorData?.error?.message || 'Research analysis failed. Please try again.';
+        console.error('[Legal Research] API request failed:', {
+          status: res.status,
+          message,
+        });
+        throw new Error(message);
       }
       
       const data = await res.json();
@@ -124,7 +141,7 @@ export default function LegalResearchPage() {
             </div>
             <div>
               <h1 className="text-xl font-medium tracking-tight">Legal Research</h1>
-              <p className="text-xs text-white/50">Powered by Gemini 2.5 Flash</p>
+              <p className="text-xs text-white/50">Powered by Google Gemini Flash-Lite</p>
             </div>
           </div>
         </div>
