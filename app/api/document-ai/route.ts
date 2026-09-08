@@ -3,8 +3,9 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60; 
 
 import { createClient } from '@supabase/supabase-js';
+import { requireUser } from '../../../src/lib/supabaseAdmin';
 
-const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
+const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 
 // Initialize Supabase Admin client
 const supabaseAdmin = createClient(
@@ -15,44 +16,29 @@ const supabaseAdmin = createClient(
 export async function POST(req: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey || String(apiKey).includes('your_gemini_api_key')) {
-    return Response.json(
-      { error: { message: 'Gemini API key not configured.' } },
-      { status: 500 }
-    );
-  }
-
   try {
-    const body = await req.json();
-    const { draftId, actionType, userMessage, userId } = body;
+    const authenticatedUser = await requireUser(req);
+    const userId = authenticatedUser.id;
 
-    if (!draftId || !actionType || !userId) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!apiKey || String(apiKey).includes('your_gemini_api_key')) {
+      console.error('[api/document-ai] Gemini API key not configured', { userId });
+      return Response.json(
+        { error: { message: 'Gemini API key not configured.' } },
+        { status: 500 }
+      );
     }
 
-    // Premium access check for Ask Draftee AI
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('plan, org_id, organizations(*)')
-      .eq('id', userId)
-      .single();
+    const body = await req.json();
+    const { draftId, actionType, userMessage } = body;
 
-    if (profile) {
-      const { data: subscription } = await supabaseAdmin
-        .from('subscriptions')
-        .select('plan')
-        .eq('id', userId)
-        .maybeSingle();
-      const premiumPlans = ['basic', 'pro', 'premium', 'firm'];
-      const isPremium = premiumPlans.includes(profile?.plan || '') ||
-                        premiumPlans.includes(subscription?.plan || '') ||
-                        (profile?.org_id !== null && profile?.org_id !== undefined);
+    console.log('[api/document-ai] Request received', {
+      userId,
+      draftId,
+      actionType,
+    });
 
-      if (!isPremium) {
-        return Response.json({ 
-          error: 'Ask Draftee AI requires a Premium plan. Please upgrade.' 
-        }, { status: 403 });
-      }
+    if (!draftId || !actionType) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // 1. Fetch the document record from drafts
@@ -81,6 +67,14 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer);
     const base64Data = buffer.toString('base64');
     const mimeType = draft.situation || 'application/pdf';
+
+    console.log('[api/document-ai] Document loaded', {
+      userId,
+      actionType,
+      mimeType,
+      documentBytes: buffer.length,
+      encodedContentLength: base64Data.length,
+    });
 
     // 4. Construct System Prompt based on Action Type
     let systemInstruction = '';
@@ -142,12 +136,35 @@ export async function POST(req: Request) {
 
     const data = await upstream.json();
 
-    if (upstream.status !== 200) {
-      console.error('[api/document-ai] Gemini Error:', data);
-      return Response.json({ error: 'AI processing failed' }, { status: upstream.status });
+    console.log('[api/document-ai] Gemini response', {
+      userId,
+      actionType,
+      model: DEFAULT_MODEL,
+      status: upstream.status,
+    });
+
+    if (!upstream.ok) {
+      const message = data?.error?.message || `Gemini API returned status ${upstream.status}`;
+      console.error('[api/document-ai] Gemini error', {
+        userId,
+        actionType,
+        status: upstream.status,
+        message,
+        code: data?.error?.status || data?.error?.code,
+      });
+      return Response.json({ error: message }, { status: upstream.status });
     }
 
     const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if (!aiText) {
+      console.error('[api/document-ai] Gemini returned no text', {
+        userId,
+        actionType,
+        finishReason: data.candidates?.[0]?.finishReason,
+      });
+      return Response.json({ error: 'Gemini returned no analysis for this document.' }, { status: 502 });
+    }
 
     // If it's a summary and we don't have generated_draft yet, maybe save it?
     // We'll leave the state management to the frontend for flexibility.
@@ -155,10 +172,15 @@ export async function POST(req: Request) {
     return Response.json({ result: aiText }, { status: 200 });
 
   } catch (err: any) {
-    console.error('[api/document-ai] Error:', err);
+    const status = err?.message === 'Unauthorized' || err?.message === 'No token provided' ? 401 : 500;
+    console.error('[api/document-ai] Request failed', {
+      message: err?.message || 'Unknown error',
+      name: err?.name,
+      status,
+    });
     return Response.json(
-      { error: err.message || 'Internal server error' },
-      { status: 500 }
+      { error: status === 401 ? 'Authentication required.' : err.message || 'Internal server error' },
+      { status }
     );
   }
 }

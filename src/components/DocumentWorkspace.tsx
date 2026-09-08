@@ -98,18 +98,30 @@ export default function DocumentWorkspace({ draftId }: { draftId: string }) {
     setAiLoading(true);
 
     try {
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      if (authError || !session?.access_token) {
+        throw new Error(authError?.message || 'Authentication required. Please sign in again.');
+      }
+
       const res = await fetch('/api/document-ai', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           draftId,
-          userId: session?.user?.id,
           actionType: action
         })
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to analyze document');
+      if (!res.ok) {
+        const message = typeof data?.error === 'string'
+          ? data.error
+          : data?.error?.message || 'Failed to analyze document';
+        throw new Error(message);
+      }
       
       setAiResult(data.result);
       
@@ -139,12 +151,19 @@ export default function DocumentWorkspace({ draftId }: { draftId: string }) {
     setChatLoading(true);
 
     try {
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      if (authError || !session?.access_token) {
+        throw new Error(authError?.message || 'Authentication required. Please sign in again.');
+      }
+
       const res = await fetch('/api/document-ai', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           draftId,
-          userId: session?.user?.id,
           actionType: 'chat',
           userMessage: userText
         })
