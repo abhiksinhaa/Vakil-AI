@@ -47,15 +47,8 @@ export function isAdvocateProfileComplete(profile: Partial<Profile> | null) {
   );
 }
 
-export function isIndividualProfileComplete(profile: Partial<Profile> | null) {
-  const hasName = Boolean(profile?.full_name?.trim());
-  const hasLocation = Boolean(profile?.city?.trim() || profile?.state?.trim());
-  return hasName && hasLocation;
-}
-
 export function isUserProfileComplete(profile: Partial<Profile> | null) {
-  const isAdvocate = profile?.user_type !== 'individual';
-  return isAdvocate ? isAdvocateProfileComplete(profile) : isIndividualProfileComplete(profile);
+  return isAdvocateProfileComplete(profile);
 }
 
 async function getCurrentUser(): Promise<User | null> {
@@ -137,7 +130,7 @@ async function getIdToken() {
   return data?.session?.access_token ?? null;
 }
 
-async function defaultProfileValues(user: User, userType?: 'advocate' | 'individual'): Promise<Partial<Profile>> {
+async function defaultProfileValues(user: User): Promise<Partial<Profile>> {
   return {
     id: user.id,
     user_id: user.id,
@@ -150,7 +143,6 @@ async function defaultProfileValues(user: User, userType?: 'advocate' | 'individ
     theme: 'dark',
     language: 'English',
     preferred_draft_language: 'English',
-    user_type: userType || (user.user_metadata?.user_type === 'individual' ? 'individual' : 'advocate'),
     plan: 'free',
     drafts_limit: PLAN_PRICING.free.draftsLimit,
     drafts_used: 0,
@@ -162,27 +154,20 @@ async function defaultProfileValues(user: User, userType?: 'advocate' | 'individ
   };
 }
 
-export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
+export async function ensureUserRecords() {
   const user = await getCurrentUser();
   if (!user) return null;
 
   let profile = await getProfileRow(user.id);
 
   if (!profile) {
-    const newProfile = await defaultProfileValues(user, userType);
+    const newProfile = await defaultProfileValues(user);
     const insertProfile = await supabase.from('profiles').insert(newProfile);
     if (insertProfile.error) {
       console.error('ensureUserRecords: failed to insert profile', insertProfile.error);
       throw insertProfile.error;
     }
     profile = { ...(newProfile as Profile) };
-  } else if (userType && profile.user_type !== userType) {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ user_type: userType })
-      .eq('id', user.id);
-    if (error) throw error;
-    profile = { ...profile, user_type: userType };
   }
 
   // Auto-accept pending organization invitations
@@ -357,7 +342,6 @@ export async function calculateDraftAllowance(profile: Profile, userId: string, 
       used,
       limit,
       remaining,
-      userType: profile?.user_type || 'advocate',
     };
   }
 
@@ -378,7 +362,6 @@ export async function calculateDraftAllowance(profile: Profile, userId: string, 
     used,
     limit,
     remaining,
-    userType: profile?.user_type || 'advocate',
   };
 }
 
@@ -393,7 +376,6 @@ export async function checkDraftAllowance() {
       used: 0,
       limit: FREE_DRAFT_LIMIT,
       remaining: 0,
-      userType: 'advocate',
     };
   }
 

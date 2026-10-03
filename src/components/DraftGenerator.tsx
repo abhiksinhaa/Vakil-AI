@@ -472,7 +472,6 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       console.log('Calling generateLegalDraft...');
       const text = await generateLegalDraft({
         ...submissionForm,
-        individualDraft: false,
         schema: schemaFallback,
         customPrompt,
         userId: session?.user?.id,

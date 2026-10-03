@@ -1,10 +1,10 @@
 import { Protected } from '@/components/RouteGuard';
-import GenerateExperience from '@/components/GenerateExperience';
+import DraftGenerator from '@/components/DraftGenerator';
 
 export default function GeneratePage() {
   return (
     <Protected>
-      <GenerateExperience />
+      <DraftGenerator />
     </Protected>
   );
 }

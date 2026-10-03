@@ -133,19 +133,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     setAccountLoading(true);
     try {
-      const pendingSignupType = typeof window !== 'undefined'
-        ? window.sessionStorage.getItem('draftee_pending_signup_user_type')
-        : null;
-      const isNewOAuthAccount = Boolean(
-        user.created_at && Date.now() - new Date(user.created_at).getTime() < 10 * 60 * 1000
-      );
-      const signupType = isNewOAuthAccount && (pendingSignupType === 'advocate' || pendingSignupType === 'individual')
-        ? pendingSignupType
-        : undefined;
-      await ensureUserRecords(signupType);
-      if (pendingSignupType && typeof window !== 'undefined') {
-        window.sessionStorage.removeItem('draftee_pending_signup_user_type');
-      }
+      await ensureUserRecords();
       const [p, s] = await Promise.all([fetchProfile(), fetchSubscription()]);
       setProfile(p);
       setSubscription(s);
@@ -160,15 +148,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } finally {
       setAccountLoading(false);
     }
-  }, [user, theme, fontSize, applyTheme, applyFontSize]);
-
-  useEffect(() => {
-    if (profile?.user_type === 'individual') {
-      document.documentElement.dataset.userType = 'individual';
-    } else {
-      delete document.documentElement.dataset.userType;
-    }
-  }, [profile?.user_type]);
+  }, [theme, fontSize, applyTheme, applyFontSize]);
 
   useEffect(() => {
     if (!authLoading) refreshAccount();

@@ -29,7 +29,6 @@ export interface Profile {
   language?: string;
   phone_number?: string;
   profile_photo_url?: string;
-  user_type?: 'advocate' | 'individual';
   daily_draft_count?: number;
   last_draft_date?: string | null;
   state?: string;
@@ -97,8 +96,6 @@ export interface DraftRecord {
   generated_draft: string;
   created_at: string;
   matter_id?: string;
-  is_unlocked?: boolean;
-  unlock_payment_id?: string | null;
 }
 
 export interface DraftInput {

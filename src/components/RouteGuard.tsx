@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 
 function LoadingScreen() {
@@ -16,21 +16,16 @@ function LoadingScreen() {
 }
 
 export function Protected({ children }: { children: ReactNode }) {
-  const { session, authLoading, profile, accountLoading } = useApp();
+  const { session, authLoading } = useApp();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     if (!authLoading && !session) {
       router.replace('/login');
     }
-    if (!authLoading && session && !accountLoading && profile?.user_type === 'individual' && pathname !== '/generate') {
-      router.replace('/generate');
-    }
-  }, [authLoading, session, accountLoading, profile, pathname, router]);
+  }, [authLoading, session, router]);
 
-  if (authLoading || !session || accountLoading || !profile) return <LoadingScreen />;
-  if (profile.user_type === 'individual' && pathname !== '/generate') return <LoadingScreen />;
+  if (authLoading || !session) return <LoadingScreen />;
   return <>{children}</>;
 }
 

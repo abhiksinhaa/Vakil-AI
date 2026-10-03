@@ -133,16 +133,3 @@ END $$;
 
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS court_level text;
-
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS user_type text NOT NULL DEFAULT 'advocate';
-ALTER TABLE drafts ADD COLUMN IF NOT EXISTS is_unlocked boolean DEFAULT false;
-ALTER TABLE drafts ADD COLUMN IF NOT EXISTS unlock_payment_id text;
-
-CREATE TABLE IF NOT EXISTS locked_draft_contents (
-  draft_id uuid PRIMARY KEY REFERENCES drafts(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  generated_draft text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE locked_draft_contents ENABLE ROW LEVEL SECURITY;

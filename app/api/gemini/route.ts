@@ -6,7 +6,6 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { calculateDraftAllowance, FREE_DRAFT_LIMIT } from '../../../src/lib/userAccount';
 import { requireUser } from '../../../src/lib/supabaseAdmin';
-import { stripMarkdown } from '../../../src/lib/stripMarkdown';
 
 const PAID_DRAFT_LIMITS = {
   basic: 90,
@@ -151,7 +150,6 @@ export async function POST(req: Request) {
     const authenticatedUser = await requireUser(req);
     userId = authenticatedUser.id;
     body = await req.json();
-    const individualDraftDetails = body.individualDraftDetails;
     const documentType = body.documentType || body.document_type || body.draftType;
 
     console.log('Generate request received:', {
@@ -187,7 +185,7 @@ export async function POST(req: Request) {
 
     const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('user_type, plan, drafts_limit, drafts_used, plan_expires_at, org_id, organizations(*)')
+        .select('plan, drafts_limit, drafts_used, plan_expires_at, org_id, organizations(*)')
         .eq('id', userId)
         .maybeSingle();
 
@@ -198,11 +196,6 @@ export async function POST(req: Request) {
 
     if (!profile) {
       return Response.json({ error: 'User profile not found.' }, { status: 403 });
-    }
-
-    const isIndividual = profile.user_type === 'individual';
-    if (isIndividual !== (body.individualDraft === true)) {
-      return Response.json({ error: 'Draft generation mode is not available for this account.' }, { status: 403 });
     }
 
     const isChatRequest = body.actionType === 'chat';
@@ -270,7 +263,7 @@ export async function POST(req: Request) {
       orgId: profile.org_id,
     });
 
-    if (!isChatRequest && !isIndividual) {
+    if (!isChatRequest) {
       const allowance = await calculateDraftAllowance(profile as any, userId, supabaseAdmin);
 
       if (!allowance.allowed) {
@@ -287,8 +280,6 @@ export async function POST(req: Request) {
     delete body.model; // Don't send this to Gemini API
     delete body.userId; // Do not send client identity to Gemini API
     delete body.actionType; // Route-only authorization metadata
-    delete body.individualDraft;
-    delete body.individualDraftDetails;
     delete body.state;
     delete body.court_level;
 
@@ -357,56 +348,6 @@ export async function POST(req: Request) {
       model_used: model,
       http_status: upstream.status
     }));
-
-    if (isIndividual) {
-      const details = individualDraftDetails;
-      const generatedText = (data?.candidates?.[0]?.content?.parts ?? [])
-        .map((part: any) => part.text)
-        .filter(Boolean)
-        .join('\n');
-      const fullDraft = stripMarkdown(generatedText);
-      if (!fullDraft || !details || typeof details !== 'object') {
-        return Response.json({ error: 'Generated draft data was incomplete.' }, { status: 500 });
-      }
-
-      const preview = fullDraft.slice(0, Math.ceil(fullDraft.length * 0.4));
-      const { data: savedDraft, error: saveError } = await supabaseAdmin
-        .from('drafts')
-        .insert({
-          user_id: userId,
-          document_type: String(details.documentType || 'Legal Draft'),
-          draft_type: String(details.documentType || 'Legal Draft'),
-          party1_name: String(details.party1Name || ''),
-          party1_address: String(details.party1Address || ''),
-          party2_name: String(details.party2Name || ''),
-          situation: String(details.situation || ''),
-          generated_draft: preview,
-          is_unlocked: false,
-          created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (saveError || !savedDraft?.id) {
-        console.error('[api/gemini] Failed to save locked individual draft:', saveError);
-        return Response.json({ error: 'Unable to save your draft. Please try again.' }, { status: 500 });
-      }
-
-      const { error: lockedContentError } = await supabaseAdmin
-        .from('locked_draft_contents')
-        .insert({ draft_id: savedDraft.id, user_id: userId, generated_draft: fullDraft });
-
-      if (lockedContentError) {
-        await supabaseAdmin.from('drafts').delete().eq('id', savedDraft.id).eq('user_id', userId);
-        console.error('[api/gemini] Failed to store locked individual draft content:', lockedContentError);
-        return Response.json({ error: 'Unable to save your draft securely. Please try again.' }, { status: 500 });
-      }
-
-      const candidate = data.candidates?.[0];
-      if (candidate?.content) candidate.content.parts = [{ text: preview }];
-      data.individualDraftId = savedDraft.id;
-      data.individualDraftLength = fullDraft.length;
-    }
 
     if (upstream.status !== 200) {
       console.error('[api/gemini] Gemini API error response:', data);

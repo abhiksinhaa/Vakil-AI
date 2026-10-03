@@ -1,14 +1,12 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useApp } from '../context/AppContext'
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const { profile } = useApp()
   const publicPaths = ['/', '/login', '/signup']
   
-  if (publicPaths.includes(pathname) || profile?.user_type === 'individual') return null
+  if (publicPaths.includes(pathname)) return null
 
   const tabs = [
     {
