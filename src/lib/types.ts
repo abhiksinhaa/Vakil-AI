@@ -97,6 +97,8 @@ export interface DraftRecord {
   generated_draft: string;
   created_at: string;
   matter_id?: string;
+  is_unlocked?: boolean;
+  unlock_payment_id?: string | null;
 }
 
 export interface DraftInput {

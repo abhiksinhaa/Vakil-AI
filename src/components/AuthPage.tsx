@@ -85,6 +85,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
           options: {
             data: {
               full_name: fullName.trim(),
+              user_type: userType,
             },
           },
         });
@@ -108,6 +109,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
     setError('');
     setGoogleLoading(true);
     try {
+        if (!isLogin) window.sessionStorage.setItem('draftee_pending_signup_user_type', userType);
         const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -117,6 +119,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
       });
       if (error) throw error;
     } catch (err: any) {
+      window.sessionStorage.removeItem('draftee_pending_signup_user_type');
       console.error('Supabase Google auth error:', err);
       const msg = err?.message || err?.error_description || (typeof err === 'string' ? err : 'Something went wrong');
       setError(friendlyAuthError(err?.code || err?.status, msg));
@@ -163,42 +166,6 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
           <h2 className="font-display text-xl text-cream mb-6">
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
-
-          <div className="mb-6 space-y-3">
-            <label className="text-sm font-medium text-cream/80">I am a...</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setUserType('advocate')}
-                className={`p-3 rounded-xl border flex flex-col items-center text-center transition-all ${
-                  userType === 'advocate'
-                    ? 'bg-gold/20 border-gold shadow-[0_0_15px_rgba(201,168,76,0.2)]'
-                    : 'bg-navy/40 border-border hover:border-gold/50'
-                }`}
-              >
-                <span className="text-2xl mb-1">🧑‍⚖️</span>
-                <span className={`text-sm font-medium ${userType === 'advocate' ? 'text-gold' : 'text-cream'}`}>
-                  Advocate / Lawyer
-                </span>
-
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserType('individual')}
-                className={`p-3 rounded-xl border flex flex-col items-center text-center transition-all ${
-                  userType === 'individual'
-                    ? 'bg-gold/20 border-gold shadow-[0_0_15px_rgba(201,168,76,0.2)]'
-                    : 'bg-navy/40 border-border hover:border-gold/50'
-                }`}
-              >
-                <span className="text-2xl mb-1">👤</span>
-                <span className={`text-sm font-medium ${userType === 'individual' ? 'text-gold' : 'text-cream'}`}>
-                  Individual / General
-                </span>
-
-              </button>
-            </div>
-          </div>
 
           <button
             type="button"
@@ -279,6 +246,32 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
               />
             </div>
 
+            {!isLogin && (
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-medium text-cream/80 mb-2">I am a...</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    ['advocate', 'I am an Advocate / Lawyer'],
+                    ['individual', 'I am an Individual / Non-Advocate'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={userType === value}
+                      onClick={() => setUserType(value)}
+                      className={`min-h-16 p-3 rounded-xl border text-sm font-medium transition-colors ${
+                        userType === value
+                          ? 'bg-gold/20 border-gold text-gold'
+                          : 'bg-navy/40 border-border text-cream hover:border-gold/50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+
             {isLogin && (
               <div style={{ textAlign: 'right', marginTop: '6px', marginBottom: '16px' }}>
                 <a 
@@ -325,9 +318,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
                   <span className="w-4 h-4 border-2 border-navy/30 border-t-navy rounded-full animate-spin" />
                   {isLogin ? 'Signing in…' : 'Creating account…'}
                 </>
-              ) : isLogin ? (
-                userType === 'advocate' ? 'Sign in as Advocate' : 'Sign in as Individual'
-              ) : (
+              ) : isLogin ? 'Sign in' : (
                 userType === 'advocate' ? 'Sign up as Advocate' : 'Sign up as Individual'
               )}
             </button>

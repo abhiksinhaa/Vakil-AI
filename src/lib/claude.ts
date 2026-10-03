@@ -3,6 +3,8 @@ import type { DocumentSchema } from './draftSchemas';
 import { DRAFT_TYPES } from '../data/legalDraftTypes';
 import { supabase } from './supabase';
 
+export type IndividualDraftResult = { preview: string; draftId: string; draftLength: number };
+
 export function buildDraftPrompt(draftTypeId: string, userFactsText: string, structure: string[], language: string, incidentTiming: string) {
   const structureList = structure.map((s, i) => `${i + 1}. ${s}`).join('\n');
   const incidentLawGuide =
@@ -39,7 +41,9 @@ Generate the complete document now following the required structure and facts.`;
   return { systemPrompt, userPrompt };
 }
 
-export async function generateLegalDraft(formData: any, onStatusChange?: (status: string) => void) {
+export function generateLegalDraft(formData: { individualDraft: true; individualDraftDetails: Record<string, unknown>; [key: string]: any }, onStatusChange?: (status: string) => void): Promise<IndividualDraftResult>;
+export function generateLegalDraft(formData: { individualDraft?: false; [key: string]: any }, onStatusChange?: (status: string) => void): Promise<string>;
+export async function generateLegalDraft(formData: any, onStatusChange?: (status: string) => void): Promise<string | IndividualDraftResult> {
   const {
     draftType,
     affidavitSubType,
@@ -227,6 +231,10 @@ Generate the complete ${draftType} now:`;
         model: currentModel,
         state: formData.state,
         court_level: formData.courtLevel,
+        ...(formData.individualDraft ? {
+          individualDraft: true,
+          individualDraftDetails: formData.individualDraftDetails,
+        } : {}),
         systemInstruction: {
           parts: [{ text: finalSystemPrompt }],
         },
@@ -357,6 +365,10 @@ Generate the complete ${draftType} now:`;
 
       console.log('[Draft Generation] Draft generated successfully');
       console.log('[Draft Generation] Final draft length:', finalDraft.length);
+      if (formData.individualDraft) {
+        if (!data.individualDraftId) throw new Error('The locked draft could not be saved. Please try again.');
+        return { preview: finalDraft, draftId: data.individualDraftId, draftLength: Number(data.individualDraftLength) || finalDraft.length };
+      }
       return finalDraft;
 
     } catch (err: any) {

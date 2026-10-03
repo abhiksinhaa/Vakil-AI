@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <Providers>
-          <main style={{ paddingBottom: '72px' }}>{children}</main>
+          <main className="app-main">{children}</main>
           <BottomNav />
         </Providers>
       </body>

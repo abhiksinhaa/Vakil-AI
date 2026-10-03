@@ -68,7 +68,7 @@ async function insertDraftUsageRow(userId: string, draftId: string) {
   }
 }
 
-export async function saveDraft(draft: DraftInput, options?: { trackUsage?: boolean }) {
+export async function saveDraft(draft: DraftInput, options?: { trackUsage?: boolean; isUnlocked?: boolean }) {
   const currentUser = await getCurrentUser();
   if (!currentUser) return null;
 
@@ -116,6 +116,7 @@ export async function saveDraft(draft: DraftInput, options?: { trackUsage?: bool
     situation: fullSituation,
     amount: extractedAmount,
     generated_draft: draft.generatedDraft,
+    is_unlocked: options?.isUnlocked ?? true,
     created_at: now,
     ...(draft.matterId ? { matter_id: draft.matterId } : {}),
   };

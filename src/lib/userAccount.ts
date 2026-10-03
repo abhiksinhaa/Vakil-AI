@@ -150,7 +150,7 @@ async function defaultProfileValues(user: User, userType?: 'advocate' | 'individ
     theme: 'dark',
     language: 'English',
     preferred_draft_language: 'English',
-    user_type: userType || 'advocate',
+    user_type: userType || (user.user_metadata?.user_type === 'individual' ? 'individual' : 'advocate'),
     plan: 'free',
     drafts_limit: PLAN_PRICING.free.draftsLimit,
     drafts_used: 0,
@@ -176,6 +176,13 @@ export async function ensureUserRecords(userType?: 'advocate' | 'individual') {
       throw insertProfile.error;
     }
     profile = { ...(newProfile as Profile) };
+  } else if (userType && profile.user_type !== userType) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ user_type: userType })
+      .eq('id', user.id);
+    if (error) throw error;
+    profile = { ...profile, user_type: userType };
   }
 
   // Auto-accept pending organization invitations
