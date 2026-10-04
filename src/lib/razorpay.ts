@@ -59,9 +59,11 @@ export async function startCheckout({ plan, billingCycle = 'monthly', userId, us
       amount: orderData.amount,
       currency: 'INR',
       name: 'Draftee',
-      description: orderData.discountApplied 
-        ? 'Premium Plan - Launch Price ₹99' 
-        : 'Premium Plan ₹149',
+      description: orderData.flashSaleApplied
+        ? 'Pro Plan - Flash Sale ₹199'
+        : orderData.discountApplied
+          ? 'Premium Plan - Launch Price ₹99'
+          : 'Premium Plan ₹149',
       order_id: orderData.orderId,
       prefill: {
         email: userEmail || '',

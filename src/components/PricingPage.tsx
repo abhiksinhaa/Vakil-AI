@@ -6,6 +6,7 @@ import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import { startCheckout } from '../lib/razorpay';
 import { createClient } from '../lib/supabase';
+import { getFlashSaleTimeRemaining, isFlashSaleActive } from '../lib/flashSale';
 
 console.log('SUPABASE URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 console.log('SUPABASE KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
@@ -94,6 +95,22 @@ export default function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
   const [dbPlan, setDbPlan] = useState<string>('free');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const update = () => setNow(new Date());
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const flashSaleActive = now ? isFlashSaleActive(now) : false;
+  const saleTimeRemaining = now ? getFlashSaleTimeRemaining(now) : 0;
+  const saleCountdown = [
+    Math.floor(saleTimeRemaining / 3600000),
+    Math.floor((saleTimeRemaining % 3600000) / 60000),
+    Math.floor((saleTimeRemaining % 60000) / 1000),
+  ].map(value => String(value).padStart(2, '0')).join(':');
 
   useEffect(() => {
     if (session?.user) {
@@ -208,7 +225,9 @@ export default function PricingPage() {
               const isActivePlan = pPlan === plan.key;
               
               let badge = null;
-              if (isActivePlan) {
+              if (plan.key === 'pro' && flashSaleActive) {
+                badge = <span className="rounded-full border border-red-500/60 bg-red-500/15 px-3 py-1 text-xs font-bold text-red-300">FLASH SALE</span>;
+              } else if (isActivePlan) {
                 badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Current Plan</span>;
               } else if ('isPopular' in plan && plan.isPopular) {
                 badge = <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">Most Popular</span>;
@@ -247,6 +266,14 @@ export default function PricingPage() {
                       {/* Limited offer text */}
                       <p style={{ fontSize: '0.85rem', opacity: 0.65, color: '#e8e0d0', fontStyle: 'italic' }}>
                         {plan.limitedOffer || ''}
+                      </p>
+                    </div>
+                  ) : plan.key === 'pro' && billingCycle === 'monthly' && flashSaleActive ? (
+                    <div className="mt-6">
+                      <div className="mb-1 text-lg text-cream/55 line-through">₹399/mo</div>
+                      <div className="text-[2.4rem] font-extrabold leading-tight text-[#d4af37]">₹199<span className="text-sm font-medium text-cream/65">/mo</span></div>
+                      <p className={`mt-2 text-sm font-semibold ${saleTimeRemaining < 3600000 ? 'text-red-400' : 'text-cream/75'}`}>
+                        Offer ends in {saleCountdown}
                       </p>
                     </div>
                   ) : (

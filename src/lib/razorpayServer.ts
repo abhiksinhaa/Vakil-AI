@@ -25,7 +25,7 @@ export async function fetchRazorpayOrder(orderId: string) {
     currency: string;
     receipt?: string;
     status?: string;
-    notes?: { plan?: string; userId?: string; billingCycle?: string };
+    notes?: { plan?: string; userId?: string; billingCycle?: string; flashSaleApplied?: string };
   };
 }
 

@@ -89,7 +89,10 @@ export async function POST(req: Request) {
   };
 
   const selectedPlanCycle = PLANS[plan]?.[expectedBillingCycle]
-  if (!selectedPlanCycle || order.amount !== selectedPlanCycle.amount && !(plan === 'basic' && order.amount === selectedPlanCycle.promotionalAmount)) {
+  const flashSaleAmountValid = plan === 'pro' && expectedBillingCycle === 'monthly' &&
+    order.notes?.flashSaleApplied === 'true' && order.amount === 19900
+  if (!selectedPlanCycle || order.amount !== selectedPlanCycle.amount &&
+    !(plan === 'basic' && order.amount === selectedPlanCycle.promotionalAmount) && !flashSaleAmountValid) {
     return NextResponse.json({ success: false, error: 'Payment amount does not match the selected plan' }, { status: 400 })
   }
   let planName = selectedPlanCycle.plan_name;

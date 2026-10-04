@@ -1,6 +1,7 @@
 import Razorpay from 'razorpay'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isFlashSaleActive } from '@/lib/flashSale'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,6 +42,11 @@ export async function POST(req: Request) {
   // Check if this is a basic plan and if we're within the first 100 paid users
   let finalAmount = PLANS[plan][billingCycle].amount
   let discountApplied = false
+  const flashSaleApplied = plan === 'pro' && billingCycle === 'monthly' && isFlashSaleActive()
+
+  if (flashSaleApplied) {
+    finalAmount = 19900
+  }
 
   if (plan === 'basic' && PLANS[plan][billingCycle].promotionalAmount) {
     // Count existing paid users (plan != 'free' and plan_expires_at is in future)
@@ -63,12 +69,13 @@ export async function POST(req: Request) {
     amount: finalAmount,
     currency: 'INR',
     receipt: `receipt_${Date.now()}`,
-    notes: { plan, userId, billingCycle, discountApplied: String(discountApplied) },
+    notes: { plan, userId, billingCycle, discountApplied: String(discountApplied), flashSaleApplied: String(flashSaleApplied) },
   })
   return NextResponse.json({ 
     orderId: order.id, 
     amount: order.amount, 
     plan,
     discountApplied,
+    flashSaleApplied,
   })
 }

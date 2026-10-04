@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import Providers from './providers';
 import BottomNav from '@/components/BottomNav';
+import FlashSaleBanner from '@/components/FlashSaleBanner';
 
 export const metadata: Metadata = {
   title: 'Draftee — Legal Draft Generator',
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <Providers>
+          <FlashSaleBanner />
           <main style={{ paddingBottom: '72px' }}>{children}</main>
           <BottomNav />
         </Providers>
