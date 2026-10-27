@@ -26,10 +26,12 @@ import type { Profile } from '../lib/types';
 import { supabase } from '../lib/supabase';
 
 const AFFIDAVIT_SUB_TYPES = [
+  "General Affidavit",
   "Name Change Affidavit",
   "Address Proof/Residence Affidavit",
   "Date of Birth Affidavit",
   "Marriage Affidavit",
+  "Single Status Affidavit",
   "Joint Affidavit for Marriage Registration",
   "Lost Document Affidavit",
   "One and the Same Person Affidavit",
