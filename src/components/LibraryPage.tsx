@@ -111,7 +111,7 @@ export default function LibraryPage() {
       .includes(normalizedQuery);
   });
 
-  const catalogPreview = filteredCatalog.slice(0, 18);
+  const catalogPreview = filteredCatalog;
   const readyCount = LEGAL_DOCUMENT_CATALOG.filter(
     doc => doc.implementation_status !== 'not_implemented'
       || Boolean(getDynamicDocumentForCatalogueName(doc.name)
