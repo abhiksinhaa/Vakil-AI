@@ -387,7 +387,18 @@ export default function DraftGenerator() {
     await runGenerate();
   };
 
-  const handleDraftTypeSelect = useCallback((data: { matterId: string; draftTypeId: string; structure: string[]; label: string }) => {
+  const handleDraftTypeSelect = useCallback((data: {
+    matterId: string;
+    draftTypeId: string;
+    structure: string[];
+    label: string;
+    dynamicDocumentKey?: string;
+  }) => {
+    if (data.dynamicDocumentKey) {
+      router.push(`/documents/${data.dynamicDocumentKey}`);
+      return;
+    }
+
     let style = 'include';
     if (data.draftTypeId === 'affidavit') style = 'simple';
 
@@ -403,7 +414,7 @@ export default function DraftGenerator() {
         : {},
     }));
     setSaveSuccess(false);
-  }, []);
+  }, [router]);
 
 
   const runGenerate = async () => {

@@ -21,6 +21,14 @@ const formSource = fs.readFileSync(
   path.join(root, 'src', 'components', 'DynamicDocumentForm.tsx'),
   'utf8',
 );
+const draftTypeSelectorSource = fs.readFileSync(
+  path.join(root, 'src', 'components', 'DraftTypeSelector.tsx'),
+  'utf8',
+);
+const draftGeneratorSource = fs.readFileSync(
+  path.join(root, 'src', 'components', 'DraftGenerator.tsx'),
+  'utf8',
+);
 
 function extractTopLevelBlocks(source, sectionStart, sectionEnd, firstProperty) {
   const start = source.indexOf(sectionStart);
@@ -127,6 +135,18 @@ test('each dynamic workflow maps to a main catalogue record or catalogue alias',
     }
   }
   assert.deepEqual(missing, [], `Dynamic workflows without a catalogue entry: ${missing.join(', ')}`);
+});
+
+test('generate selector adds catalogue-backed dynamic workflows without replacing existing types', () => {
+  assert.match(draftTypeSelectorSource, /import \{ MATTERS, MATTER_SUBTYPES, DRAFT_TYPES \}/);
+  assert.match(draftTypeSelectorSource, /LEGAL_DOCUMENT_CATALOG/);
+  assert.match(draftTypeSelectorSource, /LEGAL_DOCUMENT_CATEGORIES/);
+  assert.match(draftTypeSelectorSource, /DYNAMIC_DOCUMENTS/);
+  assert.match(draftTypeSelectorSource, /existingDropdownNames\.has/);
+  assert.match(draftTypeSelectorSource, /subcategory: catalogueRecord\.subcategory/);
+  assert.match(draftTypeSelectorSource, /MATTERS\.map/);
+  assert.match(draftTypeSelectorSource, /dynamicOption\.document\.templateSections/);
+  assert.match(draftGeneratorSource, /router\.push\(`\/documents\/\$\{data\.dynamicDocumentKey\}`\)/);
 });
 
 test('dynamic form uses the shared validation, entitlement, generation, and save paths', () => {

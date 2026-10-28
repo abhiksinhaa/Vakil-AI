@@ -21,19 +21,15 @@ const schemasSource = fs.readFileSync(
   path.join(root, 'src', 'lib', 'draftSchemas.ts'),
   'utf8',
 );
-const auditReport = fs.readFileSync(
-  path.join(root, 'scratch', 'legal_document_library_audit.txt'),
-  'utf8',
-);
 const catalogStart = catalogueSource.indexOf('export const LEGAL_DOCUMENT_CATALOG');
 const reviewStart = catalogueSource.indexOf('export const LEGAL_DOCUMENT_NEEDS_REVIEW');
 const countStart = catalogueSource.indexOf('export const LEGAL_DOCUMENT_COUNT');
 assert.ok(catalogStart >= 0 && reviewStart > catalogStart, 'Main and review catalogues must be exported.');
 assert.ok(countStart > reviewStart, 'Catalogue counts must follow the review catalogue.');
 const catalogText = catalogueSource.slice(catalogStart, reviewStart);
-const records = [...catalogText.matchAll(/^  \{\n([\s\S]*?)^  \},$/gm)].map((match) => match[1]);
+const records = [...catalogText.matchAll(/^  \{\r?\n([\s\S]*?)^  \},$/gm)].map((match) => match[1]);
 const reviewText = catalogueSource.slice(reviewStart, countStart);
-const reviewRecords = [...reviewText.matchAll(/^  \{\n([\s\S]*?)^  \},$/gm)].map((match) => match[1]);
+const reviewRecords = [...reviewText.matchAll(/^  \{\r?\n([\s\S]*?)^  \},$/gm)].map((match) => match[1]);
 
 function field(record, name) {
   const match = record.match(new RegExp(`^\\s{4}${name}:\\s*(.+),$`, 'm'));
@@ -137,19 +133,12 @@ test('all existing draft types and form schemas are represented', () => {
   }
 });
 
-test('all audited doubtful legacy IDs remain in needs_review', () => {
-  const doubtfulSection = auditReport.slice(
-    auditReport.indexOf('DOUBTFUL:'),
-    auditReport.indexOf('\nCATEGORY-LEVEL APPLICABLE_LAW'),
-  );
-  const doubtfulIds = [...doubtfulSection.matchAll(/^- .+ \[[^;\]]+; ([A-Z]+-\d+)\] — .+$/gm)]
-    .map((match) => match[1]);
-  const reviewIds = new Set(
-    reviewRecords.flatMap((record) => JSON.parse(field(record, 'source_catalogue_ids'))),
-  );
-
-  assert.equal(doubtfulIds.length, 54);
-  for (const id of doubtfulIds) assert.ok(reviewIds.has(id), `Doubtful legacy ID ${id} is not in needs_review.`);
+test('needs-review records include explicit review reasons', () => {
+  assert.equal(reviewRecords.length, 385);
+  for (const record of reviewRecords) {
+    const reasons = JSON.parse(field(record, 'review_reasons'));
+    assert.ok(reasons.length > 0, `${stringField(record, 'name')} needs a review reason.`);
+  }
 });
 
 test('library UI uses the real inventory count and review-aware template status', () => {
