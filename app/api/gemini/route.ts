@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { calculateDraftAllowance, FREE_DRAFT_LIMIT } from '../../../src/lib/userAccount';
 import { requireUser } from '../../../src/lib/supabaseAdmin';
+import { getDynamicDocument } from '../../../src/lib/legal-documents/registry';
 
 const PAID_DRAFT_LIMITS = {
   basic: 90,
@@ -151,6 +152,16 @@ export async function POST(req: Request) {
     userId = authenticatedUser.id;
     body = await req.json();
     const documentType = body.documentType || body.document_type || body.draftType;
+    const dynamicDocumentKey = typeof body.dynamicDocumentKey === 'string'
+      ? body.dynamicDocumentKey
+      : undefined;
+    const dynamicDocument = dynamicDocumentKey
+      ? getDynamicDocument(dynamicDocumentKey)
+      : undefined;
+
+    if (dynamicDocumentKey && !dynamicDocument) {
+      return Response.json({ error: 'Unknown dynamic document.' }, { status: 400 });
+    }
 
     console.log('Generate request received:', {
       userId,
@@ -282,8 +293,13 @@ export async function POST(req: Request) {
     delete body.actionType; // Route-only authorization metadata
     delete body.state;
     delete body.court_level;
+    delete body.dynamicDocumentKey;
+    delete body.dynamicDocumentContext;
 
-    if (body.systemInstruction?.parts?.[0]?.text) {
+    if (
+      body.systemInstruction?.parts?.[0]?.text &&
+      (!dynamicDocument || dynamicDocument.courtFiling)
+    ) {
       const jurisdictionPrompt = buildJurisdictionPrompt(state, courtLevel);
       body.systemInstruction.parts[0].text = jurisdictionPrompt + body.systemInstruction.parts[0].text;
     }

@@ -2,6 +2,7 @@ import { stripMarkdown } from './stripMarkdown';
 import type { DocumentSchema } from './draftSchemas';
 import { DRAFT_TYPES } from '../data/legalDraftTypes';
 import { supabase } from './supabase';
+import { fetchWithTimeout } from './geminiHttp';
 
 export function buildDraftPrompt(draftTypeId: string, userFactsText: string, structure: string[], language: string, incidentTiming: string) {
   const structureList = structure.map((s, i) => `${i + 1}. ${s}`).join('\n');
@@ -219,14 +220,12 @@ Generate the complete ${draftType} now:`;
         incidentTiming,
       });
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
       const requestPayload = {
         userId: formData.userId,
         model: currentModel,
         state: formData.state,
         court_level: formData.courtLevel,
+        dynamicDocumentKey: formData.dynamicDocumentKey,
         systemInstruction: {
           parts: [{ text: finalSystemPrompt }],
         },
@@ -249,17 +248,14 @@ Generate the complete ${draftType} now:`;
         throw new Error(authError?.message || 'You must be logged in to generate a draft.');
       }
 
-      const response = await fetch('/api/gemini', {
+      const response = await fetchWithTimeout('/api/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authSession.access_token}`,
         },
         body: JSON.stringify(requestPayload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      }, 30000);
       console.log(`[Draft Generation] Attempt ${attempt + 1}: Received response from Gemini API (status: ${response.status})`);
 
       const contentType = response.headers.get('content-type') || '';

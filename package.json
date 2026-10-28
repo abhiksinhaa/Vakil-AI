@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "node --experimental-strip-types --test tests/legalDocumentLibrary.test.mjs tests/dynamicDocuments.test.mjs tests/dynamicDocumentSecurity.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
