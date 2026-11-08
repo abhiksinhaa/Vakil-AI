@@ -7,26 +7,36 @@ import BottomNav from '@/components/BottomNav';
 import FlashSaleBanner from '@/components/FlashSaleBanner';
 
 export const metadata: Metadata = {
-  title: 'Draftee — Legal Draft Generator',
-  description: 'Draftee — AI-powered legal draft generator for Indian lawyers',
+  metadataBase: new URL('https://draftee.in'),
+  title: {
+    default: 'Legal Notice, Cheque Bounce Draft Online India | Draftee',
+    template: '%s | Draftee',
+  },
+  description:
+    'AI-powered legal drafts for Indian advocates. Describe a situation, get a court-ready draft in seconds.',
   applicationName: 'Draftee',
   icons: { icon: '/logo.png' },
   openGraph: {
-    title: 'Draftee — Legal Draft Generator',
+    siteName: 'Draftee',
+    title: 'Legal Notice, Cheque Bounce Draft Online India | Draftee',
     description:
       'AI-powered legal drafts for Indian advocates. Describe a situation, get a court-ready draft in seconds.',
+    url: 'https://draftee.in',
+    type: 'website',
+    images: ['/logo.png'],
   },
   twitter: {
-    title: 'Draftee — Legal Draft Generator',
-    description: 'AI-powered legal drafts for Indian advocates.',
+    card: 'summary_large_image',
+    title: 'Legal Notice, Cheque Bounce Draft Online India | Draftee',
+    description:
+      'AI-powered legal drafts for Indian advocates. Describe a situation, get a court-ready draft in seconds.',
+    images: ['/logo.png'],
   },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
 };
 

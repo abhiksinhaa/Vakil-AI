@@ -1,9 +1,10 @@
-'use client';
+import type { Metadata } from 'next';
+import WorkspaceContent from './WorkspaceContent';
 
-import { use } from 'react';
-import DocumentWorkspace from '../../../src/components/DocumentWorkspace';
+export const metadata: Metadata = {
+  robots: { index: false },
+};
 
 export default function WorkspacePage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  return <DocumentWorkspace draftId={resolvedParams.id} />;
+  return <WorkspaceContent params={params} />;
 }

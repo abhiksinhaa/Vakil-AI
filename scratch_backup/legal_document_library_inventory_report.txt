@@ -1,0 +1,90 @@
+DRAFTEE LEGAL DOCUMENT INVENTORY RESET — GATE 2
+
+Sources: 126 existing DRAFT_TYPES (preserved first), 20 existing DOCUMENT_SCHEMAS, and named entries in original brief sections A-M.
+Original brief bullet entries parsed: 397 (A: 32; B: 28; C: 29; D: 63; E: 27; F: 37; G: 32; H: 30; I: 24; J: 23; K: 24; L: 18; M: 30).
+Existing DRAFT_TYPES preserved: 126; schema names preserved: 20.
+Main catalogue final count: 409.
+Shortfall versus the former 662 target: 253.
+Ready: 129; Coming soon: 280.
+Needs-review records: 385; original audit doubtful IDs preserved: 54.
+Original-brief broad or non-standalone entries moved to needs_review: 29.
+Old catalogue source IDs carried into needs_review: 402.
+Old catalogue exact-name duplicate copies merged: 73.
+Explicit filler-pattern matches found in the legacy source: 0.
+Applicable-law assignments: cleared for all main and needs-review records; no unverified statute mapping carried forward.
+Prior Gate 1 applicable-law mismatch flags cleared: 243.
+Legal-reference verification: false on every record; review_status is legal_review_required on every record.
+
+COUNT BY PRIMARY CATEGORY
+| Category | Count | Ready | Coming soon |
+|---|---:|---:|---:|
+| Civil Litigation | 47 | 30 | 17 |
+| Criminal Law and Procedure | 33 | 17 | 16 |
+| Legal Notices | 31 | 2 | 29 |
+| Agreements and Contracts | 61 | 12 | 49 |
+| Family Law | 28 | 7 | 21 |
+| Property and Real Estate | 49 | 29 | 20 |
+| Corporate and Commercial Law | 26 | 0 | 26 |
+| Employment and Labour Law | 29 | 5 | 24 |
+| Consumer, Banking and Financial Disputes | 18 | 3 | 15 |
+| Taxation and Regulatory Documents | 22 | 0 | 22 |
+| Intellectual Property and Technology | 19 | 0 | 19 |
+| Arbitration, Mediation, and Insolvency | 14 | 4 | 10 |
+| General Legal Documents | 32 | 20 | 12 |
+
+REMOVALS, MERGES, AND REVIEW HANDLING
+- Kept all 126 DRAFT_TYPES keys as working baseline records/aliases; the source file itself was not edited.
+- Retained all 20 existing schema names; schema-only types are marked Ready only when backed by the existing schema.
+- Merged 73 redundant exact-name legacy catalogue copies rather than carrying duplicates into the main catalogue.
+- Moved 54 Gate 1 doubtful source records into LEGAL_DOCUMENT_NEEDS_REVIEW; none of those legacy entries was promoted solely because it existed in the old catalogue.
+- If a doubtful legacy name also exists in the working DRAFT_TYPES/schema baseline, the working entry remains; its legacy source ID is still separately recorded in needs_review.
+- Moved 29 broad or non-standalone original-brief entries out of the main catalogue; the per-entry rationale is recorded in LEGAL_DOCUMENT_NEEDS_REVIEW.
+  - Permanent Injunction-Related Pleadings: Broad pleading family rather than a sufficiently specific standalone document title.
+  - Execution-Related Applications: Broad application family; the specific execution application is not identified.
+  - List Of Witnesses: Procedural attachment rather than a standalone legal document.
+  - Settlement-Related Court Filing: Generic filing description; the particular court document is not identified.
+  - Complaint Under Applicable Criminal Legislation: Generic complaint description with no specific complaint type.
+  - Non-Compete Clause Or Agreement Where Legally Appropriate: A clause and an agreement are different deliverables; the source entry does not select one.
+  - Petition Concerning Marriage-Related Relief: Generic relief description does not identify a sufficiently specific standalone family-court document.
+  - Property Verification Checklist: Checklist/reference aid rather than a standalone legal instrument or filing.
+  - Title Due-Diligence Report: Professional due-diligence report; not a standalone self-service legal instrument.
+  - Share Transfer Documentation: Broad documentation label rather than a specific standalone document.
+  - Share Subscription Documentation: Broad documentation label rather than a specific standalone document.
+  - Director Appointment Documentation: Broad documentation label; the specific instrument is not identified.
+  - Director Resignation Documentation: Broad documentation label; the specific instrument is not identified.
+  - Registered-Office Change Documentation: Broad documentation label; the specific filing/instrument is not identified.
+  - Workplace Investigation Report Template: Internal investigation work product rather than a standalone legal instrument.
+  - Professional Tax Matters Where Applicable: Matter category, not a standalone document type.
+  - Trademark Opposition-Related Documents: Broad document family; the specific opposition-stage document is not identified.
+  - Data Breach Incident Documentation: Incident record/document family; not a sufficiently specific legal document.
+  - Conciliation-Related Documents: Broad document family; the specific conciliation document is not identified.
+  - Insolvency-Related Application: Broad application type; the proceeding and relief are not identified.
+  - Creditor Claim Documentation: Broad documentation label rather than a specific standalone document.
+  - Resolution-Plan-Related Supporting Documents: Supporting-document family rather than an identified standalone document.
+  - Corporate Insolvency-Related Pleadings: Broad pleading family; the specific document is not identified.
+  - Legal Opinion Template: Professional legal opinion; not a self-service form document.
+  - Case Chronology: Case-preparation aid rather than a standalone legal document.
+  - Brief Of Facts: Case-preparation aid rather than a standalone legal document.
+  - Case Summary: Case-preparation aid rather than a standalone legal document.
+  - Evidence Index: Index/attachment rather than a standalone legal document.
+  - Document Index: Index/attachment rather than a standalone legal document.
+- Kept 402 legacy IDs in the review list because they are not established by the working baseline or explicit brief, or were previously flagged doubtful.
+- No legacy filler-pattern matches were present (0); none were padded into the rebuilt inventory.
+- Removed all legacy applicable_law values instead of guessing; the former mismatch flags are cleared, not relabeled.
+- “Provisional survivor” counts from Gate 1 were audit heuristics only; no such count was treated as a canonical inventory.
+
+TWELVE NEAR-NAME CANDIDATE DECISIONS
+1. Application for Security of Property vs Application for Return of Property: distinct reliefs. The return-of-property item appears in the original criminal-procedure brief and remains in the main catalogue; the security-of-property item is retained in needs_review as an unsourced legacy candidate.
+2. Application for Transfer of Suit vs Application for Transfer of Case: distinct civil-suit and case contexts; neither legacy title is added to the main catalogue without an explicit source. Both are retained in needs_review.
+3. Application for Cross-Examination of Witness vs Application for Cross-Examination of Witnesses: singular/plural variants merged into one needs_review record because neither is in the working baseline or original brief.
+4. Application for Transfer of Suit vs Application for Transfer of Child: distinct civil and family contexts; both remain in needs_review pending source confirmation.
+5. Application for Transfer of Case vs Application for Transfer of Child: distinct criminal and family contexts; both remain in needs_review pending source confirmation.
+6. Application for Interim Protection vs Application for Interim Protection Order: merged into the existing Interim Relief Application baseline, with the original categories retained as secondary tags.
+7. Notice for Encroachment vs Notice of Encroachment: wording variants merged into one needs_review record; neither is promoted without an explicit baseline/brief source.
+8. Commercial Lease Agreement vs Commercial Sale Agreement: distinct transaction types. Commercial Lease Agreement remains as a working baseline; Commercial Sale Agreement stays in needs_review because it is not independently sourced.
+9. Purchase Agreement vs Asset Purchase Agreement: distinct general and asset-purchase purposes; both appear in the original brief and remain separate.
+10. Co-Founder Agreement (Agreements and Contracts) vs Founder Agreement (Corporate and Commercial Law): merged into the original-brief Founder Agreement entry; co-founder wording is an alias and does not create another catalogue record.
+11. Founder Agreement (Agreements and Contracts) vs Co-Founder Agreement (Corporate and Commercial Law): same two original legacy candidates in the reverse category pairing; merged into the single original-brief Founder Agreement entry.
+12. Consultancy Agreement vs Consultant Agreement: merged into the existing Consultancy Agreement working baseline; Consultant Agreement is retained as an alias and employment secondary tag.
+
+This inventory is not a claim that every entry is legally verified. Main-catalogue additions from the original brief are marked Coming soon and require legal review. needs_review is kept out of the main catalogue.

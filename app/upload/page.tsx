@@ -1,7 +1,10 @@
-'use client';
+import type { Metadata } from 'next';
+import UploadContent from './UploadContent';
 
-import UploadDocument from '../../src/components/UploadDocument';
+export const metadata: Metadata = {
+  robots: { index: false },
+};
 
 export default function UploadPage() {
-  return <UploadDocument />;
+  return <UploadContent />;
 }

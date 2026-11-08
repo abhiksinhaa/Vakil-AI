@@ -1,0 +1,737 @@
+LEGAL DOCUMENT CATALOGUE AUDIT (read-only; generated catalogue treated as untrusted)
+Source: src\data\legalDocumentLibrary.ts
+Records: 662
+Unique ids: 662
+Unique slugs: 662
+Unique normalized names: 589
+Duplicate ids: none
+Duplicate slugs: none
+Duplicate normalized names: application for exemption from personal appearance (2); employment agreement (2); offer letter (2); shareholders agreement (2); rent agreement (2); commercial lease agreement (2); property management agreement (2); construction agreement (2); contractor agreement (2); board resolution (2); shareholder resolution (2); minutes of board meeting (2); minutes of general meeting (2); notice of board meeting (2); notice of general meeting (2); share subscription document (2); director appointment document (2); director resignation document (2); registered office change document (2); company authorised signatory resolution (2); corporate indemnity (2); corporate guarantee (2); commercial settlement agreement (2); business acquisition document (2); asset purchase agreement (2); business transfer agreement (2); due diligence request list (2); vendor onboarding declaration (2); corporate compliance checklist (2); contract amendment (2); contract renewal (2); contract termination (2); business dispute notice (2); shareholder dispute document (2); founder agreement (2); co founder agreement (2); employee stock option documents (2); investment document (2); startup advisory agreement (2); business collaboration agreement (2); equity purchase agreement (2); preference share subscription agreement (2); debenture subscription agreement (2); private placement offer letter (2); debt conversion agreement (2); investor rights agreement (2); joint venture shareholders agreement (2); corporate governance policy acknowledgement (2); annual return support document (2); mca filing support checklist (2); director kyc declaration (2); compliance certificate (2); consent of director (2); certificate of incumbency (2); board consent for borrowing (2); board consent for guarantee (2); board consent for related party transaction (2); company secretarial assignment letter (2); secretarial compliance report (2); vendor contract review note (2); commercial arbitration notice (2); business termination letter (2); business transfer notice (2); merger documentation (2); acquisition agreement (2); limited liability partnership agreement (2); company constitution amendment (2); restructuring support document (2); brand licensing agreement (2); corporate restructuring plan (2); corporate governance agreement (2); relinquishment deed (2); gift deed (2)
+generation_status counts: catalogue_only (662)
+implementation_status counts: not_implemented (662)
+Records with has_generation_template=true: 0
+Records with legal_reference_verified=true: 0
+Default placeholder required_fields ["party_details","matter_summary"]: 662
+
+CATEGORY AUDIT TABLE (duplicates counts redundant exact-name copies after retaining the first record in each cross-category group; near-name candidates are listed separately and not automatically removed; survivors exclude exact duplicates, filler, and doubtful records):
+| Category | Raw count | Duplicates | Filler | Doubtful | Survivors |
+|---|---:|---:|---:|---:|---:|
+| Civil Litigation | 100 | 0 | 0 | 7 | 93 |
+| Criminal Law and Procedure | 93 | 1 | 0 | 10 | 82 |
+| Legal Notices | 66 | 0 | 0 | 1 | 65 |
+| Agreements and Contracts | 126 | 0 | 0 | 6 | 120 |
+| Family Law | 63 | 0 | 0 | 9 | 54 |
+| Property and Real Estate | 81 | 6 | 0 | 7 | 68 |
+| Corporate and Commercial Law | 64 | 63 | 0 | 6 | 1 |
+| Employment and Labour Law | 56 | 3 | 0 | 8 | 45 |
+| Consumer, Banking and Financial Disputes | 13 | 0 | 0 | 0 | 13 |
+| Taxation and Regulatory Documents | 0 | 0 | 0 | 0 | 0 |
+| Intellectual Property and Technology | 0 | 0 | 0 | 0 | 0 |
+| Arbitration, Mediation, and Insolvency | 0 | 0 | 0 | 0 | 0 |
+| General Legal Documents | 0 | 0 | 0 | 0 | 0 |
+
+CROSS-CATEGORY EXACT DUPLICATE GROUPS (73):
+- exact: Application for Exemption from Personal Appearance [Civil Litigation; CIV-051] <> Application for Exemption from Personal Appearance [Criminal Law and Procedure; CRIM-119]
+- exact: Employment Agreement [Agreements and Contracts; AGR-264] <> Employment Agreement [Employment and Labour Law; EMP-594]
+- exact: Offer Letter [Agreements and Contracts; AGR-265] <> Offer Letter [Employment and Labour Law; EMP-596]
+- exact: Shareholders Agreement [Agreements and Contracts; AGR-292] <> Shareholders Agreement [Corporate and Commercial Law; CORP-568]
+- exact: Rent Agreement [Agreements and Contracts; AGR-308] <> Rent Agreement [Property and Real Estate; PROP-460]
+- exact: Commercial Lease Agreement [Agreements and Contracts; AGR-310] <> Commercial Lease Agreement [Property and Real Estate; PROP-500]
+- exact: Property Management Agreement [Agreements and Contracts; AGR-311] <> Property Management Agreement [Property and Real Estate; PROP-513]
+- exact: Construction Agreement [Agreements and Contracts; AGR-312] <> Construction Agreement [Property and Real Estate; PROP-474]
+- exact: Contractor Agreement [Agreements and Contracts; AGR-313] <> Contractor Agreement [Employment and Labour Law; EMP-618]
+- exact: Board Resolution [Agreements and Contracts; AGR-323] <> Board Resolution [Corporate and Commercial Law; CORP-530]
+- exact: Shareholder Resolution [Agreements and Contracts; AGR-324] <> Shareholder Resolution [Corporate and Commercial Law; CORP-531]
+- exact: Minutes of Board Meeting [Agreements and Contracts; AGR-325] <> Minutes of Board Meeting [Corporate and Commercial Law; CORP-532]
+- exact: Minutes of General Meeting [Agreements and Contracts; AGR-326] <> Minutes of General Meeting [Corporate and Commercial Law; CORP-533]
+- exact: Notice of Board Meeting [Agreements and Contracts; AGR-327] <> Notice of Board Meeting [Corporate and Commercial Law; CORP-534]
+- exact: Notice of General Meeting [Agreements and Contracts; AGR-328] <> Notice of General Meeting [Corporate and Commercial Law; CORP-535]
+- exact: Share Subscription Document [Agreements and Contracts; AGR-330] <> Share Subscription Document [Corporate and Commercial Law; CORP-537]
+- exact: Director Appointment Document [Agreements and Contracts; AGR-331] <> Director Appointment Document [Corporate and Commercial Law; CORP-538]
+- exact: Director Resignation Document [Agreements and Contracts; AGR-332] <> Director Resignation Document [Corporate and Commercial Law; CORP-539]
+- exact: Registered Office Change Document [Agreements and Contracts; AGR-333] <> Registered Office Change Document [Corporate and Commercial Law; CORP-540]
+- exact: Company Authorised Signatory Resolution [Agreements and Contracts; AGR-334] <> Company Authorised Signatory Resolution [Corporate and Commercial Law; CORP-541]
+- exact: Corporate Indemnity [Agreements and Contracts; AGR-335] <> Corporate Indemnity [Corporate and Commercial Law; CORP-542]
+- exact: Corporate Guarantee [Agreements and Contracts; AGR-336] <> Corporate Guarantee [Corporate and Commercial Law; CORP-543]
+- exact: Commercial Settlement Agreement [Agreements and Contracts; AGR-337] <> Commercial Settlement Agreement [Corporate and Commercial Law; CORP-544]
+- exact: Business Acquisition Document [Agreements and Contracts; AGR-338] <> Business Acquisition Document [Corporate and Commercial Law; CORP-545]
+- exact: Asset Purchase Agreement [Agreements and Contracts; AGR-339] <> Asset Purchase Agreement [Corporate and Commercial Law; CORP-546]
+- exact: Business Transfer Agreement [Agreements and Contracts; AGR-340] <> Business Transfer Agreement [Corporate and Commercial Law; CORP-547]
+- exact: Due Diligence Request List [Agreements and Contracts; AGR-341] <> Due Diligence Request List [Corporate and Commercial Law; CORP-548]
+- exact: Vendor Onboarding Declaration [Agreements and Contracts; AGR-342] <> Vendor Onboarding Declaration [Corporate and Commercial Law; CORP-549]
+- exact: Corporate Compliance Checklist [Agreements and Contracts; AGR-343] <> Corporate Compliance Checklist [Corporate and Commercial Law; CORP-550]
+- exact: Contract Amendment [Agreements and Contracts; AGR-344] <> Contract Amendment [Corporate and Commercial Law; CORP-551]
+- exact: Contract Renewal [Agreements and Contracts; AGR-345] <> Contract Renewal [Corporate and Commercial Law; CORP-552]
+- exact: Contract Termination [Agreements and Contracts; AGR-346] <> Contract Termination [Corporate and Commercial Law; CORP-553]
+- exact: Business Dispute Notice [Agreements and Contracts; AGR-347] <> Business Dispute Notice [Corporate and Commercial Law; CORP-554]
+- exact: Shareholder Dispute Document [Agreements and Contracts; AGR-348] <> Shareholder Dispute Document [Corporate and Commercial Law; CORP-555]
+- exact: Founder Agreement [Agreements and Contracts; AGR-349] <> Founder Agreement [Corporate and Commercial Law; CORP-556]
+- exact: Co-Founder Agreement [Agreements and Contracts; AGR-350] <> Co-Founder Agreement [Corporate and Commercial Law; CORP-557]
+- exact: Employee Stock Option Documents [Agreements and Contracts; AGR-351] <> Employee Stock Option Documents [Corporate and Commercial Law; CORP-558]
+- exact: Investment Document [Agreements and Contracts; AGR-352] <> Investment Document [Corporate and Commercial Law; CORP-559]
+- exact: Startup Advisory Agreement [Agreements and Contracts; AGR-353] <> Startup Advisory Agreement [Corporate and Commercial Law; CORP-560]
+- exact: Business Collaboration Agreement [Agreements and Contracts; AGR-354] <> Business Collaboration Agreement [Corporate and Commercial Law; CORP-561]
+- exact: Equity Purchase Agreement [Agreements and Contracts; AGR-355] <> Equity Purchase Agreement [Corporate and Commercial Law; CORP-562]
+- exact: Preference Share Subscription Agreement [Agreements and Contracts; AGR-356] <> Preference Share Subscription Agreement [Corporate and Commercial Law; CORP-563]
+- exact: Debenture Subscription Agreement [Agreements and Contracts; AGR-357] <> Debenture Subscription Agreement [Corporate and Commercial Law; CORP-564]
+- exact: Private Placement Offer Letter [Agreements and Contracts; AGR-358] <> Private Placement Offer Letter [Corporate and Commercial Law; CORP-565]
+- exact: Debt Conversion Agreement [Agreements and Contracts; AGR-359] <> Debt Conversion Agreement [Corporate and Commercial Law; CORP-566]
+- exact: Investor Rights Agreement [Agreements and Contracts; AGR-360] <> Investor Rights Agreement [Corporate and Commercial Law; CORP-567]
+- exact: Joint Venture Shareholders Agreement [Agreements and Contracts; AGR-361] <> Joint Venture Shareholders Agreement [Corporate and Commercial Law; CORP-569]
+- exact: Corporate Governance Policy Acknowledgement [Agreements and Contracts; AGR-362] <> Corporate Governance Policy Acknowledgement [Corporate and Commercial Law; CORP-570]
+- exact: Annual Return Support Document [Agreements and Contracts; AGR-363] <> Annual Return Support Document [Corporate and Commercial Law; CORP-571]
+- exact: MCA Filing Support Checklist [Agreements and Contracts; AGR-364] <> MCA Filing Support Checklist [Corporate and Commercial Law; CORP-572]
+- exact: Director KYC Declaration [Agreements and Contracts; AGR-365] <> Director KYC Declaration [Corporate and Commercial Law; CORP-573]
+- exact: Compliance Certificate [Agreements and Contracts; AGR-366] <> Compliance Certificate [Corporate and Commercial Law; CORP-574]
+- exact: Consent of Director [Agreements and Contracts; AGR-367] <> Consent of Director [Corporate and Commercial Law; CORP-575]
+- exact: Certificate of Incumbency [Agreements and Contracts; AGR-368] <> Certificate of Incumbency [Corporate and Commercial Law; CORP-576]
+- exact: Board Consent for Borrowing [Agreements and Contracts; AGR-369] <> Board Consent for Borrowing [Corporate and Commercial Law; CORP-577]
+- exact: Board Consent for Guarantee [Agreements and Contracts; AGR-370] <> Board Consent for Guarantee [Corporate and Commercial Law; CORP-578]
+- exact: Board Consent for Related Party Transaction [Agreements and Contracts; AGR-371] <> Board Consent for Related Party Transaction [Corporate and Commercial Law; CORP-579]
+- exact: Company Secretarial Assignment Letter [Agreements and Contracts; AGR-372] <> Company Secretarial Assignment Letter [Corporate and Commercial Law; CORP-580]
+- exact: Secretarial Compliance Report [Agreements and Contracts; AGR-373] <> Secretarial Compliance Report [Corporate and Commercial Law; CORP-581]
+- exact: Vendor Contract Review Note [Agreements and Contracts; AGR-374] <> Vendor Contract Review Note [Corporate and Commercial Law; CORP-582]
+- exact: Commercial Arbitration Notice [Agreements and Contracts; AGR-375] <> Commercial Arbitration Notice [Corporate and Commercial Law; CORP-583]
+- exact: Business Termination Letter [Agreements and Contracts; AGR-376] <> Business Termination Letter [Corporate and Commercial Law; CORP-584]
+- exact: Business Transfer Notice [Agreements and Contracts; AGR-377] <> Business Transfer Notice [Corporate and Commercial Law; CORP-585]
+- exact: Merger Documentation [Agreements and Contracts; AGR-378] <> Merger Documentation [Corporate and Commercial Law; CORP-586]
+- exact: Acquisition Agreement [Agreements and Contracts; AGR-379] <> Acquisition Agreement [Corporate and Commercial Law; CORP-587]
+- exact: Limited Liability Partnership Agreement [Agreements and Contracts; AGR-380] <> Limited Liability Partnership Agreement [Corporate and Commercial Law; CORP-588]
+- exact: Company Constitution Amendment [Agreements and Contracts; AGR-381] <> Company Constitution Amendment [Corporate and Commercial Law; CORP-589]
+- exact: Restructuring Support Document [Agreements and Contracts; AGR-382] <> Restructuring Support Document [Corporate and Commercial Law; CORP-590]
+- exact: Brand Licensing Agreement [Agreements and Contracts; AGR-383] <> Brand Licensing Agreement [Corporate and Commercial Law; CORP-591]
+- exact: Corporate Restructuring Plan [Agreements and Contracts; AGR-384] <> Corporate Restructuring Plan [Corporate and Commercial Law; CORP-592]
+- exact: Corporate Governance Agreement [Agreements and Contracts; AGR-385] <> Corporate Governance Agreement [Corporate and Commercial Law; CORP-593]
+- exact: Relinquishment Deed [Family Law; FAM-410] <> Relinquishment Deed [Property and Real Estate; PROP-451]
+- exact: Gift Deed [Family Law; FAM-411] <> Gift Deed [Property and Real Estate; PROP-450]
+
+CROSS-CATEGORY NEAR-NAME CANDIDATES (12; heuristic candidates only, not counted as duplicates):
+- Application for Security of Property [Civil Litigation; CIV-066] <> Application for Return of Property [Criminal Law and Procedure; CRIM-125] (edit=0.86, token=0.67, bigram=0.72)
+- Application for Transfer of Suit [Civil Litigation; CIV-041] <> Application for Transfer of Case [Criminal Law and Procedure; CRIM-140] (edit=0.88, token=0.67, bigram=0.75)
+- Application for Cross-Examination of Witness [Civil Litigation; CIV-089] <> Application for Cross-Examination of Witnesses [Criminal Law and Procedure; CRIM-171] (edit=0.96, token=0.71, bigram=0.97)
+- Application for Transfer of Suit [Civil Litigation; CIV-041] <> Application for Transfer of Child [Family Law; FAM-421] (edit=0.88, token=0.67, bigram=0.71)
+- Application for Transfer of Case [Criminal Law and Procedure; CRIM-140] <> Application for Transfer of Child [Family Law; FAM-421] (edit=0.88, token=0.67, bigram=0.78)
+- Application for Interim Protection [Criminal Law and Procedure; CRIM-185] <> Application for Interim Protection Order [Family Law; FAM-435] (edit=0.85, token=0.80, bigram=0.91)
+- Notice for Encroachment [Legal Notices; NOT-235] <> Notice of Encroachment [Property and Real Estate; PROP-494] (edit=0.91, token=0.50, bigram=0.73)
+- Commercial Lease Agreement [Agreements and Contracts; AGR-310] <> Commercial Sale Agreement [Property and Real Estate; PROP-516] (edit=0.88, token=0.50, bigram=0.79)
+- Purchase Agreement [Agreements and Contracts; AGR-317] <> Asset Purchase Agreement [Corporate and Commercial Law; CORP-546] (edit=0.75, token=0.67, bigram=0.90)
+- Co-Founder Agreement [Agreements and Contracts; AGR-350] <> Founder Agreement [Corporate and Commercial Law; CORP-556] (edit=0.85, token=0.67, bigram=0.86)
+- Founder Agreement [Agreements and Contracts; AGR-349] <> Co-Founder Agreement [Corporate and Commercial Law; CORP-557] (edit=0.85, token=0.67, bigram=0.86)
+- Consultancy Agreement [Agreements and Contracts; AGR-262] <> Consultant Agreement [Employment and Labour Law; EMP-620] (edit=0.90, token=0.33, bigram=0.86)
+
+FILLER / PLACEHOLDER ENTRIES (0):
+
+DOUBTFUL: POSSIBLY NOT A STANDALONE LEGAL DOCUMENT (54; heuristic flags for review, not deletion):
+- List of Documents [Civil Litigation; CIV-022] — Looks like a component or attachment to another document, not a standalone document.
+- Synopsis and List of Dates [Civil Litigation; CIV-047] — Looks like a component or attachment to another document, not a standalone document.
+- Legal Case Brief [Civil Litigation; CIV-048] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Application for Appointment of Arbitrator in Court [Civil Litigation; CIV-092] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Request for Record Correction [Civil Litigation; CIV-093] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Application for Cost Certificate [Civil Litigation; CIV-094] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Application to Register Compromise Decree [Civil Litigation; CIV-096] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Application for Access to Case Records [Criminal Law and Procedure; CRIM-146] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Inspection of Case Diary [Criminal Law and Procedure; CRIM-155] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Medical Examination Order [Criminal Law and Procedure; CRIM-159] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Yes or No on Charges [Criminal Law and Procedure; CRIM-181] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Filing Additional Charges [Criminal Law and Procedure; CRIM-182] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Reconsideration of Charges [Criminal Law and Procedure; CRIM-183] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Suspension of Warrant [Criminal Law and Procedure; CRIM-186] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Correction in Charge Sheet [Criminal Law and Procedure; CRIM-187] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Duplicate Charge Sheet [Criminal Law and Procedure; CRIM-188] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Record of Evidence [Criminal Law and Procedure; CRIM-193] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Notice invoking Arbitration Clause [Legal Notices; NOT-247] — Looks like a component or attachment to another document, not a standalone document.
+- Corporate Compliance Checklist [Agreements and Contracts; AGR-343] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Corporate Governance Policy Acknowledgement [Agreements and Contracts; AGR-362] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- MCA Filing Support Checklist [Agreements and Contracts; AGR-364] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Compliance Certificate [Agreements and Contracts; AGR-366] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Certificate of Incumbency [Agreements and Contracts; AGR-368] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Corporate Restructuring Plan [Agreements and Contracts; AGR-384] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Application for Residence Rights [Family Law; FAM-415] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Financial Support [Family Law; FAM-417] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Family Mediation [Family Law; FAM-422] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Guardianship of Minor [Family Law; FAM-428] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Grandparent Visitation [Family Law; FAM-429] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Permanent Alimony [Family Law; FAM-432] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Interlocutory Relief [Family Law; FAM-433] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Child Education Support [Family Law; FAM-443] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Denial of Paternity [Family Law; FAM-446] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Property Verification Checklist [Property and Real Estate; PROP-463] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Title Due Diligence Report [Property and Real Estate; PROP-464] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Construction Completion Certificate Request [Property and Real Estate; PROP-492] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Application for Recording of Easement [Property and Real Estate; PROP-504] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Demarcation [Property and Real Estate; PROP-505] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Application for Friendly Settlement [Property and Real Estate; PROP-520] — Broad or underspecified application title; no specific statute, procedural form, or identifiable relief is clear from the title alone.
+- Certificate of Possession [Property and Real Estate; PROP-522] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Corporate Compliance Checklist [Corporate and Commercial Law; CORP-550] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Corporate Governance Policy Acknowledgement [Corporate and Commercial Law; CORP-570] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- MCA Filing Support Checklist [Corporate and Commercial Law; CORP-572] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Compliance Certificate [Corporate and Commercial Law; CORP-574] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Certificate of Incumbency [Corporate and Commercial Law; CORP-576] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Corporate Restructuring Plan [Corporate and Commercial Law; CORP-592] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Experience Certificate [Employment and Labour Law; EMP-609] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Employee Handbook Acknowledgement [Employment and Labour Law; EMP-621] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Leave Policy Acknowledgement [Employment and Labour Law; EMP-622] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Employer Compliance Certificate [Employment and Labour Law; EMP-630] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Employee Exit Checklist [Employment and Labour Law; EMP-631] — Looks like a checklist, report, reference aid, or internal work product rather than an executed legal instrument or filing.
+- Service Certificate [Employment and Labour Law; EMP-635] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- No Objection Certificate for Employment [Employment and Labour Law; EMP-638] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+- Labour Welfare Policy Acknowledgement [Employment and Labour Law; EMP-643] — May be an operational/policy record rather than a standalone legal drafting document; verify intended use.
+
+CATEGORY-LEVEL APPLICABLE_LAW ASSIGNMENTS (law: number of records assigned):
+- Civil Litigation: Code of Civil Procedure, 1908 (100); Indian Evidence Act, 1872 (100); Limitation Act, 1963 (100)
+- Criminal Law and Procedure: Bharatiya Nyaya Sanhita, 2023 (93); Bharatiya Nagarik Suraksha Sanhita, 2023 (93); Bharatiya Sakshya Adhiniyam, 2023 (93)
+- Legal Notices: Contract Act, 1872 (66); Indian Evidence Act, 1872 (66)
+- Agreements and Contracts: Indian Contract Act, 1872 (126); Specific Relief Act, 1963 (126); Information Technology Act, 2000 (126)
+- Family Law: Hindu Marriage Act, 1955 (63); Special Marriage Act, 1954 (63); Protection of Women from Domestic Violence Act, 2005 (63)
+- Property and Real Estate: Transfer of Property Act, 1882 (81); Registration Act, 1908 (81); Real Estate (Regulation and Development) Act, 2016 (81)
+- Corporate and Commercial Law: Companies Act, 2013 (64); Limited Liability Partnership Act, 2008 (64); SEBI Act, 1992 (64)
+- Employment and Labour Law: Industrial Disputes Act, 1947 (56); Code on Wages, 2019 (56); POSH Act, 2013 (56)
+- Consumer, Banking and Financial Disputes: Consumer Protection Act, 2019 (13); Negotiable Instruments Act, 1881 (13); Banking Regulation Act, 1949 (13)
+- Taxation and Regulatory Documents: (none)
+- Intellectual Property and Technology: (none)
+- Arbitration, Mediation, and Insolvency: (none)
+- General Legal Documents: (none)
+Category-wide mapping note: where each law count equals the category raw count, the same Act was assigned to every entry in that category; this is a blanket mapping, not document-level verification.
+
+APPLICABLE_LAW MISMATCH FLAGS (243; heuristic, review required):
+- Affidavit in Support of Application [Civil Litigation; CIV-021] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Evidence Affidavit [Civil Litigation; CIV-024] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Affidavit of Service [Civil Litigation; CIV-084] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Affidavit of Non-Payment [Civil Litigation; CIV-085] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Affidavit of Financial Capacity [Civil Litigation; CIV-086] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- General Legal Notice [Legal Notices; NOT-194] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- General Legal Notice [Legal Notices; NOT-194] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Recovery of Money [Legal Notices; NOT-195] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Recovery of Money [Legal Notices; NOT-195] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Demand Notice [Legal Notices; NOT-196] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Demand Notice [Legal Notices; NOT-196] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Breach of Contract Notice [Legal Notices; NOT-197] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Breach of Contract Notice [Legal Notices; NOT-197] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Termination of Agreement [Legal Notices; NOT-198] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Termination of Agreement [Legal Notices; NOT-198] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Unpaid Invoices [Legal Notices; NOT-199] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Unpaid Invoices [Legal Notices; NOT-199] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Outstanding Professional Fees [Legal Notices; NOT-200] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Outstanding Professional Fees [Legal Notices; NOT-200] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Cheque Dishonour Notice [Legal Notices; NOT-201] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Cheque Dishonour Notice [Legal Notices; NOT-201] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Property Possession Notice [Legal Notices; NOT-202] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Property Possession Notice [Legal Notices; NOT-202] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice to Tenant [Legal Notices; NOT-203] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice to Tenant [Legal Notices; NOT-203] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice to Landlord [Legal Notices; NOT-204] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice to Landlord [Legal Notices; NOT-204] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Unpaid Rent [Legal Notices; NOT-205] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Unpaid Rent [Legal Notices; NOT-205] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Security Deposit [Legal Notices; NOT-206] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Security Deposit [Legal Notices; NOT-206] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Defamation Legal Notice [Legal Notices; NOT-207] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Defamation Legal Notice [Legal Notices; NOT-207] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Consumer Dispute Notice [Legal Notices; NOT-208] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Consumer Dispute Notice [Legal Notices; NOT-208] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Employment Related Legal Notice [Legal Notices; NOT-209] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Employment Related Legal Notice [Legal Notices; NOT-209] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Unpaid Salary [Legal Notices; NOT-210] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Unpaid Salary [Legal Notices; NOT-210] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Contractual Non-Performance [Legal Notices; NOT-211] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Contractual Non-Performance [Legal Notices; NOT-211] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Refund [Legal Notices; NOT-212] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Refund [Legal Notices; NOT-212] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Damages [Legal Notices; NOT-213] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Damages [Legal Notices; NOT-213] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Specific Performance [Legal Notices; NOT-214] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Specific Performance [Legal Notices; NOT-214] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Partnership Dispute [Legal Notices; NOT-215] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Partnership Dispute [Legal Notices; NOT-215] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Shareholder Dispute [Legal Notices; NOT-216] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Shareholder Dispute [Legal Notices; NOT-216] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Intellectual Property Infringement [Legal Notices; NOT-217] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Intellectual Property Infringement [Legal Notices; NOT-217] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice Concerning Unauthorised Use of Confidential Information [Legal Notices; NOT-218] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice Concerning Unauthorised Use of Confidential Information [Legal Notices; NOT-218] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Reply to Legal Notice [Legal Notices; NOT-219] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Reply to Legal Notice [Legal Notices; NOT-219] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Rejoinder to Legal Notice [Legal Notices; NOT-220] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Rejoinder to Legal Notice [Legal Notices; NOT-220] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Settlement Proposal Letter [Legal Notices; NOT-221] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Settlement Proposal Letter [Legal Notices; NOT-221] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice of Arbitration [Legal Notices; NOT-222] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice of Arbitration [Legal Notices; NOT-222] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice of Breach of Trust [Legal Notices; NOT-223] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice of Breach of Trust [Legal Notices; NOT-223] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Fraudulent Misrepresentation [Legal Notices; NOT-224] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Fraudulent Misrepresentation [Legal Notices; NOT-224] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Recovery of Loan [Legal Notices; NOT-225] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Recovery of Loan [Legal Notices; NOT-225] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Recovery of Advances [Legal Notices; NOT-226] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Recovery of Advances [Legal Notices; NOT-226] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Default in Payment [Legal Notices; NOT-227] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Default in Payment [Legal Notices; NOT-227] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Non-Performance of Services [Legal Notices; NOT-228] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Non-Performance of Services [Legal Notices; NOT-228] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Non-Delivery of Goods [Legal Notices; NOT-229] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Non-Delivery of Goods [Legal Notices; NOT-229] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Dangerous Goods [Legal Notices; NOT-230] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Dangerous Goods [Legal Notices; NOT-230] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Breach of Warranty [Legal Notices; NOT-231] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Breach of Warranty [Legal Notices; NOT-231] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Breach of Confidentiality [Legal Notices; NOT-232] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Breach of Confidentiality [Legal Notices; NOT-232] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Defective Goods [Legal Notices; NOT-233] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Defective Goods [Legal Notices; NOT-233] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Delayed Possession [Legal Notices; NOT-234] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Delayed Possession [Legal Notices; NOT-234] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Encroachment [Legal Notices; NOT-235] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Encroachment [Legal Notices; NOT-235] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Illegal Possession [Legal Notices; NOT-236] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Illegal Possession [Legal Notices; NOT-236] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Unauthorized Construction [Legal Notices; NOT-237] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Unauthorized Construction [Legal Notices; NOT-237] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Breach of NDA [Legal Notices; NOT-238] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Breach of NDA [Legal Notices; NOT-238] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Misuse of Trademark [Legal Notices; NOT-239] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Misuse of Trademark [Legal Notices; NOT-239] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Unauthorized Use of Copyright [Legal Notices; NOT-240] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Unauthorized Use of Copyright [Legal Notices; NOT-240] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Harassment at Workplace [Legal Notices; NOT-241] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Harassment at Workplace [Legal Notices; NOT-241] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Unpaid Bonus [Legal Notices; NOT-242] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Unpaid Bonus [Legal Notices; NOT-242] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Wrongful Termination [Legal Notices; NOT-243] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Wrongful Termination [Legal Notices; NOT-243] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Employee Misconduct [Legal Notices; NOT-244] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Employee Misconduct [Legal Notices; NOT-244] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Employer Violations [Legal Notices; NOT-245] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Employer Violations [Legal Notices; NOT-245] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Recovery of Security Deposit [Legal Notices; NOT-246] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Recovery of Security Deposit [Legal Notices; NOT-246] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice invoking Arbitration Clause [Legal Notices; NOT-247] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice invoking Arbitration Clause [Legal Notices; NOT-247] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Payment of Professional Charges [Legal Notices; NOT-248] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Payment of Professional Charges [Legal Notices; NOT-248] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Subscription Default [Legal Notices; NOT-249] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Subscription Default [Legal Notices; NOT-249] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Refund of Advance Payment [Legal Notices; NOT-250] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Refund of Advance Payment [Legal Notices; NOT-250] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice to Stop Infringing Activity [Legal Notices; NOT-251] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice to Stop Infringing Activity [Legal Notices; NOT-251] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Employment Dispute Resolution [Legal Notices; NOT-252] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Employment Dispute Resolution [Legal Notices; NOT-252] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Company Compliance Breach [Legal Notices; NOT-253] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Company Compliance Breach [Legal Notices; NOT-253] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Sale Agreement Breach [Legal Notices; NOT-254] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Sale Agreement Breach [Legal Notices; NOT-254] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Lease Agreement Breach [Legal Notices; NOT-255] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Lease Agreement Breach [Legal Notices; NOT-255] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Delay in Delivery [Legal Notices; NOT-256] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Delay in Delivery [Legal Notices; NOT-256] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Recovery of Filing Fees [Legal Notices; NOT-257] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Recovery of Filing Fees [Legal Notices; NOT-257] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Mismatch in Services [Legal Notices; NOT-258] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Mismatch in Services [Legal Notices; NOT-258] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Notice for Compensation for Negligence [Legal Notices; NOT-259] — Contract Act, 1872: Act title appears abbreviated; verify the official Act name and whether it applies to this document.
+- Notice for Compensation for Negligence [Legal Notices; NOT-259] — Indian Evidence Act, 1872: Evidence Act appears category-pasted on a non-evidence-specific document.
+- Maintenance Application [Family Law; FAM-389] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Interim Maintenance Application [Family Law; FAM-390] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Child Custody Petition [Family Law; FAM-391] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Visitation Application [Family Law; FAM-392] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Guardianship Application [Family Law; FAM-393] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Domestic Violence Complaint [Family Law; FAM-394] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Domestic Violence Protection Application [Family Law; FAM-395] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Family Settlement Deed [Family Law; FAM-402] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Partition Deed for Family Property [Family Law; FAM-403] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Legal Heir Declaration [Family Law; FAM-404] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Succession Application [Family Law; FAM-405] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Will [Family Law; FAM-406] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Codicil [Family Law; FAM-407] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Probate Petition [Family Law; FAM-408] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Letters of Administration Petition [Family Law; FAM-409] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Relinquishment Deed [Family Law; FAM-410] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Gift Deed [Family Law; FAM-411] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Adoption Related Documentation [Family Law; FAM-412] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Claim for Maintenance for Wife [Family Law; FAM-413] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Claim for Maintenance for Children [Family Law; FAM-414] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Residence Rights [Family Law; FAM-415] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Return of Stridhan [Family Law; FAM-416] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Financial Support [Family Law; FAM-417] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Interim Custody [Family Law; FAM-420] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Transfer of Child [Family Law; FAM-421] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Family Mediation [Family Law; FAM-422] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Family Counselling Request [Family Law; FAM-423] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Consent Letter for Child Relocation [Family Law; FAM-424] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Affidavit for Single Status [Family Law; FAM-426] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Agreement for Mutual Separation [Family Law; FAM-427] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Guardianship of Minor [Family Law; FAM-428] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Grandparent Visitation [Family Law; FAM-429] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Petition for Maintenance Against Husband [Family Law; FAM-430] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Petition for Maintenance Against Father [Family Law; FAM-431] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Permanent Alimony [Family Law; FAM-432] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Interlocutory Relief [Family Law; FAM-433] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Settlement and Release in Family Matter [Family Law; FAM-434] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Interim Protection Order [Family Law; FAM-435] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Family Property Partition [Family Law; FAM-436] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Family Dispute Resolution Notice [Family Law; FAM-437] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Reply to Family Dispute Notice [Family Law; FAM-438] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Discharge of Maintenance Order [Family Law; FAM-439] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Petition for Removal of Guardian [Family Law; FAM-440] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Custody Evaluation [Family Law; FAM-441] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Petition for Adoption Consent [Family Law; FAM-442] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Child Education Support [Family Law; FAM-443] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Property Transfer after Death [Family Law; FAM-444] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Petition for Declaration of Legitimacy [Family Law; FAM-445] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Application for Denial of Paternity [Family Law; FAM-446] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Spousal Support Agreement [Family Law; FAM-448] — Hindu Marriage Act, 1955: Hindu Marriage Act appears on a title not facially specific to Hindu matrimonial relief.
+- Employment Agreement [Employment and Labour Law; EMP-594] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Appointment Letter [Employment and Labour Law; EMP-595] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Offer Letter [Employment and Labour Law; EMP-596] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Probation Letter [Employment and Labour Law; EMP-597] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Confirmation Letter [Employment and Labour Law; EMP-598] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Promotion Letter [Employment and Labour Law; EMP-599] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Salary Revision Letter [Employment and Labour Law; EMP-600] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Warning Letter [Employment and Labour Law; EMP-601] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Show Cause Notice [Employment and Labour Law; EMP-602] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Domestic Enquiry Notice [Employment and Labour Law; EMP-603] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Disciplinary Proceedings Document [Employment and Labour Law; EMP-604] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Suspension Letter [Employment and Labour Law; EMP-605] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Termination Letter [Employment and Labour Law; EMP-606] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Resignation Acceptance [Employment and Labour Law; EMP-607] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Relieving Letter [Employment and Labour Law; EMP-608] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Experience Certificate [Employment and Labour Law; EMP-609] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Full and Final Settlement Statement [Employment and Labour Law; EMP-610] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Confidentiality Undertaking [Employment and Labour Law; EMP-611] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employee IP Assignment [Employment and Labour Law; EMP-612] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Workplace Harassment Complaint [Employment and Labour Law; EMP-613] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- POSH Related Documentation [Employment and Labour Law; EMP-614] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Grievance Letter [Employment and Labour Law; EMP-615] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Unpaid Salary Demand Notice [Employment and Labour Law; EMP-616] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employment Dispute Complaint [Employment and Labour Law; EMP-617] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Contractor Agreement [Employment and Labour Law; EMP-618] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Internship Agreement [Employment and Labour Law; EMP-619] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Consultant Agreement [Employment and Labour Law; EMP-620] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employee Handbook Acknowledgement [Employment and Labour Law; EMP-621] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Leave Policy Acknowledgement [Employment and Labour Law; EMP-622] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Workplace Investigation Report Template [Employment and Labour Law; EMP-623] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Separation Agreement [Employment and Labour Law; EMP-624] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Retrenchment Letter [Employment and Labour Law; EMP-625] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Layoff Communication [Employment and Labour Law; EMP-626] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Maternity Benefit Application [Employment and Labour Law; EMP-627] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Paternity Leave Request [Employment and Labour Law; EMP-628] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employment Bond [Employment and Labour Law; EMP-629] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employer Compliance Certificate [Employment and Labour Law; EMP-630] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employee Exit Checklist [Employment and Labour Law; EMP-631] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Work Contract Renewal Letter [Employment and Labour Law; EMP-632] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Transfer Letter [Employment and Labour Law; EMP-633] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Secondment Agreement [Employment and Labour Law; EMP-634] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Service Certificate [Employment and Labour Law; EMP-635] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Labour Dispute Notice [Employment and Labour Law; EMP-636] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Settlement of Dues Letter [Employment and Labour Law; EMP-637] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- No Objection Certificate for Employment [Employment and Labour Law; EMP-638] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Compensatory Leave Application [Employment and Labour Law; EMP-639] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Bonus Claim Representation [Employment and Labour Law; EMP-640] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employee Grievance Redressal Letter [Employment and Labour Law; EMP-641] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Workplace Safety Complaint [Employment and Labour Law; EMP-642] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Labour Welfare Policy Acknowledgement [Employment and Labour Law; EMP-643] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employer Undertaking [Employment and Labour Law; EMP-644] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Contractor Payment Claim [Employment and Labour Law; EMP-645] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employee Non-Solicitation Undertaking [Employment and Labour Law; EMP-646] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Leave Encashment Request [Employment and Labour Law; EMP-647] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Termination Settlement Agreement [Employment and Labour Law; EMP-648] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+- Employment Background Verification Consent [Employment and Labour Law; EMP-649] — POSH Act, 2013: Act title is an acronym; verify and use the official Act name and document-specific relevance.
+
+WORKING TEMPLATE MAP (exact catalogue match, then nearest lexical match where bigram similarity >= 0.50; nearest is not a verified equivalence):
+- DRAFT_TYPES: 126 entries; 64 exact matches, 46 close-but-unconfirmed matches, 16 no close match.
+- DOCUMENT_SCHEMAS: 20 entries; 6 exact matches, 8 close-but-unconfirmed matches, 6 no close match.
+- DRAFT_TYPES: Plaint [plaint] — no catalogue match
+- DRAFT_TYPES: Written Statement [written-statement] — closest only (0.57, not asserted equivalent): Written Statement in a Civil Suit [Civil Litigation; CIV-002]
+- DRAFT_TYPES: Legal Notice [legal-notice] — closest only (0.68, not asserted equivalent): General Legal Notice [Legal Notices; NOT-194]
+- DRAFT_TYPES: Reply to Legal Notice [reply-legal-notice] — exact: Reply to Legal Notice [Legal Notices; NOT-219]
+- DRAFT_TYPES: Affidavit [affidavit] — closest only (0.59, not asserted equivalent): Evidence Affidavit [Civil Litigation; CIV-024]
+- DRAFT_TYPES: General Affidavit [general-affidavit] — no catalogue match
+- DRAFT_TYPES: Name Change Affidavit [name-change-affidavit] — no catalogue match
+- DRAFT_TYPES: Date of Birth Affidavit [date-of-birth-affidavit] — no catalogue match
+- DRAFT_TYPES: Address Proof Affidavit [address-proof-affidavit] — no catalogue match
+- DRAFT_TYPES: Single Status Affidavit [single-status-affidavit] — closest only (0.85, not asserted equivalent): Affidavit for Single Status [Family Law; FAM-426]
+- DRAFT_TYPES: Marriage Affidavit [marriage-affidavit] — closest only (0.70, not asserted equivalent): Marriage Related Affidavit [Family Law; FAM-399]
+- DRAFT_TYPES: Lost Document Affidavit [lost-document-affidavit] — no catalogue match
+- DRAFT_TYPES: Declaration [declaration] — closest only (0.57, not asserted equivalent): Suit for Declaration [Civil Litigation; CIV-035]
+- DRAFT_TYPES: Undertaking [undertaking] — closest only (0.60, not asserted equivalent): Employer Undertaking [Employment and Labour Law; EMP-644]
+- DRAFT_TYPES: Indemnity Bond [indemnity-bond] — no catalogue match
+- DRAFT_TYPES: Legal Heir Declaration [legal-heir-declaration] — exact: Legal Heir Declaration [Family Law; FAM-404]
+- DRAFT_TYPES: Family Settlement Agreement [family-settlement-agreement] — closest only (0.70, not asserted equivalent): Family Settlement Deed [Family Law; FAM-402]
+- DRAFT_TYPES: Relinquishment Deed [relinquishment-deed] — exact: Relinquishment Deed [Family Law; FAM-410]
+- DRAFT_TYPES: General Power of Attorney [general-power-of-attorney] — closest only (0.75, not asserted equivalent): Power of Attorney [Agreements and Contracts; AGR-322]
+- DRAFT_TYPES: Special Power of Attorney [special-power-of-attorney] — closest only (0.69, not asserted equivalent): Power of Attorney [Agreements and Contracts; AGR-322]
+- DRAFT_TYPES: Codicil [codicil] — exact: Codicil [Family Law; FAM-407]
+- DRAFT_TYPES: Trust Deed [trust-deed] — no catalogue match
+- DRAFT_TYPES: Vakalatnama [vakalatnama] — exact: Vakalatnama [Civil Litigation; CIV-045]
+- DRAFT_TYPES: Power of Attorney [power-of-attorney] — exact: Power of Attorney [Agreements and Contracts; AGR-322]
+- DRAFT_TYPES: Sale Agreement [sale-agreement] — exact: Sale Agreement [Agreements and Contracts; AGR-305]
+- DRAFT_TYPES: Rent Agreement [rent-agreement] — exact: Rent Agreement [Agreements and Contracts; AGR-308]
+- DRAFT_TYPES: Partnership Deed [partnership-deed] — exact: Partnership Deed [Agreements and Contracts; AGR-290]
+- DRAFT_TYPES: Gift Deed [gift-deed] — exact: Gift Deed [Family Law; FAM-411]
+- DRAFT_TYPES: Sale Deed [sale-deed] — exact: Sale Deed [Property and Real Estate; PROP-449]
+- DRAFT_TYPES: Agreement to Sell [agreement-to-sell] — exact: Agreement to Sell [Property and Real Estate; PROP-465]
+- DRAFT_TYPES: Lease Deed [lease-deed] — exact: Lease Deed [Property and Real Estate; PROP-459]
+- DRAFT_TYPES: Commercial Lease Agreement [commercial-lease-agreement] — exact: Commercial Lease Agreement [Agreements and Contracts; AGR-310]
+- DRAFT_TYPES: Leave and License Agreement [leave-and-license-agreement] — closest only (0.88, not asserted equivalent): Leave and Licence Agreement [Agreements and Contracts; AGR-309]
+- DRAFT_TYPES: Rent Agreement Renewal [rent-agreement-renewal] — closest only (0.73, not asserted equivalent): Lease Renewal Agreement [Property and Real Estate; PROP-496]
+- DRAFT_TYPES: Eviction Notice [eviction-notice] — no catalogue match
+- DRAFT_TYPES: Notice for Non-Payment of Rent [notice-for-non-payment-of-rent] — exact: Notice for Non-Payment of Rent [Property and Real Estate; PROP-498]
+- DRAFT_TYPES: Property Possession Letter [property-possession-letter] — closest only (0.71, not asserted equivalent): Possession Letter [Property and Real Estate; PROP-461]
+- DRAFT_TYPES: Possession Handover Agreement [possession-handover-agreement] — no catalogue match
+- DRAFT_TYPES: Property Exchange Deed [property-exchange-deed] — closest only (0.61, not asserted equivalent): Exchange Deed [Property and Real Estate; PROP-453]
+- DRAFT_TYPES: Mortgage Deed [mortgage-deed] — exact: Mortgage Deed [Property and Real Estate; PROP-454]
+- DRAFT_TYPES: Release Deed [release-deed] — exact: Release Deed [Property and Real Estate; PROP-455]
+- DRAFT_TYPES: Partition Deed [partition-deed] — exact: Partition Deed [Property and Real Estate; PROP-452]
+- DRAFT_TYPES: Builder-Buyer Agreement [builder-buyer-agreement] — exact: Builder Buyer Agreement [Property and Real Estate; PROP-473]
+- DRAFT_TYPES: Construction Agreement [construction-agreement] — exact: Construction Agreement [Agreements and Contracts; AGR-312]
+- DRAFT_TYPES: Development Agreement [development-agreement] — exact: Development Agreement [Property and Real Estate; PROP-475]
+- DRAFT_TYPES: Joint Development Agreement [joint-development-agreement] — exact: Joint Development Agreement [Property and Real Estate; PROP-476]
+- DRAFT_TYPES: Real Estate Brokerage Agreement [real-estate-brokerage-agreement] — no catalogue match
+- DRAFT_TYPES: Property Management Agreement [property-management-agreement] — exact: Property Management Agreement [Agreements and Contracts; AGR-311]
+- DRAFT_TYPES: Title Verification Checklist [title-verification-checklist] — closest only (0.64, not asserted equivalent): Property Verification Checklist [Property and Real Estate; PROP-463]
+- DRAFT_TYPES: Property Due Diligence Report [property-due-diligence-report] — closest only (0.59, not asserted equivalent): Title Due Diligence Report [Property and Real Estate; PROP-464]
+- DRAFT_TYPES: Memorandum of Understanding for Property [mou-for-property] — closest only (0.69, not asserted equivalent): Memorandum of Understanding [Agreements and Contracts; AGR-287]
+- DRAFT_TYPES: RERA Complaint [rera-complaint] — exact: RERA Complaint [Property and Real Estate; PROP-478]
+- DRAFT_TYPES: RERA Appeal [rera-appeal] — no catalogue match
+- DRAFT_TYPES: Mutation Application [mutation-application] — exact: Mutation Application [Property and Real Estate; PROP-470]
+- DRAFT_TYPES: Land Record Correction Application [land-record-correction-application] — closest only (0.61, not asserted equivalent): Application for Mutation of Land Records [Property and Real Estate; PROP-503]
+- DRAFT_TYPES: Encumbrance Declaration [encumbrance-declaration] — exact: Encumbrance Declaration [Property and Real Estate; PROP-469]
+- DRAFT_TYPES: Boundary Dispute Complaint [boundary-dispute-complaint] — closest only (0.53, not asserted equivalent): Employment Dispute Complaint [Employment and Labour Law; EMP-617]
+- DRAFT_TYPES: Easement Agreement [easement-agreement] — closest only (0.76, not asserted equivalent): Lease Agreement [Agreements and Contracts; AGR-307]
+- DRAFT_TYPES: Will [will] — exact: Will [Family Law; FAM-406]
+- DRAFT_TYPES: Consumer Complaint [consumer-complaint] — exact: Consumer Complaint [Consumer, Banking and Financial Disputes; CONS-650]
+- DRAFT_TYPES: Employment Agreement [employment-agreement] — exact: Employment Agreement [Agreements and Contracts; AGR-264]
+- DRAFT_TYPES: Independent Contractor Agreement [independent-contractor-agreement] — exact: Independent Contractor Agreement [Agreements and Contracts; AGR-266]
+- DRAFT_TYPES: Service Agreement [service-agreement] — closest only (0.75, not asserted equivalent): General Service Agreement [Agreements and Contracts; AGR-260]
+- DRAFT_TYPES: Consultancy Agreement [consultancy-agreement] — exact: Consultancy Agreement [Agreements and Contracts; AGR-262]
+- DRAFT_TYPES: Termination Letter [termination-letter] — exact: Termination Letter [Employment and Labour Law; EMP-606]
+- DRAFT_TYPES: Settlement Agreement [settlement-agreement] — exact: Settlement Agreement [Agreements and Contracts; AGR-302]
+- DRAFT_TYPES: Non-Disclosure Agreement [non-disclosure-agreement] — exact: Non-Disclosure Agreement [Agreements and Contracts; AGR-267]
+- DRAFT_TYPES: Non-Compete Agreement [non-compete-agreement] — exact: Non-Compete Agreement [Agreements and Contracts; AGR-269]
+- DRAFT_TYPES: Non-Solicitation Agreement [non-solicitation-agreement] — closest only (0.53, not asserted equivalent): Separation Agreement [Employment and Labour Law; EMP-624]
+- DRAFT_TYPES: Employee Termination Notice [employee-termination-notice] — closest only (0.50, not asserted equivalent): Notice for Employer Violations [Legal Notices; NOT-245]
+- DRAFT_TYPES: Arbitration Notice [arbitration-notice] — closest only (0.86, not asserted equivalent): Notice of Arbitration [Legal Notices; NOT-222]
+- DRAFT_TYPES: Arbitration Agreement [arbitration-agreement] — closest only (0.68, not asserted equivalent): Separation Agreement [Employment and Labour Law; EMP-624]
+- DRAFT_TYPES: Arbitration Clauses [arbitration-clauses] — closest only (0.53, not asserted equivalent): Notice invoking Arbitration Clause [Legal Notices; NOT-247]
+- DRAFT_TYPES: Writ Petition [writ-petition] — closest only (0.60, not asserted equivalent): Criminal Writ Petition [Criminal Law and Procedure; CRIM-128]
+- DRAFT_TYPES: Civil Appeal [civil-appeal] — no catalogue match
+- DRAFT_TYPES: Special Leave Petition [special-leave-petition] — no catalogue match
+- DRAFT_TYPES: Transfer Petition [transfer-petition] — no catalogue match
+- DRAFT_TYPES: Interlocutory Application [interlocutory-application] — exact: Interlocutory Application [Civil Litigation; CIV-007]
+- DRAFT_TYPES: Miscellaneous Application [miscellaneous-application] — closest only (0.76, not asserted equivalent): Miscellaneous Criminal Application [Criminal Law and Procedure; CRIM-189]
+- DRAFT_TYPES: Interim Relief Application [interim-relief-application] — closest only (0.65, not asserted equivalent): Interim Bail Application [Criminal Law and Procedure; CRIM-109]
+- DRAFT_TYPES: Stay Application [stay-application] — exact: Stay Application [Civil Litigation; CIV-010]
+- DRAFT_TYPES: Injunction Application [injunction-application] — closest only (0.68, not asserted equivalent): Property Injunction Application [Property and Real Estate; PROP-484]
+- DRAFT_TYPES: Caveat Petition [caveat-petition] — exact: Caveat Petition [Civil Litigation; CIV-020]
+- DRAFT_TYPES: Contempt Petition [contempt-petition] — no catalogue match
+- DRAFT_TYPES: Application for Condonation of Delay [condonation-of-delay] — exact: Application for Condonation of Delay [Consumer, Banking and Financial Disputes; CONS-654]
+- DRAFT_TYPES: Application for Restoration [restoration-application] — closest only (0.86, not asserted equivalent): Restoration Application [Civil Litigation; CIV-013]
+- DRAFT_TYPES: Application for Amendment of Pleadings [amendment-of-pleadings] — closest only (0.60, not asserted equivalent): Application for Recording of Easement [Property and Real Estate; PROP-504]
+- DRAFT_TYPES: Evidence Affidavit [evidence-affidavit] — exact: Evidence Affidavit [Civil Litigation; CIV-024]
+- DRAFT_TYPES: List of Documents [list-of-documents] — exact: List of Documents [Civil Litigation; CIV-022]
+- DRAFT_TYPES: Written Submissions [written-submissions] — exact: Written Submissions [Civil Litigation; CIV-046]
+- DRAFT_TYPES: Synopsis and List of Dates [synopsis-and-list-of-dates] — exact: Synopsis and List of Dates [Civil Litigation; CIV-047]
+- DRAFT_TYPES: Memo of Appearance [memo-of-appearance] — exact: Memo of Appearance [Civil Litigation; CIV-044]
+- DRAFT_TYPES: Legal Case Brief [legal-case-brief] — exact: Legal Case Brief [Civil Litigation; CIV-048]
+- DRAFT_TYPES: Criminal Appeal [criminal-appeal] — exact: Criminal Appeal [Criminal Law and Procedure; CRIM-114]
+- DRAFT_TYPES: Criminal Revision Petition [criminal-revision-petition] — exact: Criminal Revision Petition [Criminal Law and Procedure; CRIM-115]
+- DRAFT_TYPES: Default Bail Application [default-bail-application] — exact: Default Bail Application [Criminal Law and Procedure; CRIM-110]
+- DRAFT_TYPES: Interim Bail Application [interim-bail-application] — exact: Interim Bail Application [Criminal Law and Procedure; CRIM-109]
+- DRAFT_TYPES: Bail Cancellation Application [bail-cancellation-application] — exact: Bail Cancellation Application [Criminal Law and Procedure; CRIM-111]
+- DRAFT_TYPES: Discharge Application [discharge-application] — exact: Discharge Application [Criminal Law and Procedure; CRIM-116]
+- DRAFT_TYPES: Quashing Petition [quashing-petition] — exact: Quashing Petition [Criminal Law and Procedure; CRIM-113]
+- DRAFT_TYPES: Protest Petition [protest-petition] — exact: Protest Petition [Criminal Law and Procedure; CRIM-117]
+- DRAFT_TYPES: Application for Further Investigation [application-for-further-investigation] — closest only (0.74, not asserted equivalent): Application Concerning Further Investigation [Criminal Law and Procedure; CRIM-118]
+- DRAFT_TYPES: Private Complaint before Magistrate [private-complaint-before-magistrate] — exact: Private Complaint before Magistrate [Criminal Law and Procedure; CRIM-102]
+- DRAFT_TYPES: Zero FIR Complaint [zero-fir-complaint] — closest only (0.50, not asserted equivalent): Consumer Complaint [Consumer, Banking and Financial Disputes; CONS-650]
+- DRAFT_TYPES: Compounding Application [compounding-application] — exact: Compounding Application [Criminal Law and Procedure; CRIM-122]
+- DRAFT_TYPES: Surrender Application [surrender-application] — exact: Surrender Application [Criminal Law and Procedure; CRIM-121]
+- DRAFT_TYPES: Application for Return of Seized Property [return-of-seized-property] — closest only (0.83, not asserted equivalent): Application for Return of Property [Criminal Law and Procedure; CRIM-125]
+- DRAFT_TYPES: Application for Release of Vehicle [release-of-vehicle] — exact: Application for Release of Vehicle [Criminal Law and Procedure; CRIM-139]
+- DRAFT_TYPES: Application for Exemption from Personal Appearance [exemption-from-personal-appearance] — exact: Application for Exemption from Personal Appearance [Civil Litigation; CIV-051]
+- DRAFT_TYPES: Criminal Miscellaneous Petition [criminal-miscellaneous-petition] — closest only (0.71, not asserted equivalent): Civil Miscellaneous Petition [Civil Litigation; CIV-061]
+- DRAFT_TYPES: Defamation Complaint [defamation-complaint] — closest only (0.84, not asserted equivalent): Complaint for Defamation [Criminal Law and Procedure; CRIM-129]
+- DRAFT_TYPES: Cheque Bounce Complaint [cheque-bounce-complaint] — closest only (0.50, not asserted equivalent): Complaint for Cheque Dishonour [Criminal Law and Procedure; CRIM-130]
+- DRAFT_TYPES: Reply to Criminal Complaint [reply-to-criminal-complaint] — exact: Reply to Criminal Complaint [Criminal Law and Procedure; CRIM-132]
+- DRAFT_TYPES: Criminal Legal Notice [criminal-legal-notice] — closest only (0.50, not asserted equivalent): General Legal Notice [Legal Notices; NOT-194]
+- DRAFT_TYPES: Bail Application [bail-application] — exact: Bail Application [Criminal Law and Procedure; CRIM-106]
+- DRAFT_TYPES: Anticipatory Bail [anticipatory-bail] — closest only (0.69, not asserted equivalent): Anticipatory Bail Application [Criminal Law and Procedure; CRIM-107]
+- DRAFT_TYPES: Regular Bail [regular-bail] — closest only (0.52, not asserted equivalent): Regular Bail Application [Criminal Law and Procedure; CRIM-108]
+- DRAFT_TYPES: FIR Complaint [fir-complaint] — closest only (0.55, not asserted equivalent): Consumer Complaint [Consumer, Banking and Financial Disputes; CONS-650]
+- DRAFT_TYPES: Criminal Complaint [criminal-complaint] — exact: Criminal Complaint [Criminal Law and Procedure; CRIM-101]
+- DRAFT_TYPES: Appeal [appeal] — closest only (0.50, not asserted equivalent): Criminal Appeal [Criminal Law and Procedure; CRIM-114]
+- DRAFT_TYPES: Revision [revision] — closest only (0.64, not asserted equivalent): Revision Petition [Civil Litigation; CIV-018]
+- DRAFT_TYPES: Review Petition [review-petition] — exact: Review Petition [Civil Litigation; CIV-017]
+- DRAFT_TYPES: Execution Petition [execution-petition] — exact: Execution Petition [Civil Litigation; CIV-015]
+- DRAFT_TYPES: Divorce Petition [divorce-petition] — closest only (0.67, not asserted equivalent): Contested Divorce Petition [Family Law; FAM-387]
+- DRAFT_TYPES: Maintenance Petition [maintenance-petition] — closest only (0.57, not asserted equivalent): Maintenance Application [Family Law; FAM-389]
+- DRAFT_TYPES: Child Custody Petition [child-custody-petition] — exact: Child Custody Petition [Family Law; FAM-391]
+- DOCUMENT_SCHEMAS: Legal Notice [Legal Notice] — closest only (0.68, not asserted equivalent): General Legal Notice [Legal Notices; NOT-194]
+- DOCUMENT_SCHEMAS: Rent Agreement [Rent Agreement] — exact: Rent Agreement [Agreements and Contracts; AGR-308]
+- DOCUMENT_SCHEMAS: Affidavit [Affidavit] — closest only (0.59, not asserted equivalent): Evidence Affidavit [Civil Litigation; CIV-024]
+- DOCUMENT_SCHEMAS: Demand Letter [Demand Letter] — no catalogue match
+- DOCUMENT_SCHEMAS: Power of Attorney [Power of Attorney] — exact: Power of Attorney [Agreements and Contracts; AGR-322]
+- DOCUMENT_SCHEMAS: Partnership Agreement [Partnership Agreement] — closest only (0.61, not asserted equivalent): Limited Liability Partnership Agreement [Agreements and Contracts; AGR-380]
+- DOCUMENT_SCHEMAS: Employment Agreement [Employment Agreement] — exact: Employment Agreement [Agreements and Contracts; AGR-264]
+- DOCUMENT_SCHEMAS: Consumer Complaint [Consumer Complaint] — exact: Consumer Complaint [Consumer, Banking and Financial Disputes; CONS-650]
+- DOCUMENT_SCHEMAS: Cheque Bounce Notice (NI Act Section 138) [Cheque Bounce Notice (NI Act Section 138)] — no catalogue match
+- DOCUMENT_SCHEMAS: Vakalatnama [Vakalatnama] — exact: Vakalatnama [Civil Litigation; CIV-045]
+- DOCUMENT_SCHEMAS: General Affidavit [General Affidavit] — no catalogue match
+- DOCUMENT_SCHEMAS: Name Change Affidavit [Name Change Affidavit] — no catalogue match
+- DOCUMENT_SCHEMAS: Declaration [Declaration] — closest only (0.57, not asserted equivalent): Suit for Declaration [Civil Litigation; CIV-035]
+- DOCUMENT_SCHEMAS: Undertaking [Undertaking] — closest only (0.60, not asserted equivalent): Employer Undertaking [Employment and Labour Law; EMP-644]
+- DOCUMENT_SCHEMAS: Indemnity Bond [Indemnity Bond] — no catalogue match
+- DOCUMENT_SCHEMAS: Family Settlement Agreement [Family Settlement Agreement] — closest only (0.70, not asserted equivalent): Family Settlement Deed [Family Law; FAM-402]
+- DOCUMENT_SCHEMAS: Relinquishment Deed [Relinquishment Deed] — exact: Relinquishment Deed [Family Law; FAM-410]
+- DOCUMENT_SCHEMAS: General Power of Attorney [General Power of Attorney] — closest only (0.75, not asserted equivalent): Power of Attorney [Agreements and Contracts; AGR-322]
+- DOCUMENT_SCHEMAS: Special Power of Attorney [Special Power of Attorney] — closest only (0.69, not asserted equivalent): Power of Attorney [Agreements and Contracts; AGR-322]
+- DOCUMENT_SCHEMAS: Trust Deed [Trust Deed] — no catalogue match
+
+BASELINE WORKING TYPES (all existing DRAFT_TYPES entries and DOCUMENT_SCHEMAS are preserved; schema-backed types are the implemented forms):
+- DRAFT_TYPES: Plaint [plaint]
+- DRAFT_TYPES: Written Statement [written-statement]
+- DRAFT_TYPES: Legal Notice [legal-notice]
+- DRAFT_TYPES: Reply to Legal Notice [reply-legal-notice]
+- DRAFT_TYPES: Affidavit [affidavit]
+- DRAFT_TYPES: General Affidavit [general-affidavit]
+- DRAFT_TYPES: Name Change Affidavit [name-change-affidavit]
+- DRAFT_TYPES: Date of Birth Affidavit [date-of-birth-affidavit]
+- DRAFT_TYPES: Address Proof Affidavit [address-proof-affidavit]
+- DRAFT_TYPES: Single Status Affidavit [single-status-affidavit]
+- DRAFT_TYPES: Marriage Affidavit [marriage-affidavit]
+- DRAFT_TYPES: Lost Document Affidavit [lost-document-affidavit]
+- DRAFT_TYPES: Declaration [declaration]
+- DRAFT_TYPES: Undertaking [undertaking]
+- DRAFT_TYPES: Indemnity Bond [indemnity-bond]
+- DRAFT_TYPES: Legal Heir Declaration [legal-heir-declaration]
+- DRAFT_TYPES: Family Settlement Agreement [family-settlement-agreement]
+- DRAFT_TYPES: Relinquishment Deed [relinquishment-deed]
+- DRAFT_TYPES: General Power of Attorney [general-power-of-attorney]
+- DRAFT_TYPES: Special Power of Attorney [special-power-of-attorney]
+- DRAFT_TYPES: Codicil [codicil]
+- DRAFT_TYPES: Trust Deed [trust-deed]
+- DRAFT_TYPES: Vakalatnama [vakalatnama]
+- DRAFT_TYPES: Power of Attorney [power-of-attorney]
+- DRAFT_TYPES: Sale Agreement [sale-agreement]
+- DRAFT_TYPES: Rent Agreement [rent-agreement]
+- DRAFT_TYPES: Partnership Deed [partnership-deed]
+- DRAFT_TYPES: Gift Deed [gift-deed]
+- DRAFT_TYPES: Sale Deed [sale-deed]
+- DRAFT_TYPES: Agreement to Sell [agreement-to-sell]
+- DRAFT_TYPES: Lease Deed [lease-deed]
+- DRAFT_TYPES: Commercial Lease Agreement [commercial-lease-agreement]
+- DRAFT_TYPES: Leave and License Agreement [leave-and-license-agreement]
+- DRAFT_TYPES: Rent Agreement Renewal [rent-agreement-renewal]
+- DRAFT_TYPES: Eviction Notice [eviction-notice]
+- DRAFT_TYPES: Notice for Non-Payment of Rent [notice-for-non-payment-of-rent]
+- DRAFT_TYPES: Property Possession Letter [property-possession-letter]
+- DRAFT_TYPES: Possession Handover Agreement [possession-handover-agreement]
+- DRAFT_TYPES: Property Exchange Deed [property-exchange-deed]
+- DRAFT_TYPES: Mortgage Deed [mortgage-deed]
+- DRAFT_TYPES: Release Deed [release-deed]
+- DRAFT_TYPES: Partition Deed [partition-deed]
+- DRAFT_TYPES: Builder-Buyer Agreement [builder-buyer-agreement]
+- DRAFT_TYPES: Construction Agreement [construction-agreement]
+- DRAFT_TYPES: Development Agreement [development-agreement]
+- DRAFT_TYPES: Joint Development Agreement [joint-development-agreement]
+- DRAFT_TYPES: Real Estate Brokerage Agreement [real-estate-brokerage-agreement]
+- DRAFT_TYPES: Property Management Agreement [property-management-agreement]
+- DRAFT_TYPES: Title Verification Checklist [title-verification-checklist]
+- DRAFT_TYPES: Property Due Diligence Report [property-due-diligence-report]
+- DRAFT_TYPES: Memorandum of Understanding for Property [mou-for-property]
+- DRAFT_TYPES: RERA Complaint [rera-complaint]
+- DRAFT_TYPES: RERA Appeal [rera-appeal]
+- DRAFT_TYPES: Mutation Application [mutation-application]
+- DRAFT_TYPES: Land Record Correction Application [land-record-correction-application]
+- DRAFT_TYPES: Encumbrance Declaration [encumbrance-declaration]
+- DRAFT_TYPES: Boundary Dispute Complaint [boundary-dispute-complaint]
+- DRAFT_TYPES: Easement Agreement [easement-agreement]
+- DRAFT_TYPES: Will [will]
+- DRAFT_TYPES: Consumer Complaint [consumer-complaint]
+- DRAFT_TYPES: Employment Agreement [employment-agreement]
+- DRAFT_TYPES: Independent Contractor Agreement [independent-contractor-agreement]
+- DRAFT_TYPES: Service Agreement [service-agreement]
+- DRAFT_TYPES: Consultancy Agreement [consultancy-agreement]
+- DRAFT_TYPES: Termination Letter [termination-letter]
+- DRAFT_TYPES: Settlement Agreement [settlement-agreement]
+- DRAFT_TYPES: Non-Disclosure Agreement [non-disclosure-agreement]
+- DRAFT_TYPES: Non-Compete Agreement [non-compete-agreement]
+- DRAFT_TYPES: Non-Solicitation Agreement [non-solicitation-agreement]
+- DRAFT_TYPES: Employee Termination Notice [employee-termination-notice]
+- DRAFT_TYPES: Arbitration Notice [arbitration-notice]
+- DRAFT_TYPES: Arbitration Agreement [arbitration-agreement]
+- DRAFT_TYPES: Arbitration Clauses [arbitration-clauses]
+- DRAFT_TYPES: Writ Petition [writ-petition]
+- DRAFT_TYPES: Civil Appeal [civil-appeal]
+- DRAFT_TYPES: Special Leave Petition [special-leave-petition]
+- DRAFT_TYPES: Transfer Petition [transfer-petition]
+- DRAFT_TYPES: Interlocutory Application [interlocutory-application]
+- DRAFT_TYPES: Miscellaneous Application [miscellaneous-application]
+- DRAFT_TYPES: Interim Relief Application [interim-relief-application]
+- DRAFT_TYPES: Stay Application [stay-application]
+- DRAFT_TYPES: Injunction Application [injunction-application]
+- DRAFT_TYPES: Caveat Petition [caveat-petition]
+- DRAFT_TYPES: Contempt Petition [contempt-petition]
+- DRAFT_TYPES: Application for Condonation of Delay [condonation-of-delay]
+- DRAFT_TYPES: Application for Restoration [restoration-application]
+- DRAFT_TYPES: Application for Amendment of Pleadings [amendment-of-pleadings]
+- DRAFT_TYPES: Evidence Affidavit [evidence-affidavit]
+- DRAFT_TYPES: List of Documents [list-of-documents]
+- DRAFT_TYPES: Written Submissions [written-submissions]
+- DRAFT_TYPES: Synopsis and List of Dates [synopsis-and-list-of-dates]
+- DRAFT_TYPES: Memo of Appearance [memo-of-appearance]
+- DRAFT_TYPES: Legal Case Brief [legal-case-brief]
+- DRAFT_TYPES: Criminal Appeal [criminal-appeal]
+- DRAFT_TYPES: Criminal Revision Petition [criminal-revision-petition]
+- DRAFT_TYPES: Default Bail Application [default-bail-application]
+- DRAFT_TYPES: Interim Bail Application [interim-bail-application]
+- DRAFT_TYPES: Bail Cancellation Application [bail-cancellation-application]
+- DRAFT_TYPES: Discharge Application [discharge-application]
+- DRAFT_TYPES: Quashing Petition [quashing-petition]
+- DRAFT_TYPES: Protest Petition [protest-petition]
+- DRAFT_TYPES: Application for Further Investigation [application-for-further-investigation]
+- DRAFT_TYPES: Private Complaint before Magistrate [private-complaint-before-magistrate]
+- DRAFT_TYPES: Zero FIR Complaint [zero-fir-complaint]
+- DRAFT_TYPES: Compounding Application [compounding-application]
+- DRAFT_TYPES: Surrender Application [surrender-application]
+- DRAFT_TYPES: Application for Return of Seized Property [return-of-seized-property]
+- DRAFT_TYPES: Application for Release of Vehicle [release-of-vehicle]
+- DRAFT_TYPES: Application for Exemption from Personal Appearance [exemption-from-personal-appearance]
+- DRAFT_TYPES: Criminal Miscellaneous Petition [criminal-miscellaneous-petition]
+- DRAFT_TYPES: Defamation Complaint [defamation-complaint]
+- DRAFT_TYPES: Cheque Bounce Complaint [cheque-bounce-complaint]
+- DRAFT_TYPES: Reply to Criminal Complaint [reply-to-criminal-complaint]
+- DRAFT_TYPES: Criminal Legal Notice [criminal-legal-notice]
+- DRAFT_TYPES: Bail Application [bail-application]
+- DRAFT_TYPES: Anticipatory Bail [anticipatory-bail]
+- DRAFT_TYPES: Regular Bail [regular-bail]
+- DRAFT_TYPES: FIR Complaint [fir-complaint]
+- DRAFT_TYPES: Criminal Complaint [criminal-complaint]
+- DRAFT_TYPES: Appeal [appeal]
+- DRAFT_TYPES: Revision [revision]
+- DRAFT_TYPES: Review Petition [review-petition]
+- DRAFT_TYPES: Execution Petition [execution-petition]
+- DRAFT_TYPES: Divorce Petition [divorce-petition]
+- DRAFT_TYPES: Maintenance Petition [maintenance-petition]
+- DRAFT_TYPES: Child Custody Petition [child-custody-petition]
+- DOCUMENT_SCHEMAS: Legal Notice
+- DOCUMENT_SCHEMAS: Rent Agreement
+- DOCUMENT_SCHEMAS: Affidavit
+- DOCUMENT_SCHEMAS: Demand Letter
+- DOCUMENT_SCHEMAS: Power of Attorney
+- DOCUMENT_SCHEMAS: Partnership Agreement
+- DOCUMENT_SCHEMAS: Employment Agreement
+- DOCUMENT_SCHEMAS: Consumer Complaint
+- DOCUMENT_SCHEMAS: Cheque Bounce Notice (NI Act Section 138)
+- DOCUMENT_SCHEMAS: Vakalatnama
+- DOCUMENT_SCHEMAS: General Affidavit
+- DOCUMENT_SCHEMAS: Name Change Affidavit
+- DOCUMENT_SCHEMAS: Declaration
+- DOCUMENT_SCHEMAS: Undertaking
+- DOCUMENT_SCHEMAS: Indemnity Bond
+- DOCUMENT_SCHEMAS: Family Settlement Agreement
+- DOCUMENT_SCHEMAS: Relinquishment Deed
+- DOCUMENT_SCHEMAS: General Power of Attorney
+- DOCUMENT_SCHEMAS: Special Power of Attorney
+- DOCUMENT_SCHEMAS: Trust Deed
