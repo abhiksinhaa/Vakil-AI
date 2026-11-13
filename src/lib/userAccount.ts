@@ -2,20 +2,18 @@ import { supabase } from './supabase';
 import type { User } from '@supabase/supabase-js';
 import type { Profile, Subscription } from './types';
 import { buildSubscriptionPayload } from './subscription';
-import { getPlanConfig, normalizePlan, PLAN_CONFIG } from './plans';
+import { getExistingPlanDraftLimit, normalizePlan, PLAN_CONFIG } from './plans';
 
 export const PLAN_PRICING = PLAN_CONFIG;
 
 export const FREE_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const FREE_CHAT_DAILY_LIMIT = 5;
 export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
-export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 5 free drafts. Upgrade to continue.";
-export const PRO_PRICE_PAISE = PLAN_CONFIG.basic.amount;
-export const PRO_PRICE_INR = 149; // Regular Basic plan price (₹99 available for first 100 users)
-export const PROMO_PRICE_PAISE = PLAN_CONFIG.basic.promotionalAmount;
-export const PROMO_PRICE_INR = 99; // Launch promotional price for first 100 users
+export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 3 free drafts. Upgrade to continue.";
+export const PRO_PRICE_PAISE = PLAN_CONFIG.basic.monthlyAmount;
+export const PRO_PRICE_INR = PLAN_CONFIG.basic.monthlyAmount / 100;
 
-export { getPlanConfig };
+export { getPlanConfig } from './plans';
 
 
 
@@ -70,7 +68,7 @@ export async function checkAndHandlePlanExpiry(userId: string, profile?: Partial
 
   return {
     plan: normalizedPlan as Profile['plan'],
-    draftsLimit: Number(currentProfile?.drafts_limit ?? getPlanConfig(currentProfile?.plan).draftsLimit),
+    draftsLimit: Number(currentProfile?.drafts_limit ?? getExistingPlanDraftLimit(currentProfile?.plan)),
     draftsUsed: Number(currentProfile?.drafts_used ?? 0),
     planExpiresAt: currentProfile?.plan_expires_at ?? null,
     reset: false,
@@ -303,10 +301,9 @@ export async function fetchSubscription(): Promise<Subscription | null> {
 }
 
 export async function calculateDraftAllowance(profile: Profile, userId: string, supabaseClient: any = supabase) {
-  const userPlan = String(profile?.plan || 'free').toLowerCase();
-  const paidPlanLimits: Record<string, number> = { basic: 90, pro: 175, firm: 500 };
-  const isPro = Object.prototype.hasOwnProperty.call(paidPlanLimits, userPlan);
-  let limit = isPro ? paidPlanLimits[userPlan] : FREE_DRAFT_LIMIT;
+  const userPlan = normalizePlan(profile?.plan);
+  const isPro = userPlan !== 'free';
+  let limit = Number(profile?.drafts_limit ?? getExistingPlanDraftLimit(userPlan));
   let isPooled = false;
   let queryIds = [userId];
 
@@ -431,7 +428,7 @@ export async function incrementDraftUsage() {
   const sub = await fetchSubscription();
   const planState = await syncProfilePlanState(user.id, profile);
   const plan = planState.plan ?? 'free';
-  const limit = plan !== 'free' ? Number(planState.draftsLimit || getPlanConfig(plan).draftsLimit) : FREE_DRAFT_LIMIT;
+  const limit = Number(planState.draftsLimit ?? getExistingPlanDraftLimit(plan));
   const used = Math.max(0, Number(planState.draftsUsed ?? sub?.drafts_used ?? 0));
 
   if (plan !== 'free' && used >= limit) {

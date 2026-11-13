@@ -494,6 +494,7 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
       console.log('Draft generation successful, displaying to user');
       
       setDraft(text);
+      window.dispatchEvent(new Event('draftee:draft-generated'));
       setIsGenerating(false); // Stop loading immediately so user sees the draft
       
       if (!sessionStorage.getItem('feedback_shown')) {

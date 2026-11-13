@@ -126,6 +126,7 @@ export default function DynamicDocumentForm({ definition }: { definition: Dynami
       });
 
       setGeneratedDraft(text);
+      window.dispatchEvent(new Event('draftee:draft-generated'));
       try {
         await saveDraft({
           draftType: definition.key,

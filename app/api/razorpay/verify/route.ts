@@ -2,6 +2,14 @@ import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 import { adminDb, requireUser } from '../../../../src/lib/supabaseAdmin'
 import { fetchRazorpayOrder } from '../../../../src/lib/razorpayServer'
+import {
+  FIRM_SEAT_CONFIG,
+  LEGACY_PLAN_CONFIG,
+  PLAN_CONFIG,
+  PRICING_VERSION,
+  type BillingCycle,
+  type PaidPlan,
+} from '@/lib/plans'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,12 +47,15 @@ export async function POST(req: Request) {
 
     const order = await fetchRazorpayOrder(razorpay_order_id)
     const orderUserId = order.notes?.userId
-    const plan = order.notes?.plan
-    const expectedBillingCycle = order.notes?.billingCycle === 'annual' ? 'annual' : 'monthly'
+    const plan = String(order.notes?.plan || '')
+    const isPaidPlan = plan === 'basic' || plan === 'pro' || plan === 'firm'
+    const isFirmSeat = plan === 'firm_seat'
+    const expectedBillingCycle: BillingCycle = order.notes?.billingCycle === 'annual' ? 'annual' : 'monthly'
+    const isNewPricingOrder = order.notes?.pricingVersion === PRICING_VERSION
     if (billingCycle && billingCycle !== expectedBillingCycle) {
       return NextResponse.json({ success: false, error: 'Payment billing cycle does not match the order' }, { status: 400 })
     }
-    if (orderUserId !== authenticatedUser.id || !plan || order.amount <= 0) {
+    if (orderUserId !== authenticatedUser.id || (!isPaidPlan && !isFirmSeat) || order.amount <= 0) {
       return NextResponse.json({ success: false, error: 'Payment order does not match the authenticated user' }, { status: 400 })
     }
 
@@ -62,41 +73,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, alreadyProcessed: true })
     }
 
+  const configuredAmount = isFirmSeat
+    ? FIRM_SEAT_CONFIG[`${expectedBillingCycle}Amount`]
+    : PLAN_CONFIG[plan as PaidPlan][`${expectedBillingCycle}Amount`]
+  const legacyAmounts = isFirmSeat
+    ? LEGACY_PLAN_CONFIG.firm_seat[`${expectedBillingCycle}Amounts`]
+    : LEGACY_PLAN_CONFIG[plan as PaidPlan][`${expectedBillingCycle}Amounts`]
+  const legacyFlashSaleAmount = plan === 'pro' && expectedBillingCycle === 'monthly' &&
+    order.notes?.flashSaleApplied === 'true' && order.amount === 19900
+  const amountIsValid = isNewPricingOrder
+    ? order.amount === configuredAmount
+    : legacyAmounts.some((amount) => amount === order.amount) || legacyFlashSaleAmount
+
+  if (!amountIsValid) {
+    return NextResponse.json({ success: false, error: 'Payment amount does not match the selected plan' }, { status: 400 })
+  }
+
   const expiresAt = new Date()
   if (expectedBillingCycle === 'annual') {
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+    if (isNewPricingOrder) {
+      expiresAt.setTime(expiresAt.getTime() + 365 * 24 * 60 * 60 * 1000)
+    } else {
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+    }
   } else {
     expiresAt.setMonth(expiresAt.getMonth() + 1)
   }
 
-  const PLANS: Record<string, any> = {
-    basic: {
-      monthly: { amount: 14900, promotionalAmount: 9900, drafts_limit: 90, plan_name: 'basic' },
-      annual:  { amount: 149900, promotionalAmount: 99900, drafts_limit: 90, plan_name: 'basic' },
-    },
-    pro: {
-      monthly: { amount: 39900, drafts_limit: 175, plan_name: 'pro' },
-      annual:  { amount: 399900, drafts_limit: 175, plan_name: 'pro' },
-    },
-    firm: {
-      monthly: { amount: 99900, drafts_limit: 500, plan_name: 'firm' },
-      annual:  { amount: 999900, drafts_limit: 500, plan_name: 'firm' },
-    },
-    firm_seat: {
-      monthly: { amount: 29900, plan_name: 'firm_seat' },
-      annual:  { amount: 29900, plan_name: 'firm_seat' },
-    }
-  };
-
-  const selectedPlanCycle = PLANS[plan]?.[expectedBillingCycle]
-  const flashSaleAmountValid = plan === 'pro' && expectedBillingCycle === 'monthly' &&
-    order.notes?.flashSaleApplied === 'true' && order.amount === 19900
-  if (!selectedPlanCycle || order.amount !== selectedPlanCycle.amount &&
-    !(plan === 'basic' && order.amount === selectedPlanCycle.promotionalAmount) && !flashSaleAmountValid) {
-    return NextResponse.json({ success: false, error: 'Payment amount does not match the selected plan' }, { status: 400 })
-  }
-  let planName = selectedPlanCycle.plan_name;
-  let draftsLimit = selectedPlanCycle.drafts_limit;
+  const planName = plan
+  const draftsLimit = isPaidPlan
+    ? isNewPricingOrder
+      ? PLAN_CONFIG[plan as PaidPlan].draftsLimit
+      : LEGACY_PLAN_CONFIG[plan as PaidPlan].draftsLimit
+    : undefined
 
   if (plan === 'firm_seat') {
     const { data: profile } = await supabaseAdmin.from('profiles').select('org_id').eq('id', authenticatedUser.id).single();
@@ -112,7 +121,7 @@ export async function POST(req: Request) {
       name: orgName,
       owner_id: authenticatedUser.id,
       seats_total: 3,
-      drafts_limit: 500,
+      drafts_limit: draftsLimit,
       plan_expires_at: expiresAt.toISOString(),
     }).select().single();
 

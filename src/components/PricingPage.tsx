@@ -6,7 +6,7 @@ import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import { startCheckout } from '../lib/razorpay';
 import { createClient } from '../lib/supabase';
-import { getFlashSaleTimeRemaining, isFlashSaleActive } from '../lib/flashSale';
+import { normalizePlan, PLAN_CONFIG } from '../lib/plans';
 
 console.log('SUPABASE URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 console.log('SUPABASE KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
@@ -49,68 +49,56 @@ const GLITTER_STYLES = `
 `;
 
 const PLANS = [
-  { 
-    key: 'free', 
-    label: 'Free', 
-    price: '₹0', 
-    drafts: '5 lifetime drafts',
-    features: ['5 lifetime drafts total', 'Standard generation speed'] 
+  {
+    key: 'free',
+    label: PLAN_CONFIG.free.label,
+    drafts: `${PLAN_CONFIG.free.draftsLimit} lifetime drafts`,
+    features: PLAN_CONFIG.free.features,
   },
-  { 
-    key: 'basic', 
-    label: 'Basic', 
-    monthlyPrice: '₹149/mo',
-    discountedPrice: '₹99/mo',
-    discountPercent: '34% OFF',
-    limitedOffer: 'For First 100 Paying Users',
-    annualPrice: '₹1,499/yr', 
-    drafts: '90 drafts/month',
-    features: ['90 drafts/month', 'Draft History', 'PDF Downloads', 'Future features included'] 
+  {
+    key: 'basic',
+    label: PLAN_CONFIG.basic.label,
+    monthlyAmount: PLAN_CONFIG.basic.monthlyAmount,
+    annualAmount: PLAN_CONFIG.basic.annualAmount,
+    drafts: `${PLAN_CONFIG.basic.draftsLimit} drafts/month`,
+    features: PLAN_CONFIG.basic.features,
   },
-  { 
-    key: 'pro', 
-    label: 'Pro', 
-    monthlyPrice: '₹399/mo',
-    annualPrice: '₹3,999/yr', 
-    drafts: '175 drafts/month',
-    features: ['175 drafts/month', 'Draft History', 'PDF Downloads', 'Priority generation speed'],
-    isPopular: true
+  {
+    key: 'pro',
+    label: PLAN_CONFIG.pro.label,
+    monthlyAmount: PLAN_CONFIG.pro.monthlyAmount,
+    annualAmount: PLAN_CONFIG.pro.annualAmount,
+    drafts: `${PLAN_CONFIG.pro.draftsLimit} drafts/month`,
+    features: PLAN_CONFIG.pro.features,
+    isPopular: true,
   },
   {
     key: 'firm',
-    label: 'Firm',
-    monthlyPrice: '₹999/mo',
-    annualPrice: '₹9,999/yr',
-    drafts: '500 shared drafts/month',
-    features: ['500 pooled drafts/month', '3 Member Seats included', 'Admin Dashboard', 'Priority generation speed']
-  }
+    label: PLAN_CONFIG.firm.label,
+    monthlyAmount: PLAN_CONFIG.firm.monthlyAmount,
+    annualAmount: PLAN_CONFIG.firm.annualAmount,
+    drafts: `${PLAN_CONFIG.firm.draftsLimit} pooled drafts/month`,
+    features: PLAN_CONFIG.firm.features,
+  },
 ] as const;
 
+function formatRupees(amountPaise: number) {
+  return `₹${(amountPaise / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
+
+function annualSavingsPercent(monthlyAmount: number, annualAmount: number) {
+  return Math.round(((monthlyAmount * 12 - annualAmount) / (monthlyAmount * 12)) * 100);
+}
+
 export default function PricingPage() {
-  const { session, profile, refreshAccount, isPro } = useApp();
+  const { session, profile, refreshAccount } = useApp();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
   const [dbPlan, setDbPlan] = useState<string>('free');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    const update = () => setNow(new Date());
-    update();
-    const interval = window.setInterval(update, 1000);
-    return () => window.clearInterval(interval);
-  }, []);
-
-  const flashSaleActive = now ? isFlashSaleActive(now) : false;
-  const saleTimeRemaining = now ? getFlashSaleTimeRemaining(now) : 0;
-  const saleCountdown = [
-    Math.floor(saleTimeRemaining / 3600000),
-    Math.floor((saleTimeRemaining % 3600000) / 60000),
-    Math.floor((saleTimeRemaining % 60000) / 1000),
-  ].map(value => String(value).padStart(2, '0')).join(':');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
 
   useEffect(() => {
     if (session?.user) {
@@ -130,8 +118,9 @@ export default function PricingPage() {
           .single();
         if (data) {
           const planStr = data.plan || 'free';
-          setDbPlan(planStr);
-          setCurrentPlan(planStr === 'free' ? 'Free' : planStr.charAt(0).toUpperCase() + planStr.slice(1));
+          const normalizedPlan = normalizePlan(planStr);
+          setDbPlan(normalizedPlan);
+          setCurrentPlan(PLAN_CONFIG[normalizedPlan].label);
         }
       } catch (err) {
         console.error('Failed to fetch fresh plan', err);
@@ -199,91 +188,95 @@ export default function PricingPage() {
             Current plan: <span className="font-semibold text-gold">{currentPlan}</span>
           </div>
 
-          <div className="flex justify-center mb-8">
+          <div className="flex flex-col items-center justify-center gap-2 mb-8">
             <div className="bg-[#07111f] p-1 rounded-full border border-gold/30 inline-flex">
               <button
                 onClick={() => setBillingCycle('monthly')}
+                aria-pressed={billingCycle === 'monthly'}
                 className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'monthly' ? 'bg-gold text-[#020b14]' : 'text-cream/70 hover:text-cream'}`}
               >
                 Monthly
               </button>
               <button
                 onClick={() => setBillingCycle('annual')}
+                aria-pressed={billingCycle === 'annual'}
                 className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === 'annual' ? 'bg-gold text-[#020b14]' : 'text-cream/70 hover:text-cream'}`}
               >
                 Annual
               </button>
             </div>
+            {billingCycle === 'annual' && (
+              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                Best Value
+              </span>
+            )}
           </div>
 
           {message ? <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</div> : null}
           {error ? <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div> : null}
 
-          <div className="grid gap-6 lg:grid-cols-3 max-w-6xl mx-auto">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 max-w-6xl mx-auto">
             {PLANS.map((plan) => {
               const pPlan = dbPlan || 'free';
               const isActivePlan = pPlan === plan.key;
-              
-              let badge = null;
-              if (plan.key === 'pro' && flashSaleActive) {
-                badge = <span className="rounded-full border border-red-500/60 bg-red-500/15 px-3 py-1 text-xs font-bold text-red-300">FLASH SALE</span>;
-              } else if (isActivePlan) {
-                badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Current Plan</span>;
-              } else if ('isPopular' in plan && plan.isPopular) {
-                badge = <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">Most Popular</span>;
-              } else if (plan.key !== 'free' && billingCycle === 'annual') {
-                badge = <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Save ~2 months</span>;
-              }
+              const existingFreeLimit = profile?.plan === 'free' && typeof profile.drafts_limit === 'number'
+                ? profile.drafts_limit
+                : null;
+              const storedPaidLimit = plan.key === 'firm'
+                ? profile?.organizations?.drafts_limit ?? profile?.drafts_limit
+                : profile?.drafts_limit;
+              const currentPaidLimit = isActivePlan && plan.key !== 'free' && typeof storedPaidLimit === 'number'
+                ? storedPaidLimit
+                : null;
+              const draftDescription = currentPaidLimit !== null
+                ? `${currentPaidLimit}${plan.key === 'firm' ? ' pooled' : ''} drafts/month`
+                : plan.key === 'free' && existingFreeLimit !== null
+                  ? `${existingFreeLimit} lifetime drafts`
+                  : plan.drafts;
+              const features = currentPaidLimit !== null
+                ? [`${currentPaidLimit}${plan.key === 'firm' ? ' pooled' : ''} drafts/month`, ...plan.features.slice(1)]
+                : plan.key === 'free' && existingFreeLimit !== null
+                  ? [`${existingFreeLimit} lifetime drafts`, ...PLAN_CONFIG.free.features.slice(1)]
+                  : plan.features;
 
               return (
                 <div key={plan.key} className="rounded-3xl border border-gold/30 bg-[#07111f] p-6 shadow-[0_0_35px_rgba(212,175,55,0.08)] flex flex-col relative overflow-hidden">
                   {isActivePlan && <div className="absolute inset-0 border-2 border-emerald-500/50 rounded-3xl pointer-events-none" />}
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <h2 className="text-xl font-semibold text-gold">{plan.label}</h2>
-                    {badge}
+                    <div className="flex flex-col items-end gap-1">
+                      {'isPopular' in plan && plan.isPopular && (
+                        <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">Most Popular</span>
+                      )}
+                      {isActivePlan && (
+                        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Current Plan</span>
+                      )}
+                    </div>
                   </div>
-                  <p className="mt-3 text-sm text-cream/70">{plan.drafts}</p>
+                  <p className="mt-3 text-sm text-cream/70">{draftDescription}</p>
                   
                   {plan.key === 'free' ? (
-                    <p className="mt-4 text-4xl font-semibold text-cream">{'price' in plan ? plan.price : '₹0'}</p>
-                  ) : plan.key === 'basic' && 'discountedPrice' in plan ? (
-                    // Basic plan with discount
-                    <div className="mt-6">
-                      {/* Original price with strikethrough and discount badge */}
-                      <div className="flex items-center gap-3 mb-2">
-                        <span style={{ fontSize: '1.1rem', textDecoration: 'line-through', opacity: 0.6, color: '#c9a84c' }}>
-                          {'monthlyPrice' in plan ? plan.monthlyPrice : ''}
-                        </span>
-                        <span className="rounded-full border border-emerald-500/50 bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-300">
-                          {plan.discountPercent || ''}
-                        </span>
-                      </div>
-                      {/* Discounted price - main */}
-                      <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginBottom: '8px' }}>
-                        {plan.discountedPrice}<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mo</span>
-                      </div>
-                      {/* Limited offer text */}
-                      <p style={{ fontSize: '0.85rem', opacity: 0.65, color: '#e8e0d0', fontStyle: 'italic' }}>
-                        {plan.limitedOffer || ''}
-                      </p>
-                    </div>
-                  ) : plan.key === 'pro' && billingCycle === 'monthly' && flashSaleActive ? (
-                    <div className="mt-6">
-                      <div className="mb-1 text-lg text-cream/55 line-through">₹399/mo</div>
-                      <div className="text-[2.4rem] font-extrabold leading-tight text-[#d4af37]">₹199<span className="text-sm font-medium text-cream/65">/mo</span></div>
-                      <p className={`mt-2 text-sm font-semibold ${saleTimeRemaining < 3600000 ? 'text-red-400' : 'text-cream/75'}`}>
-                        Offer ends in {saleCountdown}
-                      </p>
-                    </div>
+                    <p className="mt-4 text-4xl font-semibold text-cream">₹0</p>
                   ) : (
-                    <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#c9a84c', marginTop: '16px' }}>
-                      {('monthlyPrice' in plan ? (billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice) : '').split('/')[0]}<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/{billingCycle === 'annual' ? 'yr' : 'mo'}</span>
+                    <div className="mt-5">
+                      <p className="text-4xl font-extrabold leading-tight text-[#d4af37]">
+                        {formatRupees(billingCycle === 'annual' ? plan.annualAmount : plan.monthlyAmount)}
+                        <span className="text-sm font-medium text-cream/65">/{billingCycle === 'annual' ? 'year' : 'month'}</span>
+                      </p>
+                      {billingCycle === 'annual' ? (
+                        <div className="mt-2 space-y-1 text-sm text-cream/70">
+                          <p>{formatRupees(Math.round(plan.annualAmount / 12))}/month effective</p>
+                          <p className="font-semibold text-emerald-300">
+                            Save {annualSavingsPercent(plan.monthlyAmount, plan.annualAmount)}% vs monthly
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   )}
 
                   <ul className="mt-6 space-y-2 text-sm text-cream/70 flex-1">
-                    {plan.features.map(f => <li key={f}>• {f}</li>)}
+                    {features.map(f => <li key={f}>• {f}</li>)}
                   </ul>
                   
                   {plan.key !== 'free' ? (
@@ -295,7 +288,7 @@ export default function PricingPage() {
                       )}
                       {!isActivePlan && (
                         <button
-                          onClick={() => void handleSubscribe(plan.key as 'basic' | 'pro')}
+                          onClick={() => void handleSubscribe(plan.key)}
                           disabled={loadingPlan === plan.key}
                           className="w-full rounded-full border border-gold/40 px-4 py-3 text-sm font-semibold transition bg-gold text-[#020b14] hover:bg-[#ffd966]"
                         >

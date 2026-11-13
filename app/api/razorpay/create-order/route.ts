@@ -1,12 +1,12 @@
 import Razorpay from 'razorpay'
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isFlashSaleActive } from '@/lib/flashSale'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import {
+  FIRM_SEAT_CONFIG,
+  PLAN_CONFIG,
+  PRICING_VERSION,
+  type BillingCycle,
+  type PaidPlan,
+} from '@/lib/plans'
 
 export async function POST(req: Request) {
   const keyId = process.env.RAZORPAY_KEY_ID
@@ -14,68 +14,32 @@ export async function POST(req: Request) {
   if (!keyId || !keySecret) {
     return NextResponse.json({ error: 'Payment unavailable' }, { status: 500 })
   }
-  const { plan, userId, billingCycle = 'monthly' } = await req.json()
-  
-  const PLANS: Record<string, any> = {
-    basic: {
-      monthly: { amount: 14900, drafts_limit: 90, promotionalAmount: 9900 },
-      annual:  { amount: 149900, drafts_limit: 90, promotionalAmount: 99900 },
-    },
-    pro: {
-      monthly: { amount: 39900, drafts_limit: 175 },
-      annual:  { amount: 399900, drafts_limit: 175 },
-    },
-    firm: {
-      monthly: { amount: 99900, drafts_limit: 500 },
-      annual:  { amount: 999900, drafts_limit: 500 },
-    },
-    firm_seat: {
-      monthly: { amount: 29900 },
-      annual:  { amount: 29900 },
-    }
-  };
 
-  if (!PLANS[plan] || !PLANS[plan][billingCycle]) {
+  const { plan, userId, billingCycle = 'monthly' } = await req.json()
+  const validPlan = plan === 'basic' || plan === 'pro' || plan === 'firm'
+  const validCycle = billingCycle === 'monthly' || billingCycle === 'annual'
+  const validFirmSeat = plan === 'firm_seat'
+
+  if ((!validPlan && !validFirmSeat) || !validCycle) {
     return NextResponse.json({ error: 'Invalid plan or billing cycle' }, { status: 400 })
   }
 
-  // Check if this is a basic plan and if we're within the first 100 paid users
-  let finalAmount = PLANS[plan][billingCycle].amount
-  let discountApplied = false
-  const flashSaleApplied = plan === 'pro' && billingCycle === 'monthly' && isFlashSaleActive()
-
-  if (flashSaleApplied) {
-    finalAmount = 19900
-  }
-
-  if (plan === 'basic' && PLANS[plan][billingCycle].promotionalAmount) {
-    // Count existing paid users (plan != 'free' and plan_expires_at is in future)
-    const now = new Date().toISOString()
-    const { count: paidUserCount, error: countError } = await supabaseAdmin
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .neq('plan', 'free')
-      .gt('plan_expires_at', now)
-
-    if (!countError && paidUserCount !== null && paidUserCount < 100) {
-      // We're within the first 100 paid users, apply discount
-      finalAmount = PLANS[plan][billingCycle].promotionalAmount
-      discountApplied = true
-    }
-  }
+  const selectedCycle = billingCycle as BillingCycle
+  const amount = validFirmSeat
+    ? FIRM_SEAT_CONFIG[`${selectedCycle}Amount`]
+    : PLAN_CONFIG[plan as PaidPlan][`${selectedCycle}Amount`]
 
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
   const order = await razorpay.orders.create({
-    amount: finalAmount,
+    amount,
     currency: 'INR',
-    receipt: `receipt_${Date.now()}`,
-    notes: { plan, userId, billingCycle, discountApplied: String(discountApplied), flashSaleApplied: String(flashSaleApplied) },
+    receipt: `draftee_${plan}_${Date.now()}`,
+    notes: { plan, userId, billingCycle: selectedCycle, pricingVersion: PRICING_VERSION },
   })
-  return NextResponse.json({ 
-    orderId: order.id, 
-    amount: order.amount, 
+
+  return NextResponse.json({
+    orderId: order.id,
+    amount: order.amount,
     plan,
-    discountApplied,
-    flashSaleApplied,
   })
 }

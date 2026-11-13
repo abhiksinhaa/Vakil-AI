@@ -4,15 +4,10 @@ export const maxDuration = 60; // Allow up to 60s execution on Vercel
 
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { calculateDraftAllowance, FREE_DRAFT_LIMIT } from '../../../src/lib/userAccount';
+import { calculateDraftAllowance } from '../../../src/lib/userAccount';
 import { requireUser } from '../../../src/lib/supabaseAdmin';
 import { getDynamicDocument } from '../../../src/lib/legal-documents/registry';
-
-const PAID_DRAFT_LIMITS = {
-  basic: 90,
-  pro: 175,
-  firm: 500,
-} as const;
+import { getExistingPlanDraftLimit, normalizePlan } from '../../../src/lib/plans';
 
 function buildJurisdictionPrompt(state: string, courtLevel: string): string {
   const courtFormats: Record<string, string> = {
@@ -216,19 +211,20 @@ export async function POST(req: Request) {
       .eq('id', userId)
       .maybeSingle();
 
-    const profilePlan = String(profile.plan || '').toLowerCase();
-    const subscriptionPlan = String(subscription?.plan || '').toLowerCase();
-    const entitlementPlan = Object.prototype.hasOwnProperty.call(PAID_DRAFT_LIMITS, profilePlan)
+    const rawProfilePlan = String(profile.plan || '').toLowerCase();
+    const profilePlan = normalizePlan(rawProfilePlan);
+    const subscriptionPlan = normalizePlan(subscription?.plan);
+    const hasKnownProfilePlan = ['basic', 'pro', 'premium', 'firm'].includes(rawProfilePlan);
+    const hasKnownSubscriptionPlan = ['basic', 'pro', 'premium', 'firm'].includes(String(subscription?.plan || '').toLowerCase());
+    const entitlementPlan = hasKnownProfilePlan
       ? profilePlan
-      : profilePlan === 'free' || !profilePlan
+      : rawProfilePlan === 'free' || !rawProfilePlan
         ? 'free'
-        : Object.prototype.hasOwnProperty.call(PAID_DRAFT_LIMITS, subscriptionPlan)
+        : hasKnownSubscriptionPlan
           ? subscriptionPlan
           : 'free';
-    profile.plan = entitlementPlan as any;
-    profile.drafts_limit = entitlementPlan === 'free'
-      ? FREE_DRAFT_LIMIT
-      : PAID_DRAFT_LIMITS[entitlementPlan as keyof typeof PAID_DRAFT_LIMITS];
+    profile.plan = entitlementPlan;
+    profile.drafts_limit = Number(profile.drafts_limit ?? getExistingPlanDraftLimit(entitlementPlan));
     // Ask Draftee AI is premium-only; draft generation uses the configured draft allowance.
     if (isChatRequest) {
       const premiumPlans = ['basic', 'pro', 'premium', 'firm'];
@@ -258,13 +254,13 @@ export async function POST(req: Request) {
           .from('profiles')
           .update({ 
             plan: 'free',
-            drafts_limit: 10,
+            drafts_limit: getExistingPlanDraftLimit('free'),
             drafts_used: 0,
           })
           .eq('id', userId)
         
         profile.plan = 'free'
-        profile.drafts_limit = 10
+        profile.drafts_limit = getExistingPlanDraftLimit('free')
     }
 
     console.log('Draft check:', {

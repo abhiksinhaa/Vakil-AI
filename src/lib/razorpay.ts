@@ -1,3 +1,5 @@
+import { PLAN_CONFIG } from './plans';
+
 interface CheckoutOptions {
   plan: 'basic' | 'pro' | 'firm' | 'firm_seat';
   billingCycle?: 'monthly' | 'annual';
@@ -51,6 +53,7 @@ export async function startCheckout({ plan, billingCycle = 'monthly', userId, us
   // 2. Load SDK
   const Razorpay = await loadRazorpayScript();
   await new Promise(resolve => setTimeout(resolve, 2000));
+  const planLabel = plan === 'firm_seat' ? 'Firm extra seat' : `${PLAN_CONFIG[plan].label} plan`;
 
   // 3. Initialize Razorpay and open checkout
   return new Promise((resolve, reject) => {
@@ -59,11 +62,7 @@ export async function startCheckout({ plan, billingCycle = 'monthly', userId, us
       amount: orderData.amount,
       currency: 'INR',
       name: 'Draftee',
-      description: orderData.flashSaleApplied
-        ? 'Pro Plan - Flash Sale ₹199'
-        : orderData.discountApplied
-          ? 'Premium Plan - Launch Price ₹99'
-          : 'Premium Plan ₹149',
+      description: `${planLabel} - ${billingCycle === 'annual' ? 'Annual' : 'Monthly'}`,
       order_id: orderData.orderId,
       prefill: {
         email: userEmail || '',

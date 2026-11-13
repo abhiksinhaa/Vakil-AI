@@ -322,7 +322,7 @@ export default function ResearchContent() {
               opacity: 0.45, 
               fontSize: '0.78rem' 
             }}>
-              Starting at ₹149/month
+              Starting at ₹199/month
             </p>
           </div>
         </div>

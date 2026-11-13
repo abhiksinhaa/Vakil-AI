@@ -15,7 +15,11 @@ export const metadata: Metadata = {
   description:
     'AI-powered legal drafts for Indian advocates. Describe a situation, get a court-ready draft in seconds.',
   applicationName: 'Draftee',
-  icons: { icon: '/logo.png' },
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/logo.png',
+    apple: '/icons/icon-192.png',
+  },
   openGraph: {
     siteName: 'Draftee',
     title: 'Legal Notice, Cheque Bounce Draft Online India | Draftee',
@@ -38,6 +42,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: '#0a0f1e',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -58,7 +63,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        <Providers>
+        <Providers oneSignalAppId={process.env.ONESIGNAL_APP_ID ?? ''}>
           <FlashSaleBanner />
           <main style={{ paddingBottom: '72px' }}>{children}</main>
           <BottomNav />
