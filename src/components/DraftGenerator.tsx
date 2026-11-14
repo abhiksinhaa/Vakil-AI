@@ -7,9 +7,10 @@ import Navbar from './Navbar';
 import DraftPreview from './DraftPreview';
 import FeedbackPopup from './FeedbackPopup';
 import FactsTextareaWithMic from './FactsTextareaWithMic';
-import { generateLegalDraft, buildDraftPrompt } from '../lib/claude';
+import { DraftGenerationError, generateLegalDraft, buildDraftPrompt } from '../lib/claude';
 import { saveDraft } from '../lib/db';
 import DraftTypeSelector from './DraftTypeSelector';
+import PricingPage from './PricingPage';
 import { useApp } from '../context/AppContext';
 import {
   isUserProfileComplete,
@@ -24,6 +25,7 @@ import { DOCUMENT_SCHEMAS } from '../lib/draftSchemas';
 import { DRAFT_TYPES as NEW_DRAFT_TYPES } from '../data/legalDraftTypes';
 import type { Profile } from '../lib/types';
 import { supabase } from '../lib/supabase';
+import { getFreeTrialStatus } from '../lib/plans';
 
 const AFFIDAVIT_SUB_TYPES = [
   "General Affidavit",
@@ -122,6 +124,9 @@ export default function DraftGenerator() {
   const [draftsUsed, setDraftsUsed] = useState(0);
   const [draftLimit, setDraftLimit] = useState(5);
   const [plan, setPlan] = useState('free');
+  const [allowanceLoaded, setAllowanceLoaded] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState<string | null>(null);
   const [feedbackThreshold, setFeedbackThreshold] = useState<number>(3);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -145,7 +150,7 @@ export default function DraftGenerator() {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('plan, drafts_used, drafts_limit, full_name, advocate_name, org_id')
+        .select('plan, drafts_used, drafts_limit, full_name, advocate_name, org_id, created_at')
         .eq('id', user.id)
         .single()
       
@@ -174,29 +179,20 @@ export default function DraftGenerator() {
   }, []);
 
   const refreshDraftCount = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('drafts_limit, plan')
-      .eq('id', user.id)
-      .single()
-      
-    const { count } = await supabase
-      .from('drafts')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      
-    if (profile) {
-      setDraftsUsed(count ?? 0)
-      setDraftLimit(profile.plan === 'basic' ? 999999 : 5)
-      setPlan(profile.plan || 'free')
+    if (!session?.user?.id) return;
+    const allowance = await checkDraftAllowance();
+    setDraftsUsed(allowance.used);
+    setDraftLimit(allowance.limit);
+    setAllowanceLoaded(true);
+    if (!allowance.isPro && !allowance.allowed && allowance.reason !== 'unauthenticated') {
+      setPaywallMessage(allowance.message || null);
+      setPaywallOpen(true);
     }
   }
 
   useEffect(() => {
-    refreshDraftCount()
-  }, [])
+    refreshDraftCount().catch((err) => console.error('Failed to refresh draft allowance:', err));
+  }, [session?.user?.id, accountLoading]);
 
   useEffect(() => {
     // feedback triggering moved to generateDraft to only show once after successful generation
@@ -232,16 +228,12 @@ export default function DraftGenerator() {
       }));
       setProfileFilled(isUserProfileComplete(profile));
 
-      const usedCount = Number(profile.drafts_used ?? 0);
-      if (Number.isFinite(usedCount)) {
-        setDraftsUsed(Math.max(0, usedCount));
-      }
-      const planLimit = Number(profile.drafts_limit ?? DAILY_DRAFT_LIMIT);
-      setDraftLimit(Number.isFinite(planLimit) ? planLimit : DAILY_DRAFT_LIMIT);
+      setPlan(profile.plan || 'free');
     }
   }, [profile]);
 
   const quotaExhausted = draftsUsed >= draftLimit;
+  const trialStatus = plan === 'free' ? getFreeTrialStatus(profile?.created_at) : null;
 
   const update = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -366,7 +358,16 @@ export default function DraftGenerator() {
       event.stopPropagation();
     }
 
-    if (isGenerating || accountLoading || quotaExhausted) {
+    if (isGenerating || accountLoading || (plan === 'free' && quotaExhausted)) {
+      if (!isGenerating && !accountLoading && plan === 'free' && quotaExhausted) {
+        const trial = getFreeTrialStatus(profile?.created_at);
+        setPaywallMessage(trial?.active
+          ? "Aaj ke 5 free drafts ho gaye. Your limit resets at midnight IST."
+          : trial
+            ? 'Your 7-day free trial has ended. Upgrade to keep drafting.'
+            : 'Your free drafts are over. Choose Basic or Pro to continue.');
+        setPaywallOpen(true);
+      }
       console.log('[draft-generator] Generate Draft blocked', { isGenerating, accountLoading, draftsUsed, limit: draftLimit });
       return;
     }
@@ -436,7 +437,12 @@ export default function DraftGenerator() {
         if (!allowance.allowed) {
           console.log('[RATE-LIMIT] Draft limit reached, blocking generation', { used: allowance.used, limit: allowance.limit, reason: allowance.reason });
           setIsGenerating(false);
-          setError(allowance.message || DAILY_DRAFT_LIMIT_MESSAGE);
+          if (!allowance.isPro && allowance.reason !== 'unauthenticated') {
+            setPaywallMessage(allowance.message || null);
+            setPaywallOpen(true);
+          } else {
+            setError(allowance.message || DAILY_DRAFT_LIMIT_MESSAGE);
+          }
           return;
         }
         console.log('[RATE-LIMIT] Generation allowed, proceeding...', { used: allowance.used, limit: allowance.limit });
@@ -540,7 +546,17 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
     } catch (err: any) {
       console.error('Draft generation error:', err);
       console.log('Error if any:', err);
-      setError(err.message || 'Draft could not be generated. Please try again.');
+      if (err instanceof DraftGenerationError && [
+        'TRIAL_ENDED',
+        'DAILY_LIMIT_REACHED',
+        'FREE_LIMIT_REACHED',
+      ].includes(err.code || '')) {
+        setPaywallMessage(err.message);
+        setPaywallOpen(true);
+        setError(null);
+      } else {
+        setError(err.message || 'Draft could not be generated. Please try again.');
+      }
       setIsGenerating(false); // Ensure we stop loading on error
     }
   };
@@ -599,6 +615,22 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             Create New Draft
           </h1>
         </div>
+
+        {(() => {
+        if (!trialStatus?.active || accountLoading || !allowanceLoaded) return null;
+          const remainingToday = Math.max(0, DAILY_DRAFT_LIMIT - draftsUsed);
+          return (
+            <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+            trialStatus.isLastTwoDays
+                ? 'border-amber-400/70 bg-amber-500/15 text-amber-100'
+                : 'border-gold/30 bg-gold/5 text-cream/80'
+            }`}>
+            {trialStatus.isLastTwoDays ? 'Trial ka last stretch hai. ' : 'Your free trial: '}
+            {trialStatus.daysLeft} {trialStatus.daysLeft === 1 ? 'day' : 'days'} left, {remainingToday} drafts left today.
+              {' '}Daily limit resets at midnight IST.
+            </div>
+          );
+        })()}
 
         {profile && !profileFilled && (
           <div className="mb-6 p-4 rounded-xl border border-gold/40 bg-gold/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -710,38 +742,26 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
             </div>
 
             <div className="sticky bottom-0 z-[40] bg-navy/95 backdrop-blur-sm pt-2 pb-2 sm:pb-0 mt-4">
-              {draftsUsed < draftLimit || plan !== 'free' ? (
-                <>
-                  <p style={{ 
-                    fontSize: '0.85rem', opacity: 0.7, 
-                    marginBottom: '12px', textAlign: 'center',
-                    color: '#e8e0d0'
-                  }}>
-                    {plan === 'free' ? `${draftsUsed}/${draftLimit} free drafts used` : 'Unlimited Premium Drafts'}
-                  </p>
-                  <button
-                    id="generate-draft-button"
-                    type="button"
-                    onClick={() => void handleGenerateTap()}
-                    disabled={isGenerating || accountLoading}
-                    className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${isGenerating || accountLoading ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
-                  >
-                    {isGenerating ? 'Generating...' : 'Generate Draft'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-gold text-center mb-3 text-sm font-medium">
-                    You have reached your free limit. Please upgrade your plan.
-                  </p>
-                  <button
-                    disabled
-                    className="w-full rounded-2xl bg-gray-500 opacity-50 cursor-not-allowed px-5 py-3 text-sm font-semibold text-white"
-                  >
-                    Generate Draft
-                  </button>
-                </>
-              )}
+              <p style={{
+                fontSize: '0.85rem', opacity: 0.7,
+                marginBottom: '12px', textAlign: 'center',
+                color: '#e8e0d0'
+              }}>
+                {plan === 'free'
+                  ? trialStatus?.active
+                    ? `${draftsUsed}/${draftLimit} drafts used today`
+                    : `${draftsUsed}/${draftLimit} free drafts used`
+                  : 'Premium draft allowance applies'}
+              </p>
+              <button
+                id="generate-draft-button"
+                type="button"
+                onClick={() => void handleGenerateTap()}
+                disabled={isGenerating || accountLoading}
+                className={`w-full min-h-[56px] py-4 text-lg font-semibold shadow-lg transition-all touch-manipulation select-none rounded-lg font-bold ${isGenerating || accountLoading ? 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50 shadow-gray-600/10' : 'bg-gold text-[#020b14] hover:bg-[#ffd966]'}`}
+              >
+                {isGenerating ? 'Generating...' : 'Generate Draft'}
+              </button>
             </div>
 
             <section className="card space-y-4 transition-all duration-300">
@@ -750,7 +770,7 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
                 onClick={() => setShowAdvancedDetails(!showAdvancedDetails)}
                 className="w-full flex items-center justify-between"
               >
-                <h2 className="font-display text-lg text-gold">Add More Details (Optional) — improves accuracy</h2>
+                <h2 className="font-display text-lg text-gold">Add More Details (Optional, improves accuracy)</h2>
                 <span className={`text-gold transition-transform duration-300 ${showAdvancedDetails ? 'rotate-180' : ''}`}>
                   ▼
                 </span>
@@ -984,6 +1004,13 @@ Situation: ${submissionForm.situation || 'Not provided'}`;
         onSubmit={handleFeedbackSubmit}
         onSkip={handleFeedbackSkip}
       />
+      {paywallOpen && (
+        <PricingPage
+          paywall
+          notice={paywallMessage}
+          onClose={() => setPaywallOpen(false)}
+        />
+      )}
     </div>
   );
 }

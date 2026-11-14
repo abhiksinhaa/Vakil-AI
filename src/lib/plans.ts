@@ -4,14 +4,57 @@ export type BillingCycle = 'monthly' | 'annual';
 
 export const PRICING_VERSION = '2026-11-v2';
 
+export const FREE_TRIAL_CUTOFF = '2026-11-14T11:15:00+05:30';
+export const FREE_TRIAL_DAYS = 7;
+export const FREE_TRIAL_DAILY_DRAFT_LIMIT = 5;
+
+const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+const IST_OFFSET_MINUTES = 5 * 60 + 30;
+
+export function getFreeTrialStatus(createdAt?: string | null, now = new Date()) {
+  const createdAtMs = createdAt ? Date.parse(createdAt) : Number.NaN;
+  const cutoffMs = Date.parse(FREE_TRIAL_CUTOFF);
+  if (!Number.isFinite(createdAtMs) || createdAtMs < cutoffMs) return null;
+
+  const endsAt = new Date(createdAtMs + FREE_TRIAL_DAYS * DAY_IN_MILLISECONDS);
+  const remainingMilliseconds = endsAt.getTime() - now.getTime();
+  const active = remainingMilliseconds > 0;
+
+  return {
+    endsAt,
+    active,
+    daysLeft: active ? Math.ceil(remainingMilliseconds / DAY_IN_MILLISECONDS) : 0,
+    isLastTwoDays: active && remainingMilliseconds <= 2 * DAY_IN_MILLISECONDS,
+  };
+}
+
+export function getIstDateKey(now = new Date()) {
+  const istNow = new Date(now.getTime() + IST_OFFSET_MINUTES * 60 * 1000);
+  const year = istNow.getUTCFullYear();
+  const month = String(istNow.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(istNow.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getIstDayRange(now = new Date()) {
+  const [year, month, day] = getIstDateKey(now).split('-').map(Number);
+  const istMidnightUtc = Date.UTC(year, month - 1, day);
+  const start = new Date(istMidnightUtc - IST_OFFSET_MINUTES * 60 * 1000);
+
+  return {
+    start: start.toISOString(),
+    end: new Date(start.getTime() + DAY_IN_MILLISECONDS).toISOString(),
+  };
+}
+
 export const PLAN_CONFIG = {
   free: {
-    label: 'Free',
+    label: '7-Day Free Trial',
     monthlyAmount: 0,
     annualAmount: 0,
-    draftsLimit: 3,
+    draftsLimit: FREE_TRIAL_DAILY_DRAFT_LIMIT,
     existingDraftsLimit: 5,
-    features: ['3 lifetime drafts', 'Standard generation speed'],
+    features: ['7-day free trial', 'Up to 5 drafts per day', 'Standard generation speed'],
     planId: '',
   },
   basic: {

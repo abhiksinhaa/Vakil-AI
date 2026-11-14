@@ -6,7 +6,8 @@ import Navbar from './Navbar';
 import { useApp } from '../context/AppContext';
 import { startCheckout } from '../lib/razorpay';
 import { createClient } from '../lib/supabase';
-import { normalizePlan, PLAN_CONFIG } from '../lib/plans';
+import { getExistingPlanDraftLimit, getFreeTrialStatus, normalizePlan, PLAN_CONFIG } from '../lib/plans';
+import { checkDraftAllowance } from '../lib/userAccount';
 
 console.log('SUPABASE URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 console.log('SUPABASE KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
@@ -90,11 +91,18 @@ function annualSavingsPercent(monthlyAmount: number, annualAmount: number) {
   return Math.round(((monthlyAmount * 12 - annualAmount) / (monthlyAmount * 12)) * 100);
 }
 
-export default function PricingPage() {
+interface PricingPageProps {
+  paywall?: boolean;
+  notice?: string | null;
+  onClose?: () => void;
+}
+
+export default function PricingPage({ paywall = false, notice, onClose }: PricingPageProps) {
   const { session, profile, refreshAccount } = useApp();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [freeAllowance, setFreeAllowance] = useState<Awaited<ReturnType<typeof checkDraftAllowance>> | null>(null);
 
   const [currentPlan, setCurrentPlan] = useState<string>('Free');
   const [dbPlan, setDbPlan] = useState<string>('free');
@@ -105,6 +113,13 @@ export default function PricingPage() {
       refreshAccount().catch(err => console.error('Failed to refresh account on pricing page mount', err));
     }
   }, [session?.user]); // Only run when user session is available
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    checkDraftAllowance()
+      .then(setFreeAllowance)
+      .catch((err) => console.error('Failed to load pricing allowance:', err));
+  }, [session?.user?.id]);
 
   // Calculate formatted plan for display
   useEffect(() => {
@@ -160,12 +175,44 @@ export default function PricingPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#020b14] flex flex-col relative overflow-hidden">
-      <style>{GLITTER_STYLES}</style>
-      <Navbar />
+  const trial = profile?.plan === 'free' ? getFreeTrialStatus(profile.created_at) : null;
+  const trialActive = Boolean(trial?.active);
+  const freeEnded = Boolean(trial && !trial.active) ||
+    (profile?.plan === 'free' && freeAllowance?.remaining === 0);
+  const displayedCurrentPlan = dbPlan === 'free'
+    ? trialActive
+      ? '7-Day Free Trial'
+      : freeEnded
+        ? 'Free ended'
+        : 'Free'
+    : currentPlan;
 
-      <div className="flex-1 w-full px-4 py-10 flex flex-col items-center justify-center relative z-10">
+  return (
+    <div
+      className={paywall
+        ? 'fixed inset-0 z-[100] overflow-y-auto bg-[#020b14]/95 px-2 py-4 sm:px-6'
+        : 'min-h-screen bg-[#020b14] flex flex-col relative overflow-hidden'}
+      onClick={paywall ? (event) => {
+        if (event.target === event.currentTarget) onClose?.();
+      } : undefined}
+      role={paywall ? 'dialog' : undefined}
+      aria-modal={paywall ? true : undefined}
+      aria-label={paywall ? 'Unlock Premium to draft more' : undefined}
+    >
+      <style>{GLITTER_STYLES}</style>
+      {!paywall && <Navbar />}
+      {paywall && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close pricing"
+          className="fixed right-4 top-4 z-[110] rounded-full border border-gold/40 bg-[#07111f] px-3 py-2 text-sm text-cream hover:text-gold"
+        >
+          Close
+        </button>
+      )}
+
+      <div className={`${paywall ? 'mx-auto w-full max-w-7xl px-2 py-10 sm:px-4' : 'flex-1 w-full px-4 py-10'} flex flex-col items-center justify-center relative z-10`}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gold/5 blur-[150px] rounded-full pointer-events-none"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#d4af37]/10 blur-[100px] rounded-full pointer-events-none"></div>
 
@@ -176,16 +223,20 @@ export default function PricingPage() {
               <span className="sparkle-dot" style={{ top: '20px', right: '-30px', animationDelay: '0.7s' }}></span>
               <span className="sparkle-dot" style={{ bottom: '-15px', left: '40%', animationDelay: '1.2s' }}></span>
               <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight px-6 py-4">
-                <span className="mx-4 glitter-text">Choose Your Premium Plan</span>
+                <span className="mx-4 glitter-text">
+                  {paywall ? 'Unlock Premium to draft more' : 'Choose Your Premium Plan'}
+                </span>
               </h1>
             </div>
             <p className="text-cream/90 text-lg max-w-3xl mx-auto font-light leading-relaxed">
-              Unlock higher monthly draft limits with secure Razorpay checkout.
+              {paywall
+                ? notice || 'Upgrade your plan to continue drafting.'
+                : 'Unlock higher monthly draft limits with secure Razorpay checkout.'}
             </p>
           </div>
 
           <div className="mb-6 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-4 text-sm text-cream/90 text-center">
-            Current plan: <span className="font-semibold text-gold">{currentPlan}</span>
+            Current plan: <span className="font-semibold text-gold">{displayedCurrentPlan}</span>
           </div>
 
           <div className="flex flex-col items-center justify-center gap-2 mb-8">
@@ -219,24 +270,38 @@ export default function PricingPage() {
             {PLANS.map((plan) => {
               const pPlan = dbPlan || 'free';
               const isActivePlan = pPlan === plan.key;
-              const existingFreeLimit = profile?.plan === 'free' && typeof profile.drafts_limit === 'number'
-                ? profile.drafts_limit
-                : null;
+              const freeRemaining = freeAllowance?.remaining;
+              const freeLabel = trialActive
+                ? '7-Day Free Trial'
+                : trial
+                  ? 'Free Trial Ended'
+                  : freeEnded
+                    ? 'Free (Ended)'
+                    : 'Free';
+              const existingFreeLimit = getExistingPlanDraftLimit('free');
               const storedPaidLimit = plan.key === 'firm'
                 ? profile?.organizations?.drafts_limit ?? profile?.drafts_limit
                 : profile?.drafts_limit;
               const currentPaidLimit = isActivePlan && plan.key !== 'free' && typeof storedPaidLimit === 'number'
                 ? storedPaidLimit
                 : null;
-              const draftDescription = currentPaidLimit !== null
-                ? `${currentPaidLimit}${plan.key === 'firm' ? ' pooled' : ''} drafts/month`
-                : plan.key === 'free' && existingFreeLimit !== null
-                  ? `${existingFreeLimit} lifetime drafts`
+              const draftDescription = plan.key === 'free'
+                ? trialActive
+                  ? `${trial?.daysLeft} ${trial?.daysLeft === 1 ? 'day' : 'days'} left, ${freeRemaining ?? PLAN_CONFIG.free.draftsLimit} drafts left today`
+                  : freeEnded
+                    ? 'Free access ended. Choose Basic or Pro to continue.'
+                    : `${freeRemaining ?? existingFreeLimit ?? PLAN_CONFIG.free.existingDraftsLimit} free drafts remaining`
+                : currentPaidLimit !== null
+                  ? `${currentPaidLimit}${plan.key === 'firm' ? ' pooled' : ''} drafts/month`
                   : plan.drafts;
-              const features = currentPaidLimit !== null
-                ? [`${currentPaidLimit}${plan.key === 'firm' ? ' pooled' : ''} drafts/month`, ...plan.features.slice(1)]
-                : plan.key === 'free' && existingFreeLimit !== null
-                  ? [`${existingFreeLimit} lifetime drafts`, ...PLAN_CONFIG.free.features.slice(1)]
+              const features = plan.key === 'free'
+                ? trialActive
+                  ? [`${trial?.daysLeft} days remaining`, `${freeRemaining ?? PLAN_CONFIG.free.draftsLimit} drafts left today`, ...PLAN_CONFIG.free.features.slice(2)]
+                  : freeEnded
+                    ? ['Free allowance ended', 'Upgrade to Basic or Pro to draft more']
+                    : [`${freeRemaining ?? existingFreeLimit ?? PLAN_CONFIG.free.existingDraftsLimit} lifetime drafts remaining`, 'Standard generation speed']
+                : currentPaidLimit !== null
+                  ? [`${currentPaidLimit}${plan.key === 'firm' ? ' pooled' : ''} drafts/month`, ...plan.features.slice(1)]
                   : plan.features;
 
               return (
@@ -244,7 +309,9 @@ export default function PricingPage() {
                   {isActivePlan && <div className="absolute inset-0 border-2 border-emerald-500/50 rounded-3xl pointer-events-none" />}
                   
                   <div className="flex items-start justify-between gap-2">
-                    <h2 className="text-xl font-semibold text-gold">{plan.label}</h2>
+                    <h2 className="text-xl font-semibold text-gold">
+                      {plan.key === 'free' ? freeLabel : plan.label}
+                    </h2>
                     <div className="flex flex-col items-end gap-1">
                       {'isPopular' in plan && plan.isPopular && (
                         <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">Most Popular</span>
@@ -307,9 +374,19 @@ export default function PricingPage() {
           </div>
 
           <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Link href="/dashboard" className="inline-flex items-center justify-center rounded-full border border-gold/40 px-6 py-3 text-sm font-medium text-gold hover:bg-gold hover:text-[#020b14] transition-all">
-              Return to Dashboard
-            </Link>
+            {paywall ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex items-center justify-center rounded-full border border-gold/40 px-6 py-3 text-sm font-medium text-gold hover:bg-gold hover:text-[#020b14] transition-all"
+              >
+                Maybe later
+              </button>
+            ) : (
+              <Link href="/dashboard" className="inline-flex items-center justify-center rounded-full border border-gold/40 px-6 py-3 text-sm font-medium text-gold hover:bg-gold hover:text-[#020b14] transition-all">
+                Return to Dashboard
+              </Link>
+            )}
             
             {process.env.NODE_ENV === 'development' && (
               <button

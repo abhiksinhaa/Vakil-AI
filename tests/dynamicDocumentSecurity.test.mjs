@@ -14,6 +14,7 @@ const page = read('app/documents/[documentKey]/page.tsx');
 const migration = read('docs/pending-security-migration/20261027000000_dynamic_document_security.sql');
 const form = read('src/components/DynamicDocumentForm.tsx');
 const client = read('src/lib/claude.ts');
+const account = read('src/lib/userAccount.ts');
 
 test('draft rows are restricted to their owner for read, insert, update, and delete', () => {
   assert.match(migration, /ALTER TABLE public\.drafts ENABLE ROW LEVEL SECURITY/);
@@ -28,6 +29,14 @@ test('generation API requires verified auth and enforces allowance server-side',
   assert.match(route, /Authentication required\./);
   assert.match(route, /calculateDraftAllowance\(profile as any, userId, supabaseAdmin\)/);
   assert.match(route, /if \(!allowance\.allowed\)/);
+  assert.match(route, /created_at, daily_draft_count, last_draft_date/);
+  assert.match(route, /'TRIAL_ENDED'/);
+  assert.match(route, /'DAILY_LIMIT_REACHED'/);
+  assert.match(route, /reserveTrialDraftAllowance\(userId, supabaseAdmin\)/);
+  assert.ok(route.indexOf('if (!allowance.allowed)') < route.indexOf('upstream = await fetch(url'));
+  assert.match(account, /\.gte\('created_at', start\)[\s\S]*?\.lt\('created_at', end\)/);
+  assert.match(account, /Math\.max\([\s\S]*?storedCount/);
+  assert.match(account, /daily_draft_count: used \+ 1/);
 });
 
 test('dynamic document page keeps the existing protected UI boundary', () => {

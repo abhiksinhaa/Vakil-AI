@@ -4,7 +4,11 @@ export const maxDuration = 60; // Allow up to 60s execution on Vercel
 
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { calculateDraftAllowance } from '../../../src/lib/userAccount';
+import {
+  calculateDraftAllowance,
+  releaseTrialDraftReservation,
+  reserveTrialDraftAllowance,
+} from '../../../src/lib/userAccount';
 import { requireUser } from '../../../src/lib/supabaseAdmin';
 import { getDynamicDocument } from '../../../src/lib/legal-documents/registry';
 import { getExistingPlanDraftLimit, normalizePlan } from '../../../src/lib/plans';
@@ -141,6 +145,8 @@ export async function POST(req: Request) {
 
   let body: any;
   let userId = 'unknown';
+  let shouldReserveTrialDraft = false;
+  let reservedTrialDayKey: string | null = null;
 
   try {
     const authenticatedUser = await requireUser(req);
@@ -158,13 +164,6 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Unknown dynamic document.' }, { status: 400 });
     }
 
-    console.log('Generate request received:', {
-      userId,
-      documentType,
-      hasApiKey: !!apiKey,
-    });
-    console.log('[api/gemini] GEMINI_API_KEY value length:', apiKey?.length);
-
     if (!apiKey || String(apiKey).includes('your_gemini_api_key')) {
       console.error('[api/gemini] API key not configured');
       return Response.json(
@@ -177,6 +176,13 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    console.log('Generate request received:', {
+      userId,
+      documentType,
+      hasApiKey: !!apiKey,
+    });
+    console.log('[api/gemini] GEMINI_API_KEY value length:', apiKey?.length);
 
     console.log('[api/gemini] Request body received, model:', body.model);
     
@@ -191,7 +197,7 @@ export async function POST(req: Request) {
 
     const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('plan, drafts_limit, drafts_used, plan_expires_at, org_id, organizations(*)')
+        .select('plan, drafts_limit, drafts_used, plan_expires_at, org_id, organizations(*), created_at, daily_draft_count, last_draft_date')
         .eq('id', userId)
         .maybeSingle();
 
@@ -274,13 +280,27 @@ export async function POST(req: Request) {
       const allowance = await calculateDraftAllowance(profile as any, userId, supabaseAdmin);
 
       if (!allowance.allowed) {
+        const code = allowance.reason === 'trial_ended'
+          ? 'TRIAL_ENDED'
+          : allowance.reason === 'daily_limit'
+            ? 'DAILY_LIMIT_REACHED'
+            : allowance.reason === 'plan_limit' && !allowance.isPro
+              ? 'FREE_LIMIT_REACHED'
+              : 'PLAN_LIMIT_REACHED';
         return Response.json(
-          { error: 'You have reached your monthly draft limit. Upgrade your plan to continue.' },
+          {
+            error: {
+              code,
+              message: allowance.message || 'Your draft allowance has been reached. Upgrade to continue.',
+            },
+            code,
+          },
           { status: 403 }
         )
       }
+      shouldReserveTrialDraft = allowance.trial?.active === true;
     }
-    
+
     const state = body.state;
     const courtLevel = body.court_level;
     
@@ -303,6 +323,23 @@ export async function POST(req: Request) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
       apiKey
     )}`;
+
+    if (shouldReserveTrialDraft) {
+      const reservation = await reserveTrialDraftAllowance(userId, supabaseAdmin);
+      if (!reservation.reserved) {
+        return Response.json(
+          {
+            error: {
+              code: 'DAILY_LIMIT_REACHED',
+              message: "Aaj ke 5 free drafts ho gaye. Your limit resets at midnight IST.",
+            },
+            code: 'DAILY_LIMIT_REACHED',
+          },
+          { status: 403 }
+        );
+      }
+      reservedTrialDayKey = reservation.dayKey;
+    }
 
     let upstream: Response;
     let data: any;
@@ -328,6 +365,11 @@ export async function POST(req: Request) {
         throw apiError;
       }
     } catch (error: any) {
+      if (reservedTrialDayKey) {
+        await releaseTrialDraftReservation(userId, reservedTrialDayKey, supabaseAdmin);
+        reservedTrialDayKey = null;
+      }
+
       console.error('Gemini API error:', {
         message: error.message,
         status: error.status,
@@ -363,8 +405,6 @@ export async function POST(req: Request) {
 
     if (upstream.status !== 200) {
       console.error('[api/gemini] Gemini API error response:', data);
-    } else if (userId !== 'unknown') {
-      // Drafts table is the single source of truth for counting. No manual increment needed.
     }
     
     return Response.json(data, { status: upstream.status });

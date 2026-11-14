@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import Navbar from './Navbar';
+import PricingPage from './PricingPage';
 import { useApp } from '../context/AppContext';
 import { saveDraft } from '../lib/db';
 import { checkDraftAllowance } from '../lib/userAccount';
-import { generateLegalDraft } from '../lib/claude';
+import { DraftGenerationError, generateLegalDraft } from '../lib/claude';
+import { getFreeTrialStatus } from '../lib/plans';
 import {
   buildDynamicDocumentPrompt,
   getActiveFields,
@@ -61,7 +63,7 @@ function renderField(
 }
 
 export default function DynamicDocumentForm({ definition }: { definition: DynamicDocumentDefinition }) {
-  const { session } = useApp();
+  const { session, profile, accountLoading } = useApp();
   const [values, setValues] = useState<DynamicDocumentValues>({});
   const [jurisdiction, setJurisdiction] = useState('');
   const [language, setLanguage] = useState('English');
@@ -69,9 +71,31 @@ export default function DynamicDocumentForm({ definition }: { definition: Dynami
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedDraft, setGeneratedDraft] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallNotice, setPaywallNotice] = useState<string | null>(null);
+  const [freeDraftsRemaining, setFreeDraftsRemaining] = useState<number | null>(null);
 
   const fields = useMemo(() => getActiveFields(definition, values), [definition, values]);
   const fieldErrors = (field: DynamicField) => errors.some((error) => error.startsWith(`${field.label} `));
+  const trial = profile?.plan === 'free' ? getFreeTrialStatus(profile.created_at) : null;
+
+  useEffect(() => {
+    if (!session?.user?.id || accountLoading) return;
+    let active = true;
+    checkDraftAllowance()
+      .then((allowance) => {
+        if (!active) return;
+        setFreeDraftsRemaining(allowance.remaining);
+        if (!allowance.isPro && !allowance.allowed && allowance.reason !== 'unauthenticated') {
+          setPaywallNotice(allowance.message || null);
+          setPaywallOpen(true);
+        }
+      })
+      .catch((err) => console.error('Failed to check document allowance:', err));
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id, accountLoading]);
 
   const updateValue = (id: string, value: string) => {
     setValues((current) => ({ ...current, [id]: value }));
@@ -84,12 +108,6 @@ export default function DynamicDocumentForm({ definition }: { definition: Dynami
     setGeneratedDraft('');
     setSaveMessage('');
 
-    const validationErrors = validateDynamicDocument(definition, values);
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
     if (!session?.user?.id) {
       setErrors(['Sign in to generate a document.']);
       return;
@@ -100,10 +118,32 @@ export default function DynamicDocumentForm({ definition }: { definition: Dynami
     try {
       const allowance = await checkDraftAllowance();
       if (!allowance.allowed) {
+        if (!allowance.isPro && allowance.reason !== 'unauthenticated') {
+          setPaywallNotice(allowance.message || null);
+          setPaywallOpen(true);
+          return;
+        }
         setErrors([allowance.message || 'Your draft allowance has been reached.']);
         return;
       }
+      setFreeDraftsRemaining(allowance.remaining);
+    } catch (allowanceError) {
+      console.error('Failed to verify document allowance:', allowanceError);
+      setErrors(['Could not verify your draft allowance. Please try again.']);
+      return;
+    } finally {
+      setIsGenerating(false);
+    }
 
+    const validationErrors = validateDynamicDocument(definition, values);
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setIsGenerating(true);
+    setErrors([]);
+    try {
       const promptValues = {
         ...values,
         __jurisdiction: jurisdiction.trim() || 'Not specified by user',
@@ -143,7 +183,16 @@ export default function DynamicDocumentForm({ definition }: { definition: Dynami
       }
     } catch (generationError) {
       console.error('Dynamic document generation failed:', generationError);
-      setErrors([generationError instanceof Error ? generationError.message : 'Draft generation failed. Please try again.']);
+      if (generationError instanceof DraftGenerationError && [
+        'TRIAL_ENDED',
+        'DAILY_LIMIT_REACHED',
+        'FREE_LIMIT_REACHED',
+      ].includes(generationError.code || '')) {
+        setPaywallNotice(generationError.message);
+        setPaywallOpen(true);
+      } else {
+        setErrors([generationError instanceof Error ? generationError.message : 'Draft generation failed. Please try again.']);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -164,6 +213,17 @@ export default function DynamicDocumentForm({ definition }: { definition: Dynami
             This draft is generated from information you provide and requires qualified legal review.
             Empty optional details will not be invented; uncertain legal references must be verified.
           </p>
+          {trial?.active && freeDraftsRemaining !== null && !accountLoading && (
+            <p className={`mt-3 rounded-xl border px-3 py-2 text-sm ${
+              trial.isLastTwoDays
+                ? 'border-amber-400/70 bg-amber-500/15 text-amber-100'
+                : 'border-gold/30 bg-gold/5 text-cream/75'
+            }`}>
+              {trial.isLastTwoDays ? 'Trial ka last stretch hai. ' : 'Your free trial: '}
+              {trial.daysLeft} {trial.daysLeft === 1 ? 'day' : 'days'} left, {freeDraftsRemaining ?? 5} drafts left today.
+              {' '}Daily limit resets at midnight IST.
+            </p>
+          )}
         </header>
 
         <form className="card space-y-6 p-5 sm:p-7" onSubmit={handleSubmit}>
@@ -234,6 +294,13 @@ export default function DynamicDocumentForm({ definition }: { definition: Dynami
           </section>
         )}
       </main>
+        {paywallOpen && (
+          <PricingPage
+            paywall
+            notice={paywallNotice}
+            onClose={() => setPaywallOpen(false)}
+          />
+        )}
     </div>
   );
 }

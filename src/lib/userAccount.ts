@@ -2,14 +2,22 @@ import { supabase } from './supabase';
 import type { User } from '@supabase/supabase-js';
 import type { Profile, Subscription } from './types';
 import { buildSubscriptionPayload } from './subscription';
-import { getExistingPlanDraftLimit, normalizePlan, PLAN_CONFIG } from './plans';
+import {
+  FREE_TRIAL_DAILY_DRAFT_LIMIT,
+  getExistingPlanDraftLimit,
+  getFreeTrialStatus,
+  getIstDateKey,
+  getIstDayRange,
+  normalizePlan,
+  PLAN_CONFIG,
+} from './plans';
 
 export const PLAN_PRICING = PLAN_CONFIG;
 
 export const FREE_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
 export const FREE_CHAT_DAILY_LIMIT = 5;
-export const DAILY_DRAFT_LIMIT = PLAN_CONFIG.free.draftsLimit;
-export const DAILY_DRAFT_LIMIT_MESSAGE = "You've used all 3 free drafts. Upgrade to continue.";
+export const DAILY_DRAFT_LIMIT = FREE_TRIAL_DAILY_DRAFT_LIMIT;
+export const DAILY_DRAFT_LIMIT_MESSAGE = "Aaj ke 5 free drafts ho gaye. Your limit resets at midnight IST.";
 export const PRO_PRICE_PAISE = PLAN_CONFIG.basic.monthlyAmount;
 export const PRO_PRICE_INR = PLAN_CONFIG.basic.monthlyAmount / 100;
 
@@ -59,7 +67,7 @@ async function getCurrentUser(): Promise<User | null> {
 }
 
 function getTodayKey(date = new Date()) {
-  return date.toISOString().slice(0, 10);
+  return getIstDateKey(date);
 }
 
 export async function checkAndHandlePlanExpiry(userId: string, profile?: Partial<Profile> | null | undefined) {
@@ -300,36 +308,28 @@ export async function fetchSubscription(): Promise<Subscription | null> {
   return data ? normalizeSubscription(data as Subscription) : null;
 }
 
-export async function calculateDraftAllowance(profile: Profile, userId: string, supabaseClient: any = supabase) {
+export async function calculateDraftAllowance(
+  profile: Profile,
+  userId: string,
+  supabaseClient: any = supabase,
+  now = new Date(),
+) {
   const userPlan = normalizePlan(profile?.plan);
   const isPro = userPlan !== 'free';
-  let limit = Number(profile?.drafts_limit ?? getExistingPlanDraftLimit(userPlan));
+  let limit = isPro
+    ? Number(profile?.drafts_limit ?? getExistingPlanDraftLimit(userPlan))
+    : Number(profile?.drafts_limit ?? getExistingPlanDraftLimit('free'));
   let isPooled = false;
-  let queryIds = [userId];
 
   if (profile?.org_id && profile?.organizations) {
     const orgData: any = profile.organizations;
     const orgLimit = Array.isArray(orgData) ? orgData[0]?.drafts_limit : orgData?.drafts_limit;
     if (orgLimit) limit = orgLimit;
     isPooled = true;
-    const { data: orgUsers } = await supabaseClient.from('profiles').select('id').eq('org_id', profile.org_id);
-    if (orgUsers) {
-      queryIds = orgUsers.map((u: any) => u.id);
-    }
   }
 
   if (isPro || isPooled) {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const { count } = await supabaseClient
-      .from('drafts')
-      .select('*', { count: 'exact', head: true })
-      .in('user_id', queryIds)
-      .gte('created_at', startOfMonth.toISOString());
-
-    const used = Math.max(0, Number(count ?? 0));
+    const used = Math.max(0, Number(profile?.drafts_used ?? 0));
     const remaining = Math.max(0, limit - used);
     return {
       allowed: remaining > 0,
@@ -342,12 +342,61 @@ export async function calculateDraftAllowance(profile: Profile, userId: string, 
     };
   }
 
-  // For free users, count lifetime drafts from the drafts table directly
-  const { count } = await supabaseClient
+  const trial = getFreeTrialStatus(profile?.created_at, now);
+  if (trial) {
+    if (!trial.active) {
+      return {
+        allowed: false,
+        isPro: false,
+        reason: 'trial_ended',
+        message: 'Your free trial has ended. Upgrade to continue drafting.',
+        used: 0,
+        limit: 0,
+        remaining: 0,
+        trial,
+      };
+    }
+
+    const { start, end } = getIstDayRange(now);
+    const { count, error } = await supabaseClient
+      .from('drafts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', start)
+      .lt('created_at', end);
+
+    if (error) throw error;
+    const storedDailyCount = String(profile?.last_draft_date ?? '').slice(0, 10) === getIstDateKey(now)
+      ? Number(profile?.daily_draft_count ?? 0)
+      : 0;
+    const used = Math.max(
+      0,
+      Number(count ?? 0),
+      Number.isFinite(storedDailyCount) ? storedDailyCount : 0,
+    );
+    const remaining = Math.max(0, FREE_TRIAL_DAILY_DRAFT_LIMIT - used);
+
+    return {
+      allowed: remaining > 0,
+      isPro: false,
+      reason: remaining > 0 ? 'ok' : 'daily_limit',
+      message: remaining > 0
+        ? null
+        : "Aaj ke 5 free drafts ho gaye. Your limit resets at midnight IST.",
+      used,
+      limit: FREE_TRIAL_DAILY_DRAFT_LIMIT,
+      remaining,
+      trial,
+    };
+  }
+
+  // Legacy free users retain their existing lifetime allowance.
+  const { count, error } = await supabaseClient
     .from('drafts')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
-    
+
+  if (error) throw error;
   const used = Math.max(0, Number(count ?? 0));
   const remaining = Math.max(0, limit - used);
   
@@ -359,7 +408,109 @@ export async function calculateDraftAllowance(profile: Profile, userId: string, 
     used,
     limit,
     remaining,
+    trial: null,
   };
+}
+
+export async function reserveTrialDraftAllowance(
+  userId: string,
+  supabaseClient: any,
+  now = new Date(),
+) {
+  const dayKey = getIstDateKey(now);
+  const { start, end } = getIstDayRange(now);
+  const { count: draftCount, error: countError } = await supabaseClient
+    .from('drafts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', start)
+    .lt('created_at', end);
+
+  if (countError) throw countError;
+  const savedDraftCount = Math.max(0, Number(draftCount ?? 0));
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const { data: current, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('daily_draft_count, last_draft_date')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (!current) throw new Error('Unable to reserve daily draft allowance: profile not found.');
+
+    const lastDraftDate = String(current.last_draft_date ?? '').slice(0, 10);
+    const storedCount = lastDraftDate === dayKey ? Number(current.daily_draft_count ?? 0) : 0;
+    const used = Math.max(
+      savedDraftCount,
+      Number.isFinite(storedCount) ? storedCount : 0,
+    );
+    const remaining = Math.max(0, FREE_TRIAL_DAILY_DRAFT_LIMIT - used);
+    if (remaining === 0) {
+      return { reserved: false, reason: 'daily_limit', used, remaining, dayKey };
+    }
+
+    let update = supabaseClient
+      .from('profiles')
+      .update({
+        daily_draft_count: used + 1,
+        last_draft_date: dayKey,
+        updated_at: now.toISOString(),
+      })
+      .eq('id', userId);
+
+    update = current.last_draft_date == null
+      ? update.is('last_draft_date', null)
+      : update.eq('last_draft_date', current.last_draft_date);
+    update = current.daily_draft_count == null
+      ? update.is('daily_draft_count', null)
+      : update.eq('daily_draft_count', current.daily_draft_count);
+
+    const { data: updated, error: updateError } = await update.select('id').maybeSingle();
+    if (updateError) throw updateError;
+    if (updated) {
+      return { reserved: true, reason: 'ok', used: used + 1, remaining: remaining - 1, dayKey };
+    }
+  }
+
+  throw new Error('Unable to reserve daily draft allowance due to concurrent requests.');
+}
+
+export async function releaseTrialDraftReservation(
+  userId: string,
+  dayKey: string,
+  supabaseClient: any,
+) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const { data: current, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('daily_draft_count, last_draft_date')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (!current || String(current.last_draft_date ?? '').slice(0, 10) !== dayKey) return;
+
+    const count = Number(current.daily_draft_count ?? 0);
+    if (!Number.isFinite(count) || count <= 0) return;
+
+    const { data: updated, error: updateError } = await supabaseClient
+      .from('profiles')
+      .update({
+        daily_draft_count: count - 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+      .eq('last_draft_date', current.last_draft_date)
+      .eq('daily_draft_count', current.daily_draft_count)
+      .select('id')
+      .maybeSingle();
+
+    if (updateError) throw updateError;
+    if (updated) return;
+  }
+
+  throw new Error('Unable to release daily draft allowance due to concurrent requests.');
 }
 
 export async function checkDraftAllowance() {

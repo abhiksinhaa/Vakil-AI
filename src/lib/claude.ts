@@ -4,6 +4,13 @@ import { DRAFT_TYPES } from '../data/legalDraftTypes';
 import { supabase } from './supabase';
 import { fetchWithTimeout } from './geminiHttp';
 
+export class DraftGenerationError extends Error {
+  constructor(message: string, public readonly code?: string, public readonly status?: number) {
+    super(message);
+    this.name = 'DraftGenerationError';
+  }
+}
+
 export function buildDraftPrompt(draftTypeId: string, userFactsText: string, structure: string[], language: string, incidentTiming: string) {
   const structureList = structure.map((s, i) => `${i + 1}. ${s}`).join('\n');
   const incidentLawGuide =
@@ -306,6 +313,18 @@ Generate the complete ${draftType} now:`;
       });
 
       if (!response.ok) {
+        const errorDetails = typeof data?.error === 'object' && data.error !== null
+          ? data.error
+          : {};
+        const code = errorDetails.code || data?.code;
+        const message = errorDetails.message ||
+          (typeof data?.error === 'string' ? data.error : null) ||
+          'Generation failed, please try again.';
+
+        if (['TRIAL_ENDED', 'DAILY_LIMIT_REACHED', 'FREE_LIMIT_REACHED'].includes(String(code))) {
+          throw new DraftGenerationError(message, String(code), response.status);
+        }
+
         console.error('[GEMINI_RAW_RESPONSE]', {
           traceId: requestTraceId,
           draftType,
@@ -356,6 +375,8 @@ Generate the complete ${draftType} now:`;
       return finalDraft;
 
     } catch (err: any) {
+      if (err instanceof DraftGenerationError) throw err;
+
       const isNetworkError =
         err?.name === 'AbortError' ||
         err instanceof TypeError ||
